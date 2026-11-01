@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anprobe – Outfit-Planer</title>
+<style>
+:root{--bg:#e8eaee;--panel:#fff;--ink:#161a26;--mute:#6b7285;--line:#d5d9e1;--acc:#3b3bff;--accsoft:#e7e7ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Avenir Next","Segoe UI",system-ui,sans-serif}
+h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;margin:0}
+h1{font-size:30px;font-style:italic;letter-spacing:-.5px}
+h2{font-size:20px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--ink);background:transparent;padding:7px 14px;border-radius:999px}
+button:hover{background:var(--ink);color:#fff}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.pri:hover{background:#2525d6}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 28px}
+main{display:grid;grid-template-columns:minmax(300px,1fr) 440px minmax(240px,300px);gap:20px;padding:0 28px 28px;align-items:start}
+section{background:var(--panel);border-radius:14px;padding:18px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chips button{padding:3px 11px;font-size:13px;border-color:var(--line)}
+.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.card{position:relative;border:2px solid transparent;border-radius:10px;background:#f6f7f9;cursor:pointer;overflow:hidden}
+.card.used{border-color:var(--acc)}
+.card img{display:block;width:100%;aspect-ratio:3/4;object-fit:contain;mix-blend-mode:multiply}
+.card .n{padding:4px 8px 7px;font-size:13px;line-height:1.25}
+.card .n small{display:block;color:var(--mute)}
+.card .x{position:absolute;top:5px;right:5px;display:none;gap:4px}
+.card:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+@media(hover:none){.card .x{display:flex}}
+.card:hover .x,.card:focus-within .x{display:flex}
+.x button{padding:0;width:26px;height:26px;background:#fff;border-radius:50%;font-size:13px;line-height:1;text-decoration:none;display:grid;place-items:center}
+.empty{color:var(--mute);padding:30px 6px;text-align:center;grid-column:1/-1}
+#stage{display:flex;flex-direction:column;align-items:center}
+#wrap{position:relative;max-width:100%}
+#board{position:absolute;left:0;top:0;transform-origin:0 0;width:400px;height:600px;background:#f3f4f7 radial-gradient(#c9ceda 1px,transparent 1px) 0 0/20px 20px;border-radius:10px;overflow:hidden;touch-action:none}
+#board .p{position:absolute;cursor:grab;user-select:none;mix-blend-mode:multiply;-webkit-user-drag:none}
+#board .p.sel{outline:2px dashed var(--acc);outline-offset:3px}
+#board .hint{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--mute);padding:40px;pointer-events:none}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
+.sub{color:var(--mute);font-size:13px;margin-top:8px;text-align:center}
+.out{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.mini{position:relative;width:84px;height:126px;flex:none;background:#f3f4f7;border-radius:6px;overflow:hidden}
+.mini>div{background:#f3f4f7;position:absolute;left:0;top:0;width:400px;height:600px;transform:scale(.21);transform-origin:0 0}
+.mini img{position:absolute;mix-blend-mode:multiply}
+.out b{font-weight:600;display:block;word-break:break-word}
+.out .b{display:flex;gap:6px;margin-top:6px}
+.out .b button{padding:2px 10px;font-size:13px}
+dialog{border:0;border-radius:14px;padding:22px;width:min(440px,92vw);box-shadow:0 20px 60px #0004}
+dialog::backdrop{background:#161a2699}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+#drop{border:2px dashed var(--line);border-radius:10px;min-height:170px;display:grid;place-items:center;text-align:center;color:var(--mute);cursor:pointer;padding:10px;margin-top:6px}
+#drop.over{border-color:var(--acc);background:var(--accsoft)}
+#drop img{max-width:100%;max-height:230px;mix-blend-mode:multiply}
+.row{display:flex;gap:8px}.row button{flex:none}
+#status{color:#b3261e;font-size:13px;min-height:18px;margin-top:6px}
+.foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+main>*{min-width:0}
+@media(max-width:1000px){main{grid-template-columns:minmax(0,1fr)}#stage{order:-1}}
+@media(prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Anprobe</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="exp" title="Alle Daten als Datei sichern">Backup</button><button id="imp" title="Backup-Datei einlesen">Wiederherstellen</button><input type="file" id="impf" accept="application/json" hidden><button class="pri" id="addBtn">+ Kleidungsstück hinzufügen</button></div>
+</header>
+
+<main>
+  <section aria-label="Kleiderschrank">
+    <div class="head"><h2>Kleiderschrank</h2><span id="count" style="color:var(--mute)"></span></div>
+    <div class="chips" id="chips"></div>
+    <div id="grid"></div>
+  </section>
+
+  <section id="stage" aria-label="Outfit">
+    <div class="head" style="width:100%"><h2>Outfit</h2><span id="saveState" style="color:var(--mute);font-size:13px"></span></div>
+    <div id="wrap"><div id="board"><div class="hint" id="hint">Tippe im Kleiderschrank auf ein Teil, um es hier anzuprobieren.</div></div></div>
+    <p class="sub">Ziehen verschiebt · Mausrad oder +/− skaliert · Doppelklick oder Entf entfernt das Teil</p>
+    <div class="tools">
+      <button id="bigger" title="Ausgewähltes Teil größer">+</button>
+      <button id="smaller" title="Ausgewähltes Teil kleiner">−</button>
+      <button id="front" title="Ausgewähltes Teil vor die anderen legen">Nach vorn</button>
+      <button id="shuffle">Zufällig kombinieren</button>
+      <button id="clear">Leeren</button>
+      <button id="png">Als Bild laden</button>
+      <button class="pri" id="save">Outfit speichern</button>
+    </div>
+  </section>
+
+  <section aria-label="Gespeicherte Outfits">
+    <div class="head"><h2>Gespeichert</h2></div>
+    <div id="outs"></div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle">Neues Teil</h2>
+  <div id="drop" tabindex="0">Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen</div>
+  <input type="file" id="file" accept="image/*" hidden>
+  <label for="url">Oder Link (Produktseite oder Bild-URL)</label>
+  <div class="row"><input id="url" placeholder="https://…"><button id="load">Laden</button></div>
+  <div id="status" role="status"></div>
+  <label for="name">Name</label><input id="name" placeholder="z. B. Beiger Trenchcoat">
+  <label for="cat">Kategorie</label><select id="cat"></select>
+  <div class="foot"><button id="cancel">Abbrechen</button><button class="pri" id="ok">Speichern</button></div>
+</dialog>
+
+<script>
+const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
+// Standardposition: x, y, Breite, Ebene
+const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
+const $ = id => document.getElementById(id);
+let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, K = 1;
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname) || /^(192\.168|10)\./.test(location.hostname);
+const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
+
+/* ---------- Speicher (IndexedDB, bleibt im Browser erhalten) ---------- */
+const idb = new Promise((res, rej) => {
+  const q = indexedDB.open('anprobe', 1);
+  q.onupgradeneeded = () => q.result.createObjectStore('kv');
+  q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+});
+async function load(){
+  for(let n = 0; n < 4; n++){
+    try{
+      const d = await idb;
+      const v = await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get('s'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+      if(v){ S = {items:v.items || [], outfits:v.outfits || []}; board = (v.board || []).filter(p => imgOf(p.id)); }
+      navigator.storage?.persist?.(); return true;
+    }catch(e){ await new Promise(r => setTimeout(r, 250)); }
+  }
+  return false; // Lesen fehlgeschlagen: nichts überschreiben
+}
+let pt = 0, ready = false;
+async function flush(){ clearTimeout(pt); pt = 0; if(!ready) return; S.board = board; try{ const d = await idb; d.transaction('kv','readwrite').objectStore('kv').put(S,'s'); }catch(e){} }
+function persist(){ if(!pt) pt = setTimeout(flush, 200); } // speichert spätestens 200 ms nach einer Änderung
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') flush(); });
+addEventListener('pagehide', flush);
+
+/* ---------- Bilder ---------- */
+const imgOf = id => (S.items.find(i => i.id === id) || {}).img;
+function shrink(src, max = 700){
+  return new Promise((res, rej) => {
+    const im = new Image(); if(/^https?:/.test(src)) im.crossOrigin = 'anonymous';
+    im.onload = () => {
+      const k = Math.min(1, max / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+      try{ res(c.toDataURL('image/jpeg', .88)); }catch(e){ rej(e); }
+    };
+    im.onerror = rej; im.src = src;
+  });
+}
+const readFile = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+
+/* ---------- Hinzufügen-Dialog ---------- */
+CATS.forEach(c => $('cat').add(new Option(c, c)));
+function openDlg(item){
+  editing = item || null; draft = {img:item ? item.img : null};
+  $('dlgTitle').textContent = item ? 'Teil bearbeiten' : 'Neues Teil';
+  if(item){ const i = new Image(); i.src = item.img; $('drop').replaceChildren(i); } else $('drop').textContent = DROP;
+  $('url').value = item ? item.link : ''; $('name').value = item ? item.name : ''; $('cat').value = item ? item.cat : CATS[0];
+  $('status').textContent = ''; if(!$('dlg').open) $('dlg').showModal();
+}
+async function setImg(src){ draft.img = await shrink(src); const i = new Image(); i.src = draft.img; $('drop').replaceChildren(i); }
+async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(!draft) draft = {img:null}; await setImg(await readFile(f)); } }
+$('addBtn').onclick = () => openDlg();
+$('cancel').onclick = () => $('dlg').close();
+$('drop').onclick = () => $('file').click();
+$('drop').onkeydown = e => { if(e.key === 'Enter') $('file').click(); };
+$('file').onchange = e => { takeFile(e.target.files[0]); e.target.value = ''; };
+$('url').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); $('load').click(); } };
+['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
+['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
+$('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
+document.addEventListener('paste', e => { const f = [...e.clipboardData.items].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
+
+$('load').onclick = async () => {
+  const u = $('url').value.trim(); if(!u) return;
+  $('status').style.color = 'var(--mute)'; $('status').textContent = 'Lade …';
+  let srv = '';
+  try{
+    const r = await fetch('/api/fetch?url=' + encodeURIComponent(u));
+    const j = await r.json(); if(j.error){ srv = j.error; throw 0; }
+    if(j.title && !$('name').value) $('name').value = j.title.slice(0,60);
+    await setImg(j.image); $('status').textContent = '';
+  }catch(e){
+    try{ // Fallback ohne Server: direkte Bild-URL
+      await setImg(await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(u); im.onerror = rej; im.src = u; }));
+      $('status').textContent = '';
+    }catch(e2){ $('status').style.color = '#b3261e'; $('status').textContent = (LOCAL ? (srv || 'Kein Bild gefunden. Läuft server.py?') + ' – alternativ Screenshot hochladen.' : 'Produktlinks gehen nur mit dem lokalen server.py. Hier klappen Screenshots und manche direkte Bild-URLs.'); }
+  }
+};
+$('ok').onclick = () => {
+  if(!draft || !draft.img){ $('status').style.color = '#b3261e'; $('status').textContent = 'Bitte zuerst ein Bild hinzufügen.'; return; }
+  const u = $('url').value.trim(), f = {img:draft.img, name:$('name').value.trim() || 'Ohne Namen', cat:$('cat').value, link:/^https?:/.test(u) ? u : ''};
+  if(editing){
+    Object.assign(editing, f);
+  } else S.items.unshift({id:'i'+Date.now(), ...f});
+  renderAll(); $('dlg').close();
+};
+
+/* ---------- Kleiderschrank ---------- */
+function renderChips(){
+  $('chips').replaceChildren(...['Alle',...CATS].map(c => { const b = document.createElement('button'); b.textContent = c; if(c === filter) b.className = 'on'; b.onclick = () => { filter = c; renderAll(); }; return b; }));
+}
+function renderGrid(){
+  const list = S.items.filter(i => filter === 'Alle' || i.cat === filter);
+  $('count').textContent = S.items.length + ' Teile';
+  if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (S.items.length ? 'Nichts in dieser Kategorie.' : 'Noch leer. Füge deinen ersten Screenshot oder Link hinzu.') + '</div>'; return; }
+  $('grid').replaceChildren(...list.map(i => {
+    const d = document.createElement('div'); d.className = 'card' + (board.some(p => p.id === i.id) ? ' used' : '');
+    d.innerHTML = '<img alt=""><div class="n"></div><div class="x"></div>';
+    d.querySelector('img').src = i.img;
+    d.querySelector('.n').innerHTML = '<span></span><small></small>';
+    d.querySelector('span').textContent = i.name; d.querySelector('small').textContent = i.cat;
+    const x = d.querySelector('.x');
+    if(i.link){ const a = document.createElement('button'); a.textContent = '↗'; a.title = 'Link öffnen'; a.onclick = e => { e.stopPropagation(); open(i.link, '_blank', 'noopener'); }; x.append(a); }
+    const ed = document.createElement('button'); ed.textContent = '✎'; ed.title = 'Bearbeiten'; ed.onclick = e => { e.stopPropagation(); openDlg(i); }; x.append(ed);
+    const del = document.createElement('button'); del.textContent = '✕'; del.title = 'Löschen'; del.setAttribute('aria-label', 'Löschen');
+    del.onclick = e => { e.stopPropagation(); if(confirm('„' + i.name + '“ löschen?')){ S.items = S.items.filter(k => k.id !== i.id); board = board.filter(p => p.id !== i.id); S.outfits.forEach(o => o.pieces = o.pieces.filter(p => p.id !== i.id)); renderAll(); } };
+    x.append(del);
+    d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-pressed', board.some(p => p.id === i.id));
+    d.onclick = () => toggle(i);
+    d.onkeydown = e => { if(e.target === d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); toggle(i); } };
+    return d;
+  }));
+}
+
+/* ---------- Outfit-Board ---------- */
+function toggle(i){
+  const ex = board.find(p => p.id === i.id);
+  if(ex) board = board.filter(p => p !== ex);
+  else { board = board.filter(p => (S.items.find(k => k.id === p.id) || {}).cat !== i.cat || i.cat === 'Accessoire'); const d = DEF[i.cat]; board.push({id:i.id, x:d[0], y:d[1], w:d[2]}); sel = i.id; }
+  renderAll();
+}
+const z = p => p.z ?? DEF[(S.items.find(i => i.id === p.id) || {}).cat]?.[3] ?? 1;
+function renderBoard(){
+  [...$('board').querySelectorAll('.p')].forEach(n => n.remove());
+  $('hint').style.display = board.length ? 'none' : 'grid';
+  board.forEach(p => {
+    const im = new Image(); im.src = imgOf(p.id); im.className = 'p' + (p.id === sel ? ' sel' : ''); im.draggable = false; im.alt = '';
+    Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:z(p)});
+    im.onpointerdown = e => {
+      e.preventDefault(); im.setPointerCapture(e.pointerId); sel = p.id;
+      document.querySelectorAll('.p').forEach(n => n.classList.remove('sel')); im.classList.add('sel');
+      const sx = e.clientX / K - p.x, sy = e.clientY / K - p.y;
+      im.onpointermove = m => { p.x = Math.max(40 - p.w, Math.min(360, m.clientX / K - sx)); p.y = Math.max(40 - im.offsetHeight, Math.min(560, m.clientY / K - sy)); im.style.left = p.x+'px'; im.style.top = p.y+'px'; };
+      im.onpointerup = () => { im.onpointermove = im.onpointerup = null; renderGrid(); persist(); };
+    };
+    im.ondblclick = () => { board = board.filter(k => k !== p); renderAll(); };
+    im.onwheel = e => { e.preventDefault(); resize(p, e.deltaY < 0 ? 1.06 : .94); };
+    $('board').append(im);
+  });
+  persist();
+}
+function resize(p, f){
+  const cx = p.x + p.w/2; p.w = Math.max(40, Math.min(560, p.w * f)); p.x = cx - p.w/2; renderBoard();
+}
+$('bigger').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, 1.1); };
+$('smaller').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, .9); };
+$('front').onclick = () => { const p = board.find(k => k.id === sel); if(p){ p.z = Math.max(...board.map(z)) + 1; renderBoard(); } };
+$('clear').onclick = () => { board = []; sel = null; renderAll(); };
+document.addEventListener('keydown', e => { if(e.key === 'Delete' && sel && !$('dlg').open && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){ board = board.filter(p => p.id !== sel); sel = null; renderAll(); } });
+const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+$('png').onclick = async () => {
+  if(!board.length) return;
+  const c = document.createElement('canvas'); c.width = 800; c.height = 1200; const x = c.getContext('2d');
+  x.fillStyle = '#f3f4f7'; x.fillRect(0, 0, 800, 1200); x.globalCompositeOperation = 'multiply';
+  for(const p of [...board].sort((a, b) => z(a) - z(b))){ const im = await loadImg(imgOf(p.id)); x.drawImage(im, p.x * 2, p.y * 2, p.w * 2, p.w * 2 * im.height / im.width); }
+  const a = document.createElement('a'); a.download = 'outfit.png'; a.href = c.toDataURL('image/png'); a.click();
+};
+$('exp').onclick = () => { S.board = board; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], {type:'application/json'})); a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); };
+$('imp').onclick = () => $('impf').click();
+$('impf').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  try{ const j = JSON.parse(await f.text()); if(!Array.isArray(j.items)) throw 0; if(!confirm('Aktuelle Daten durch das Backup ersetzen?')) return;
+    S = {items:j.items, outfits:j.outfits || []}; board = (j.board || []).filter(p => imgOf(p.id)); sel = null; renderAll();
+  }catch(err){ alert('Diese Datei ist kein gültiges Anprobe-Backup.'); }
+};
+function fit(){ K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * K}px;height:${600 * K}px`; $('board').style.transform = `scale(${K})`; }
+addEventListener('resize', () => { fit(); });
+$('shuffle').onclick = () => {
+  const pick = c => { const l = S.items.filter(i => i.cat === c); return l[Math.floor(Math.random()*l.length)]; };
+  board = [];
+  ['Oberteil','Hose/Rock','Schuhe'].concat(Math.random() < .5 ? ['Jacke'] : [], Math.random() < .35 ? ['Accessoire'] : []).forEach(c => { const i = pick(c); if(i){ const d = DEF[c]; board.push({id:i.id, x:d[0], y:d[1], w:d[2]}); } });
+  if(!board.length) alert('Füge zuerst Teile zum Kleiderschrank hinzu.');
+  renderAll();
+};
+$('save').onclick = () => {
+  if(!board.length) return;
+  const name = prompt('Name des Outfits:', 'Outfit ' + (S.outfits.length + 1)); if(name === null) return;
+  S.outfits.unshift({id:'o'+Date.now(), name:name.trim() || 'Outfit', pieces:JSON.parse(JSON.stringify(board))});
+  persist(); renderOuts();
+};
+
+/* ---------- Gespeicherte Outfits ---------- */
+function renderOuts(){
+  if(!S.outfits.length){ $('outs').innerHTML = '<div class="empty" style="padding:10px 0">Noch keine Outfits gespeichert.</div>'; return; }
+  $('outs').replaceChildren(...S.outfits.map(o => {
+    const d = document.createElement('div'); d.className = 'out';
+    d.innerHTML = '<div class="mini"><div></div></div><div><b></b><div class="b"><button>Laden</button><button>Löschen</button></div></div>';
+    d.querySelector('b').textContent = o.name;
+    o.pieces.forEach(p => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:z(p)}); d.querySelector('.mini>div').append(im); });
+    const [ld, rm] = d.querySelectorAll('button');
+    ld.onclick = () => { board = JSON.parse(JSON.stringify(o.pieces)).filter(p => imgOf(p.id)); sel = null; renderAll(); };
+    rm.onclick = () => { if(confirm('Outfit „' + o.name + '“ löschen?')){ S.outfits = S.outfits.filter(k => k !== o); persist(); renderOuts(); } };
+    return d;
+  }));
+}
+
+function renderAll(){ fit(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
+load().then(ok => { ready = ok; if(!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.'; renderAll(); });
+</script>
+</body>
+</html>
