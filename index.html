@@ -90,6 +90,23 @@ input[type=checkbox],input[type=range]{width:auto;padding:0}
 @media(max-width:1000px){main{grid-template-columns:minmax(0,1fr)}#stage{order:-1}}
 @media(max-width:560px){#panes,.g2{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+[hidden]{display:none!important}
+.card .n a.h{display:block;color:var(--acc);font-size:12px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .n a.h:hover{text-decoration:underline}
+#sum .r.on{background:var(--accsoft)}
+#sum .lay{display:flex;gap:2px;flex:none}
+#sum .lay button{padding:0;width:22px;height:22px;font-size:10px;border-color:var(--line);line-height:1}
+#sum .nm{cursor:pointer}
+#d3{width:min(500px,94vw)}
+#s3wrap{position:relative;margin:0 auto;overflow:hidden;border-radius:10px;background:radial-gradient(#fff,#e3e6ee);touch-action:none;cursor:grab}
+#scene3{position:absolute;left:0;top:0;width:400px;height:600px;perspective:1100px;transform-origin:0 0}
+#rot,#fig{position:absolute;inset:0;transform-style:preserve-3d}
+#floor{position:absolute;width:360px;height:360px;left:20px;border-radius:50%;background:radial-gradient(#0000002e,#0000 68%);transform:rotateX(90deg)}
+.grp{position:absolute;transform-style:preserve-3d}
+.grp img{position:absolute;left:0;top:0;width:100%;height:100%;-webkit-user-drag:none;user-select:none}
+.grp img.f,.grp img.b{backface-visibility:hidden}
+#opts3{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:12px}
+#opts3 button{padding:4px 12px;font-size:13px}
 </style>
 </head>
 <body>
@@ -113,8 +130,10 @@ input[type=checkbox],input[type=range]{width:auto;padding:0}
       <button id="bigger" title="Ausgewähltes Teil größer">+</button>
       <button id="smaller" title="Ausgewähltes Teil kleiner">−</button>
       <button id="front" title="Ausgewähltes Teil vor die anderen legen">Nach vorn</button>
+      <button id="back" title="Ausgewähltes Teil hinter die anderen legen">Nach hinten</button>
       <button id="shuffle">Zufällig kombinieren</button>
       <button id="clear">Leeren</button>
+      <button id="v3d">3D-Ansicht</button>
       <button id="png">Als Bild laden</button>
       <button class="pri" id="save">Outfit speichern</button>
     </div>
@@ -129,8 +148,8 @@ input[type=checkbox],input[type=range]{width:auto;padding:0}
 
 <dialog id="dlg">
   <h2 id="dlgTitle">Neues Teil</h2>
-  <label for="url">Link zum Produkt (Bild, Name und Preis werden geladen) oder Bild-URL</label>
-  <div class="row"><input id="url" placeholder="https://…"><button id="load">Laden</button></div>
+  <label for="url">Link zum Angebot (wird beim Teil gespeichert) oder Bild-URL</label>
+  <div class="row"><input id="url" placeholder="https://…"><button id="load" title="Bild, Name und Preis von der Seite holen">Daten laden</button></div>
   <div id="status" role="status"></div>
   <div id="panes">
     <div><div class="cap">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0"></div></div>
@@ -144,6 +163,7 @@ input[type=checkbox],input[type=range]{width:auto;padding:0}
     <button id="pick" type="button">Anderes Bild</button>
     <button id="rcrop" type="button">Ausschnitt zurücksetzen</button>
   </div>
+  <label class="ck" id="mirrorRow" hidden style="margin-top:10px"><input type="checkbox" id="mirror"> Zweiten Schuh ergänzen (gespiegelt, wenn nur ein Schuh zu sehen ist)</label>
   <div class="g2">
     <div><label for="name">Name</label><input id="name" placeholder="z. B. Beiger Trenchcoat"></div>
     <div><label for="cat">Kategorie</label><select id="cat"></select></div>
@@ -151,6 +171,17 @@ input[type=checkbox],input[type=range]{width:auto;padding:0}
   <label for="price">Preis</label>
   <div class="row"><input id="price" inputmode="decimal" placeholder="z. B. 49,99"><select id="cur" aria-label="Währung"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></div>
   <div class="foot"><button id="cancel">Abbrechen</button><button class="pri" id="ok">Speichern</button></div>
+</dialog>
+
+<dialog id="d3">
+  <div class="head"><h2>3D-Ansicht</h2><button id="d3x">Schließen</button></div>
+  <div id="s3wrap"><div id="scene3"><div id="rot"><div id="floor"></div><div id="fig"></div></div></div></div>
+  <div id="opts3">
+    <label class="ck">Tiefe <input type="range" id="depth" min="4" max="60" value="22"></label>
+    <label class="ck"><input type="checkbox" id="spin"> Autodrehen</label>
+    <button id="r3">Ansicht zurücksetzen</button>
+  </div>
+  <p class="sub">Ziehen dreht das Outfit. Die Rückseite wird aus der Vorderseite abgeleitet (gespiegelt und abgedunkelt) – eine Näherung, kein echtes Foto.</p>
 </dialog>
 
 <script>
@@ -189,7 +220,7 @@ async function load(){
     try{
       const d = await idb;
       const v = await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get('s'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
-      if(v){ S = {items:v.items || [], outfits:v.outfits || []}; board = (v.board || []).filter(p => imgOf(p.id)); }
+      if(v){ S = {items:v.items || [], outfits:v.outfits || []}; board = fixOrder((v.board || []).filter(p => imgOf(p.id))); S.outfits.forEach(o => fixOrder(o.pieces)); }
       navigator.storage?.persist?.(); return true;
     }catch(e){ await new Promise(r => setTimeout(r, 250)); }
   }
@@ -262,6 +293,24 @@ async function aiCut(cv){ // optional: genaues KI-Freistellen im Browser (lädt 
   const blob = await m.removeBackground(cv.toDataURL('image/png'), {progress:(k, c, t) => { if(t) status('KI: ' + Math.round(c / t * 100) + ' %'); }});
   const im = await loadImg(URL.createObjectURL(blob)), o = document.createElement('canvas'); o.width = im.width; o.height = im.height; o.getContext('2d').drawImage(im, 0, 0); return o;
 }
+function countParts(cv){ // zählt getrennte Teile (z. B. Schuhpaar = 2)
+  const k = Math.min(1, 160 / Math.max(cv.width, cv.height)), w = Math.max(1, Math.round(cv.width * k)), h = Math.max(1, Math.round(cv.height * k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(cv, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, seen = new Uint8Array(w * h), sizes = [];
+  for(let s0 = 0; s0 < w * h; s0++){
+    if(seen[s0] || d[s0*4+3] < 128) continue; const list = [s0]; seen[s0] = 1;
+    for(let q = 0; q < list.length; q++){ const i = list[q], px = i % w, py = (i / w) | 0;
+      for(const j of [px > 0 ? i-1 : -1, px < w-1 ? i+1 : -1, py > 0 ? i-w : -1, py < h-1 ? i+w : -1]) if(j >= 0 && !seen[j] && d[j*4+3] >= 128){ seen[j] = 1; list.push(j); } }
+    sizes.push(list.length);
+  }
+  const big = Math.max(0, ...sizes); return sizes.filter(n => n >= big * .3 && n >= 20).length;
+}
+function mirrorPair(cv){ // ergänzt einen gespiegelten zweiten Schuh
+  const g = Math.round(cv.width * .04), o = document.createElement('canvas'); o.width = cv.width * 2 + g; o.height = cv.height; const x = o.getContext('2d');
+  x.drawImage(cv, 0, 0); x.save(); x.translate(o.width, 0); x.scale(-1, 1); x.drawImage(cv, 0, 0); x.restore(); return o;
+}
+const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false});
+function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(draft) $('mirror').checked = !!draft.mirror; }
 let tok = 0;
 async function process(){
   if(!draft || !draft.orig) return; const my = ++tok; draft.busy = true;
@@ -278,9 +327,10 @@ async function process(){
       else out = cutout(cv, draft.tol);
       out = trim(out);
     }
+    if($('cat').value === 'Schuhe'){ if(draft.rm && !draft.mirrorTouched) draft.mirror = countParts(out) < 2; if(draft.mirror) out = mirrorPair(out); } else draft.mirror = false;
     if(my !== tok) return;
     draft.img = cut ? out.toDataURL('image/png') : out.toDataURL('image/jpeg', .9); draft.cut = cut;
-    const r = new Image(); r.src = draft.img; r.alt = ''; $('res').replaceChildren(r);
+    const r = new Image(); r.src = draft.img; r.alt = ''; $('res').replaceChildren(r); syncMirror();
   }catch(e){ if(my === tok) status('Bild konnte nicht verarbeitet werden.', true); }
   finally{ if(my === tok) draft.busy = false; }
 }
@@ -288,6 +338,8 @@ let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process
 
 /* ---------- Hinzufügen/Bearbeiten-Dialog ---------- */
 CATS.forEach(c => $('cat').add(new Option(c, c)));
+const CATRX = [[/schuh|sneaker|stiefel|boot|shoe|loafer|sandale|sandal|pumps|trainer|slipper/i, 'Schuhe'], [/jacke|mantel|coat|jacket|blazer|parka|weste|anorak|trench|bomber/i, 'Jacke'], [/hose|jeans|pants|trouser|chino|shorts?\b|rock\b|skirt|jogger|leggings/i, 'Hose/Rock'], [/shirt|pullover|hoodie|sweat|top\b|bluse|hemd|polo|strick|cardigan|longsleeve|tank|kleid|dress/i, 'Oberteil'], [/tasche|bag\b|mütze|cap\b|beanie|gürtel|belt|schal|scarf|uhr\b|watch|brille|hut\b|hat\b|rucksack|handschuh/i, 'Accessoire']];
+function autoCat(t){ const m = CATRX.find(([r]) => r.test(t)); if(m){ $('cat').value = m[1]; syncMirror(); } }
 function status(t, err){ $('status').textContent = t; $('status').className = err ? 'err' : ''; }
 function showOrig(){
   const d = $('drop');
@@ -306,11 +358,10 @@ function showOrig(){
     };
   };
 }
-function syncOpts(){ $('rm').checked = draft.rm; $('tol').value = draft.tol; $('tol').disabled = !draft.rm || draft.alpha; $('ai').disabled = !draft.rm || draft.alpha; }
+function syncOpts(){ syncMirror(); $('rm').checked = draft.rm; $('tol').value = draft.tol; $('tol').disabled = !draft.rm || draft.alpha; $('ai').disabled = !draft.rm || draft.alpha; }
 function openDlg(it){
   editing = it || null;
-  draft = it ? {orig:it.orig || it.img, alpha:!!it.alpha, crop:null, rm:it.orig ? !!it.cut : true, tol:28, ai:false, img:it.img, cut:!!it.cut}
-             : {orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false};
+  draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
   $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
   $('url').value = it ? it.link || '' : ''; $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
@@ -320,7 +371,7 @@ function openDlg(it){
   if(!$('dlg').open) $('dlg').showModal();
 }
 async function setSource(src){
-  if(!draft) draft = {orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false};
+  if(!draft) draft = blank();
   const n = await norm(src); draft.orig = n.url; draft.alpha = n.alpha; draft.crop = null; draft.ai = false; showOrig(); syncOpts(); await process();
 }
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
@@ -335,6 +386,8 @@ $('url').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); $('load')
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
 document.addEventListener('paste', e => { const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
+$('cat').onchange = () => { syncMirror(); if(draft && draft.orig) process(); };
+$('mirror').onchange = () => { draft.mirror = $('mirror').checked; draft.mirrorTouched = true; process(); };
 $('rm').onchange = () => { draft.rm = $('rm').checked; draft.ai = false; syncOpts(); process(); };
 $('tol').oninput = () => { draft.tol = +$('tol').value; draft.ai = false; processSoon(); };
 $('ai').onclick = () => { if(!draft.orig) return; draft.ai = true; process(); };
@@ -387,6 +440,7 @@ $('load').onclick = async () => {
     if(/\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(u)) src = await getImg(u);
     else { info = parsePage(await getText(u), u); if(!info.image) throw new Error('Auf der Seite wurde kein Produktbild gefunden. Nutze einen Screenshot.'); src = await getImg(info.image); }
     if(info.title && !$('name').value) $('name').value = info.title.slice(0, 70);
+    if(info.title) autoCat(info.title);
     if(info.price != null){ $('price').value = info.price.toFixed(2).replace('.', ','); if([...$('cur').options].some(o => o.value === info.cur)) $('cur').value = info.cur; }
     await setSource(src);
     status(info.price != null ? 'Bild, Name und Preis geladen – bitte kurz prüfen.' : info.image ? 'Bild geladen. Einen Preis habe ich nicht gefunden – trage ihn ggf. ein.' : '');
@@ -397,7 +451,7 @@ $('ok').onclick = () => {
   if(!draft || !draft.img){ status('Bitte zuerst ein Bild hinzufügen.', true); return; }
   if(draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
   const u = $('url').value.trim(), pr = parsePrice($('price').value);
-  const f = {img:draft.img, orig:draft.orig, alpha:draft.alpha, cut:draft.cut, name:$('name').value.trim() || 'Ohne Namen', cat:$('cat').value, link:/^https?:/.test(u) ? u : '', price:pr, cur:$('cur').value};
+  const f = {img:draft.img, orig:draft.orig, alpha:draft.alpha, cut:draft.cut, mirror:!!draft.mirror, name:$('name').value.trim() || 'Ohne Namen', cat:$('cat').value, link:/^https?:/.test(u) ? u : '', price:pr, cur:$('cur').value};
   if(editing) Object.assign(editing, f); else S.items.unshift({id:'i'+Date.now(), ...f});
   renderAll(); $('dlg').close();
 };
@@ -416,6 +470,7 @@ function renderGrid(){
     const im = d.querySelector('img'); im.src = i.img; if(!i.cut) im.classList.add('mb');
     d.querySelector('span').textContent = i.name;
     d.querySelector('small').textContent = i.cat + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
+    if(/^https?:/.test(i.link || '')){ const a = document.createElement('a'); a.className = 'h'; a.href = i.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = (hostOf(i.link) || 'Angebot') + ' ↗'; a.title = i.link; a.onclick = e => e.stopPropagation(); a.onkeydown = e => e.stopPropagation(); d.querySelector('.n').append(a); }
     const x = d.querySelector('.x');
     if(i.link){ const a = document.createElement('button'); a.textContent = '↗'; a.title = 'Zum Angebot'; a.setAttribute('aria-label', 'Zum Angebot'); a.onclick = e => { e.stopPropagation(); open(i.link, '_blank', 'noopener'); }; x.append(a); }
     const ed = document.createElement('button'); ed.textContent = '✎'; ed.title = 'Bearbeiten'; ed.setAttribute('aria-label', 'Bearbeiten'); ed.onclick = e => { e.stopPropagation(); openDlg(i); }; x.append(ed);
@@ -433,21 +488,25 @@ function renderGrid(){
 function toggle(i){
   const ex = board.find(p => p.id === i.id);
   if(ex){ board = board.filter(p => p !== ex); if(sel === i.id) sel = null; }
-  else { board = board.filter(p => item(p.id)?.cat !== i.cat || i.cat === 'Accessoire'); const d = DEF[i.cat]; board.push({id:i.id, x:d[0], y:d[1], w:d[2]}); }
+  else { board = board.filter(p => item(p.id)?.cat !== i.cat || i.cat === 'Accessoire'); addPiece(i); }
   if(sel && !board.some(p => p.id === sel)) sel = null;
   renderAll();
 }
-const z = p => p.z ?? DEF[item(p.id)?.cat]?.[3] ?? 1;
+const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; // Standard-Reihenfolge von hinten nach vorn
+const rank = id => RANK[item(id)?.cat] ?? 2;
+function addPiece(i){ const d = DEF[i.cat]; let k = board.length; while(k > 0 && rank(board[k-1].id) > RANK[i.cat]) k--; board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2]}); }
+function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
+function moveLayer(id, to){ const k = board.findIndex(p => p.id === id); if(k < 0) return; const [p] = board.splice(k, 1); board.splice(Math.max(0, Math.min(board.length, to)), 0, p); renderBoard(); }
 function renderBoard(){
   [...$('board').querySelectorAll('.p')].forEach(n => n.remove());
   $('hint').style.display = board.length ? 'none' : 'grid';
-  ['bigger','smaller','front'].forEach(id => $(id).disabled = !sel);
-  board.forEach(p => {
+  ['bigger','smaller','front','back'].forEach(id => $(id).disabled = !sel);
+  board.forEach((p, idx) => {
     const im = new Image(); im.src = imgOf(p.id); im.className = 'p' + (p.id === sel ? ' sel' : '') + mb(item(p.id)); im.draggable = false; im.alt = '';
-    Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:z(p)});
+    Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1});
     im.onpointerdown = e => {
       e.preventDefault(); e.stopPropagation(); im.setPointerCapture(e.pointerId);
-      if(sel !== p.id){ sel = p.id; document.querySelectorAll('.p').forEach(n => n.classList.remove('sel')); im.classList.add('sel'); ['bigger','smaller','front'].forEach(id => $(id).disabled = false); }
+      if(sel !== p.id){ sel = p.id; document.querySelectorAll('.p').forEach(n => n.classList.remove('sel')); im.classList.add('sel'); ['bigger','smaller','front','back'].forEach(id => $(id).disabled = false); }
       const sx = e.clientX / K - p.x, sy = e.clientY / K - p.y;
       im.onpointermove = m => { p.x = Math.max(40 - p.w, Math.min(360, m.clientX / K - sx)); p.y = Math.max(40 - im.offsetHeight, Math.min(560, m.clientY / K - sy)); im.style.left = p.x+'px'; im.style.top = p.y+'px'; };
       im.onpointerup = () => { im.onpointermove = im.onpointerup = null; renderGrid(); persist(); };
@@ -462,17 +521,18 @@ $('board').addEventListener('pointerdown', e => { if(e.target === $('board') && 
 function resize(p, f){ const cx = p.x + p.w/2; p.w = Math.max(40, Math.min(560, p.w * f)); p.x = cx - p.w/2; renderBoard(); }
 $('bigger').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, 1.1); };
 $('smaller').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, .9); };
-$('front').onclick = () => { const p = board.find(k => k.id === sel); if(p){ p.z = Math.max(...board.map(z)) + 1; renderBoard(); } };
+$('front').onclick = () => { if(sel) moveLayer(sel, board.length); };
+$('back').onclick = () => { if(sel) moveLayer(sel, 0); };
 $('clear').onclick = () => { board = []; sel = null; renderAll(); };
 document.addEventListener('keydown', e => {
-  if($('dlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if($('dlg').open || $('d3').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.key === 'Delete' && sel){ board = board.filter(p => p.id !== sel); sel = null; renderAll(); }
   if(e.key === 'Escape' && sel){ sel = null; renderBoard(); }
 });
 $('shuffle').onclick = () => {
   const pick = c => { const l = S.items.filter(i => i.cat === c); return l[Math.floor(Math.random()*l.length)]; };
   board = []; sel = null;
-  ['Oberteil','Hose/Rock','Schuhe'].concat(Math.random() < .5 ? ['Jacke'] : [], Math.random() < .35 ? ['Accessoire'] : []).forEach(c => { const i = pick(c); if(i){ const d = DEF[c]; board.push({id:i.id, x:d[0], y:d[1], w:d[2]}); } });
+  ['Oberteil','Hose/Rock','Schuhe'].concat(Math.random() < .5 ? ['Jacke'] : [], Math.random() < .35 ? ['Accessoire'] : []).forEach(c => { const i = pick(c); if(i) addPiece(i); });
   if(!board.length) alert('Füge zuerst Teile zum Kleiderschrank hinzu.');
   renderAll();
 };
@@ -480,7 +540,7 @@ $('png').onclick = async () => {
   if(!board.length) return;
   const c = document.createElement('canvas'); c.width = 800; c.height = 1200; const x = c.getContext('2d');
   x.fillStyle = '#f3f4f7'; x.fillRect(0, 0, 800, 1200);
-  for(const p of [...board].sort((a, b) => z(a) - z(b))){ const im = await loadImg(imgOf(p.id)); x.globalCompositeOperation = item(p.id)?.cut ? 'source-over' : 'multiply'; x.drawImage(im, p.x * 2, p.y * 2, p.w * 2, p.w * 2 * im.height / im.width); }
+  for(const p of board){ const im = await loadImg(imgOf(p.id)); x.globalCompositeOperation = item(p.id)?.cut ? 'source-over' : 'multiply'; x.drawImage(im, p.x * 2, p.y * 2, p.w * 2, p.w * 2 * im.height / im.width); }
   const a = document.createElement('a'); a.download = 'outfit.png'; a.href = c.toDataURL('image/png'); a.click();
 };
 function totals(pieces){
@@ -488,17 +548,21 @@ function totals(pieces){
   pieces.forEach(p => { const it = item(p.id); if(!it) return; if(it.price == null) miss++; else { const c = it.cur || 'EUR'; by[c] = (by[c] || 0) + it.price; } });
   return {txt:Object.entries(by).map(([c, v]) => money(v, c)).join(' + '), miss};
 }
+const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./, ''); }catch(e){ return ''; } };
 function renderSum(){
   const box = $('sum'); box.replaceChildren(); if(!board.length) return;
-  [...board].sort((a, b) => CATS.indexOf(item(a.id)?.cat) - CATS.indexOf(item(b.id)?.cat)).forEach(p => {
-    const it = item(p.id); if(!it) return;
-    const r = document.createElement('div'); r.className = 'r';
-    const n = document.createElement('span'); n.textContent = it.name; n.title = it.name;
+  const h = document.createElement('div'); h.className = 'm'; h.style.margin = '0 0 4px'; h.textContent = 'Ebenen (oben liegt vorn) · Preis · Angebot'; box.append(h);
+  for(let k = board.length - 1; k >= 0; k--){
+    const p = board[k], it = item(p.id); if(!it) continue;
+    const r = document.createElement('div'); r.className = 'r' + (p.id === sel ? ' on' : '');
+    const lay = document.createElement('span'); lay.className = 'lay';
+    [['▲', 'Eine Ebene nach vorn', k + 1, k < board.length - 1], ['▼', 'Eine Ebene nach hinten', k - 1, k > 0]].forEach(([t, ti, to, en]) => { const bt = document.createElement('button'); bt.textContent = t; bt.title = ti; bt.setAttribute('aria-label', ti + ': ' + it.name); bt.disabled = !en; bt.onclick = () => moveLayer(p.id, to); lay.append(bt); });
+    const n = document.createElement('span'); n.className = 'nm'; n.textContent = it.name; n.title = it.name; n.onclick = () => { sel = p.id; renderBoard(); };
     const pr = document.createElement('span'); pr.textContent = it.price != null ? money(it.price, it.cur) : '–';
-    r.append(n, pr);
-    if(/^https?:/.test(it.link || '')){ const a = document.createElement('a'); a.href = it.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = '↗'; a.title = 'Zum Angebot'; a.setAttribute('aria-label', 'Zum Angebot von ' + it.name); r.append(a); }
+    r.append(lay, n, pr);
+    if(/^https?:/.test(it.link || '')){ const a = document.createElement('a'); a.href = it.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = (hostOf(it.link) || 'Angebot') + ' ↗'; a.title = 'Zum Angebot: ' + it.link; r.append(a); }
     box.append(r);
-  });
+  }
   const t = totals(board), d = document.createElement('div'); d.className = 't';
   d.innerHTML = '<span>Gesamt</span><span></span>'; d.lastChild.textContent = t.txt || '–'; box.append(d);
   if(t.miss){ const m = document.createElement('div'); m.className = 'm'; m.textContent = 'Bei ' + t.miss + (t.miss === 1 ? ' Teil fehlt' : ' Teilen fehlt') + ' der Preis.'; box.append(m); }
@@ -514,7 +578,7 @@ $('imp').onclick = () => $('impf').click();
 $('impf').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   try{ const j = JSON.parse(await f.text()); if(!Array.isArray(j.items)) throw 0; if(!confirm('Aktuelle Daten durch das Backup ersetzen?')) return;
-    S = {items:j.items, outfits:j.outfits || []}; board = (j.board || []).filter(p => imgOf(p.id)); sel = null; renderAll();
+    S = {items:j.items, outfits:j.outfits || []}; board = fixOrder((j.board || []).filter(p => imgOf(p.id))); S.outfits.forEach(o => fixOrder(o.pieces)); sel = null; renderAll();
   }catch(err){ alert('Diese Datei ist kein gültiges Anprobe-Backup.'); }
 };
 function fit(){ K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * K}px;height:${600 * K}px`; $('board').style.transform = `scale(${K})`; }
@@ -527,16 +591,68 @@ function renderOuts(){
     const d = document.createElement('div'); d.className = 'out';
     d.innerHTML = '<div class="mini"><div></div></div><div><b></b><small></small><div class="b"><button>Laden</button><button>Löschen</button></div></div>';
     d.querySelector('b').textContent = o.name; d.querySelector('small').textContent = totals(o.pieces).txt;
-    o.pieces.forEach(p => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:z(p)}); d.querySelector('.mini>div').append(im); });
+    o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1}); d.querySelector('.mini>div').append(im); });
     const [ld, rm] = d.querySelectorAll('button');
-    ld.onclick = () => { board = JSON.parse(JSON.stringify(o.pieces)).filter(p => imgOf(p.id)); sel = null; renderAll(); };
+    ld.onclick = () => { board = fixOrder(JSON.parse(JSON.stringify(o.pieces)).filter(p => imgOf(p.id))); sel = null; renderAll(); };
     rm.onclick = () => { if(confirm('Outfit „' + o.name + '“ löschen?')){ S.outfits = S.outfits.filter(k => k !== o); persist(); renderOuts(); } };
     return d;
   }));
 }
 
 function renderAll(){ fit(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
-load().then(ok => { ready = ok; if(!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.'; renderAll(); });
+/* ---------- Browser-Erweiterung (Rechtsklick auf ein Bild) ---------- */
+const incoming = [], seenExt = new Set();
+const toExt = o => { try{ postMessage({source:'anprobe-app', ...o}, location.origin); }catch(e){} };
+const okSrc = v => typeof v === 'string' && v.length < 14e6 && (/^data:image\//.test(v) || /^https?:\/\//.test(v));
+function nextIncoming(){
+  if(!ready || $('dlg').open || $('d3').open) return;
+  const it = incoming.shift(); if(!it) return;
+  openDlg(); const lk = /^https?:\/\//.test(it.link || '') ? it.link : '';
+  $('url').value = lk; if(it.title) $('name').value = String(it.title).slice(0, 70);
+  const pr = parsePrice(it.price); if(pr != null){ $('price').value = pr.toFixed(2).replace('.', ','); const c = String(it.cur || '').toUpperCase(); if([...$('cur').options].some(o => o.value === c)) $('cur').value = c; }
+  autoCat(String(it.title || '')); status('Über die Erweiterung hinzugefügt – bitte Ausschnitt, Kategorie und Preis prüfen.');
+  (/^data:/.test(it.image || '') ? Promise.resolve(it.image) : getImg(it.image || it.src)).then(setSource).catch(e => status(e.message || 'Bild konnte nicht geladen werden.', true));
+}
+addEventListener('message', e => {
+  const m = e.data; if(e.source !== window || !m || m.source !== 'anprobe-ext' || m.type !== 'add' || !Array.isArray(m.items)) return;
+  const ids = m.items.map(i => i && i.id).filter(Boolean);
+  m.items.forEach(i => { if(i && i.id && !seenExt.has(i.id) && okSrc(i.image || i.src)){ seenExt.add(i.id); incoming.push(i); } });
+  toExt({type:'ack', ids}); nextIncoming();
+});
+$('dlg').addEventListener('close', () => setTimeout(nextIncoming, 150));
+
+/* ---------- 3D-Ansicht (CSS-3D, ohne Bibliothek) ---------- */
+let ang = -28, tilt = -8, spinRaf = 0, b3 = 0;
+const setRot = () => { $('rot').style.transform = `rotateX(${tilt}deg) rotateY(${ang}deg)`; };
+function fit3(){ const k = Math.min(1, (Math.min(innerWidth * .94, 500) - 46) / 400); $('s3wrap').style.cssText = `width:${400 * k}px;height:${600 * k}px`; $('scene3').style.transform = `scale(${k})`; }
+async function build3d(){
+  const my = ++b3, D = +$('depth').value, n = board.length, fig = document.createElement('div'); let bottom = 40;
+  for(let i = 0; i < n; i++){
+    const p = board[i], it = item(p.id); if(!it) continue; const im = await loadImg(it.img), h = p.w * im.height / im.width; bottom = Math.max(bottom, p.y + h);
+    const g = document.createElement('div'); g.className = 'grp'; Object.assign(g.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', height:h+'px', transform:`translateZ(${(i - (n - 1) / 2) * Math.max(8, D * .5)}px)`});
+    const mk = (cls, tf, flt) => { const e = new Image(); e.src = it.img; e.alt = ''; e.draggable = false; e.className = cls; e.style.transform = tf; if(flt) e.style.filter = flt; g.append(e); };
+    for(let k = 1; k < 13; k++) mk('m', `translateZ(${(k / 13 - .5) * D}px)`, 'brightness(.5)');
+    mk('b', `translateZ(${-D / 2}px) rotateY(180deg)`, 'brightness(.72)'); mk('f', `translateZ(${D / 2}px)`, '');
+    fig.append(g);
+  }
+  if(my !== b3) return; $('fig').replaceChildren(...fig.children); $('floor').style.top = Math.min(560, bottom) - 180 + 'px'; setRot();
+}
+function spin(){ cancelAnimationFrame(spinRaf); if(!$('d3').open || !$('spin').checked) return; ang += .5; setRot(); spinRaf = requestAnimationFrame(spin); }
+$('v3d').onclick = () => {
+  if(!board.length){ alert('Lege zuerst Teile aufs Board, dann kannst du das Outfit in 3D ansehen.'); return; }
+  $('spin').checked = !matchMedia('(prefers-reduced-motion: reduce)').matches; $('d3').showModal(); fit3(); build3d().then(spin);
+};
+$('d3x').onclick = () => $('d3').close(); $('d3').addEventListener('close', () => { cancelAnimationFrame(spinRaf); setTimeout(nextIncoming, 150); });
+$('spin').onchange = spin; $('r3').onclick = () => { ang = -28; tilt = -8; setRot(); };
+let dt3; $('depth').oninput = () => { clearTimeout(dt3); dt3 = setTimeout(build3d, 120); };
+$('s3wrap').onpointerdown = e => {
+  e.preventDefault(); const w = $('s3wrap'); w.setPointerCapture(e.pointerId); w.style.cursor = 'grabbing'; let lx = e.clientX, ly = e.clientY;
+  w.onpointermove = m => { ang += (m.clientX - lx) * .6; tilt = Math.max(-40, Math.min(25, tilt - (m.clientY - ly) * .3)); lx = m.clientX; ly = m.clientY; setRot(); };
+  w.onpointerup = () => { w.onpointermove = w.onpointerup = null; w.style.cursor = 'grab'; };
+};
+addEventListener('resize', () => { if($('d3').open) fit3(); });
+
+load().then(ok => { ready = ok; if(!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.'; renderAll(); toExt({type:'ready'}); nextIncoming(); });
 </script>
 </body>
 </html>

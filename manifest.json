@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Anprobe – Zum Kleiderschrank hinzufügen",
+  "version": "1.0.0",
+  "description": "Rechtsklick auf ein Bild einer Webseite: Kleidungsstück samt Link und Preis in deinem Anprobe-Kleiderschrank speichern.",
+  "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Anprobe öffnen" },
+  "content_scripts": [
+    {
+      "matches": ["https://chriswittenbecher.github.io/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+}
