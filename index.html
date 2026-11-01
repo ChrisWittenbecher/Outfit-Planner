@@ -1,658 +1,188 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anprobe – Outfit-Planer</title>
-<style>
-:root{--bg:#e8eaee;--panel:#fff;--ink:#161a26;--mute:#6b7285;--line:#d5d9e1;--acc:#3b3bff;--accsoft:#e7e7ff}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Avenir Next","Segoe UI",system-ui,sans-serif}
-h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;margin:0}
-h1{font-size:30px;font-style:italic;letter-spacing:-.5px}
-h2{font-size:20px}
-button,input,select{font:inherit;color:inherit}
-button{cursor:pointer;border:1px solid var(--ink);background:transparent;padding:7px 14px;border-radius:999px}
-button:hover:not(:disabled){background:var(--ink);color:#fff}
-button:disabled{opacity:.35;cursor:not-allowed}
-button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
-button.pri:hover:not(:disabled){background:#2525d6;border-color:#2525d6}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 28px}
-main{display:grid;grid-template-columns:minmax(300px,1fr) 440px minmax(240px,300px);gap:20px;padding:0 28px 28px;align-items:start}
-main>*{min-width:0}
-section{background:var(--panel);border-radius:14px;padding:18px}
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
-.chips button{padding:3px 11px;font-size:13px;border-color:var(--line)}
-.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
-.card{position:relative;border:2px solid transparent;border-radius:10px;background:#f6f7f9;cursor:pointer;overflow:hidden}
-.card.used{border-color:var(--acc)}
-.card:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-.card img{display:block;width:100%;aspect-ratio:3/4;object-fit:contain;padding:6px}
-.mb{mix-blend-mode:multiply}
-.card .n{padding:2px 8px 8px;font-size:13px;line-height:1.25}
-.card .n small{display:block;color:var(--mute)}
-.card .n b{font-weight:600}
-.card .x{position:absolute;top:5px;right:5px;display:none;gap:4px}
-.card:hover .x,.card:focus-within .x{display:flex}
-@media(hover:none){.card .x{display:flex}}
-.x button{padding:0;width:26px;height:26px;background:#fff;border-radius:50%;font-size:13px;line-height:1;display:grid;place-items:center}
-.empty{color:var(--mute);padding:30px 6px;text-align:center;grid-column:1/-1}
-#stage{display:flex;flex-direction:column;align-items:center}
-#wrap{position:relative;max-width:100%}
-#board{position:absolute;left:0;top:0;transform-origin:0 0;width:400px;height:600px;background:#f3f4f7 radial-gradient(#c9ceda 1px,transparent 1px) 0 0/20px 20px;border-radius:10px;overflow:hidden;touch-action:none}
-#board .p{position:absolute;cursor:grab;user-select:none;-webkit-user-drag:none}
-#board .p.sel{outline:2px dashed var(--acc);outline-offset:3px}
-#board .hint{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--mute);padding:40px;pointer-events:none}
-.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
-.sub{color:var(--mute);font-size:13px;margin-top:8px;text-align:center}
-#sum{width:100%;margin-top:16px}
-#sum .r{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
-#sum .r span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#sum a{color:var(--acc);text-decoration:none;font-weight:600}
-#sum .t{display:flex;justify-content:space-between;border-top:2px solid var(--ink);padding-top:8px;margin-top:2px;font-weight:600}
-#sum .m{color:var(--mute);font-size:12px;font-weight:400;margin-top:2px}
-.out{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
-.mini{position:relative;width:84px;height:126px;flex:none;background:#f3f4f7;border-radius:6px;overflow:hidden}
-.mini>div{background:#f3f4f7;position:absolute;left:0;top:0;width:400px;height:600px;transform:scale(.21);transform-origin:0 0}
-.mini img{position:absolute}
-.out b{font-weight:600;display:block;word-break:break-word}
-.out small{color:var(--mute)}
-.out .b{display:flex;gap:6px;margin-top:6px}
-.out .b button{padding:2px 10px;font-size:13px}
-dialog{border:0;border-radius:14px;padding:22px;width:min(720px,94vw);max-height:92vh;overflow:auto;box-shadow:0 20px 60px #0004}
-dialog::backdrop{background:#161a2699}
-label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
-input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
-input[type=checkbox],input[type=range]{width:auto;padding:0}
-#panes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-.cap{font-size:12px;color:var(--mute);margin-bottom:4px}
-#drop,#res{border-radius:10px;min-height:230px;display:grid;place-items:center;text-align:center;color:var(--mute);padding:8px;overflow:hidden}
-#drop{border:2px dashed var(--line);cursor:pointer}
-#drop.over{border-color:var(--acc);background:var(--accsoft)}
-#drop.has{border:2px solid var(--line);cursor:default;padding:0;background:#f3f4f7}
-#pv{position:relative;display:inline-block;line-height:0;cursor:crosshair;touch-action:none;max-width:100%}
-#pv img{max-width:100%;max-height:300px;display:block;user-select:none;-webkit-user-drag:none}
-#selbox{position:absolute;border:2px solid var(--acc);background:#3b3bff22;display:none;pointer-events:none}
-#res{border:2px solid var(--line);background:conic-gradient(#e5e7ec 25%,#fff 0 50%,#e5e7ec 0 75%,#fff 0) 0 0/16px 16px}
-#res img{max-width:100%;max-height:300px;display:block}
-#opts{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:12px}
-#opts button{padding:4px 12px;font-size:13px}
-.ck{display:flex;align-items:center;gap:6px;color:var(--ink);margin:0}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.row{display:flex;gap:8px}.row button{flex:none}
-.row select{width:84px;flex:none}
-#status{color:var(--mute);font-size:13px;min-height:18px;margin-top:6px}
-#status.err{color:#b3261e}
-.foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-@media(max-width:1000px){main{grid-template-columns:minmax(0,1fr)}#stage{order:-1}}
-@media(max-width:560px){#panes,.g2{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
-[hidden]{display:none!important}
-.card .n a.h{display:block;color:var(--acc);font-size:12px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .n a.h:hover{text-decoration:underline}
-#sum .r.on{background:var(--accsoft)}
-#sum .lay{display:flex;gap:2px;flex:none}
-#sum .lay button{padding:0;width:22px;height:22px;font-size:10px;border-color:var(--line);line-height:1}
-#sum .nm{cursor:pointer}
-#d3{width:min(500px,94vw)}
-#s3wrap{position:relative;margin:0 auto;overflow:hidden;border-radius:10px;background:radial-gradient(#fff,#e3e6ee);touch-action:none;cursor:grab}
-#scene3{position:absolute;left:0;top:0;width:400px;height:600px;perspective:1100px;transform-origin:0 0}
-#rot,#fig{position:absolute;inset:0;transform-style:preserve-3d}
-#floor{position:absolute;width:360px;height:360px;left:20px;border-radius:50%;background:radial-gradient(#0000002e,#0000 68%);transform:rotateX(90deg)}
-.grp{position:absolute;transform-style:preserve-3d}
-.grp img{position:absolute;left:0;top:0;width:100%;height:100%;-webkit-user-drag:none;user-select:none}
-.grp img.f,.grp img.b{backface-visibility:hidden}
-#opts3{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:12px}
-#opts3 button{padding:4px 12px;font-size:13px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anprobe – Outfit-Planer</title>
+  <meta name="description" content="Plane Outfits aus Screenshots und Shop-Links: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
+  <meta name="color-scheme" content="light">
+  <!-- Datenschutz: beim Laden von Produktbildern wird nicht verraten, von welcher Seite die Anfrage kommt. -->
+  <meta name="referrer" content="no-referrer">
+  <!--
+    Content-Security-Policy (strikt, ohne 'unsafe-inline'):
+    - script-src: eigene Dateien + jsDelivr (nur für das optionale KI-Freistellen, dynamischer Import)
+    - 'wasm-unsafe-eval': nötig, damit das KI-Modell (WebAssembly) laufen darf
+    - style-src 'self': alle Styles liegen in css/styles.css (JS darf Styles per CSSOM setzen)
+    - img-src: Produktbilder kommen von beliebigen https-Shops sowie als data:/blob: aus dem Canvas
+    - connect-src: nur eigener Ursprung und die festen Abruf-Dienste für den Link-Import
+    - worker-src blob: für den KI-Worker, media-src blob: für den Kamera-Stream (Schritt 3)
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.allorigins.win https://api.codetabs.com https://staticimgly.com https://cdn.jsdelivr.net; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon128.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
 </head>
 <body>
-<header>
-  <h1>Anprobe</h1>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="exp" title="Alle Daten als Datei sichern">Backup</button><button id="imp" title="Backup-Datei einlesen">Wiederherstellen</button><input type="file" id="impf" accept="application/json" hidden><button class="pri" id="addBtn">+ Kleidungsstück hinzufügen</button></div>
-</header>
+  <a class="skip" href="#main">Zum Inhalt springen</a>
 
-<main>
-  <section aria-label="Kleiderschrank">
-    <div class="head"><h2>Kleiderschrank</h2><span id="count" style="color:var(--mute)"></span></div>
-    <div class="chips" id="chips"></div>
-    <div id="grid"></div>
-  </section>
-
-  <section id="stage" aria-label="Outfit">
-    <div class="head" style="width:100%"><h2>Outfit</h2><span id="saveState" style="color:var(--mute);font-size:13px"></span></div>
-    <div id="wrap"><div id="board"><div class="hint" id="hint">Tippe im Kleiderschrank auf ein Teil, um es hier anzuprobieren.</div></div></div>
-    <p class="sub">Teil anklicken wählt es aus · Ziehen verschiebt · Mausrad oder +/− skaliert · Klick ins Leere hebt die Auswahl auf · Doppelklick oder Entf entfernt</p>
-    <div class="tools">
-      <button id="bigger" title="Ausgewähltes Teil größer">+</button>
-      <button id="smaller" title="Ausgewähltes Teil kleiner">−</button>
-      <button id="front" title="Ausgewähltes Teil vor die anderen legen">Nach vorn</button>
-      <button id="back" title="Ausgewähltes Teil hinter die anderen legen">Nach hinten</button>
-      <button id="shuffle">Zufällig kombinieren</button>
-      <button id="clear">Leeren</button>
-      <button id="v3d">3D-Ansicht</button>
-      <button id="png">Als Bild laden</button>
-      <button class="pri" id="save">Outfit speichern</button>
+  <header class="topbar">
+    <h1>Anprobe</h1>
+    <div class="actions" role="toolbar" aria-label="Hauptaktionen">
+      <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
+      <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
+      <input type="file" id="impf" accept="application/json" hidden>
+      <button type="button" class="pri" id="addBtn" aria-haspopup="dialog">+ Kleidungsstück hinzufügen</button>
     </div>
-    <div id="sum"></div>
-  </section>
+  </header>
 
-  <section aria-label="Gespeicherte Outfits">
-    <div class="head"><h2>Gespeichert</h2></div>
-    <div id="outs"></div>
-  </section>
-</main>
+  <main id="main" class="layout">
 
-<dialog id="dlg">
-  <h2 id="dlgTitle">Neues Teil</h2>
-  <label for="url">Link zum Angebot (wird beim Teil gespeichert) oder Bild-URL</label>
-  <div class="row"><input id="url" placeholder="https://…"><button id="load" title="Bild, Name und Preis von der Seite holen">Daten laden</button></div>
-  <div id="status" role="status"></div>
-  <div id="panes">
-    <div><div class="cap">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0"></div></div>
-    <div><div class="cap">Ergebnis</div><div id="res"><span>Noch kein Bild</span></div></div>
-  </div>
-  <input type="file" id="file" accept="image/*" hidden>
-  <div id="opts">
-    <label class="ck"><input type="checkbox" id="rm" checked> Hintergrund entfernen</label>
-    <label class="ck" title="Höher = mehr Hintergrund und Schatten werden entfernt">Toleranz <input type="range" id="tol" min="6" max="80" value="28"></label>
-    <button id="ai" type="button" title="Genauer, lädt beim ersten Mal ein KI-Modell (ca. 40 MB)">KI-Freistellen</button>
-    <button id="pick" type="button">Anderes Bild</button>
-    <button id="rcrop" type="button">Ausschnitt zurücksetzen</button>
-  </div>
-  <label class="ck" id="mirrorRow" hidden style="margin-top:10px"><input type="checkbox" id="mirror"> Zweiten Schuh ergänzen (gespiegelt, wenn nur ein Schuh zu sehen ist)</label>
-  <div class="g2">
-    <div><label for="name">Name</label><input id="name" placeholder="z. B. Beiger Trenchcoat"></div>
-    <div><label for="cat">Kategorie</label><select id="cat"></select></div>
-  </div>
-  <label for="price">Preis</label>
-  <div class="row"><input id="price" inputmode="decimal" placeholder="z. B. 49,99"><select id="cur" aria-label="Währung"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></div>
-  <div class="foot"><button id="cancel">Abbrechen</button><button class="pri" id="ok">Speichern</button></div>
-</dialog>
+    <!-- ===== Spalte 1: Kleiderschrank ===== -->
+    <section class="panel" aria-labelledby="wardrobeTitle">
+      <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
 
-<dialog id="d3">
-  <div class="head"><h2>3D-Ansicht</h2><button id="d3x">Schließen</button></div>
-  <div id="s3wrap"><div id="scene3"><div id="rot"><div id="floor"></div><div id="fig"></div></div></div></div>
-  <div id="opts3">
-    <label class="ck">Tiefe <input type="range" id="depth" min="4" max="60" value="22"></label>
-    <label class="ck"><input type="checkbox" id="spin"> Autodrehen</label>
-    <button id="r3">Ansicht zurücksetzen</button>
-  </div>
-  <p class="sub">Ziehen dreht das Outfit. Die Rückseite wird aus der Vorderseite abgeleitet (gespiegelt und abgedunkelt) – eine Näherung, kein echtes Foto.</p>
-</dialog>
+      <!-- Modul A: Produkt per Link (Schritt 1: nutzt den vorhandenen Import, Härtung folgt in Schritt 3) -->
+      <form id="linkForm" class="quick" novalidate aria-labelledby="linkTitle">
+        <h3 id="linkTitle">Produkt per Link hinzufügen</h3>
+        <label for="linkInput" class="sr-only">Link zum Produkt</label>
+        <div class="field-row">
+          <input id="linkInput" name="link" type="url" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="https://shop.de/produkt …" aria-describedby="linkHint linkStatus">
+          <button type="submit" class="pri" id="linkGo">Importieren</button>
+        </div>
+        <p id="linkHint" class="hint">Nur http(s)-Links. Name, Bild und Preis werden ausgelesen, wenn die Seite sie bereitstellt.</p>
+        <p id="linkStatus" class="status" role="status" aria-live="polite"></p>
+        <div class="quick-actions">
+          <!-- Modul B: Barcode-Scanner (Einstieg; wird in Schritt 3 aktiviert) -->
+          <button type="button" id="scanBtn" aria-haspopup="dialog" aria-describedby="scanSoon" disabled>Barcode scannen</button>
+          <span id="scanSoon" class="badge">folgt in Schritt 3</span>
+        </div>
+      </form>
 
-<script>
-const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
-// Standardposition: x, y, Breite, Ebene
-const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
-const $ = id => document.getElementById(id);
-const enc = encodeURIComponent;
-let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, K = 1;
-const LOCAL = ['localhost','127.0.0.1'].includes(location.hostname) || /^(192\.168|10)\./.test(location.hostname);
-const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
-const item = id => S.items.find(i => i.id === id);
-const imgOf = id => item(id)?.img;
-const mb = it => it && it.cut ? '' : ' mb';
-const loadImg = (src, cors) => new Promise((res, rej) => { const i = new Image(); if(cors) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
-const readFile = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
-const money = (v, c) => { try{ return new Intl.NumberFormat('de-DE', {style:'currency', currency:c || 'EUR'}).format(v); }catch(e){ return v.toFixed(2) + ' ' + c; } };
-function parsePrice(v){
-  if(v == null) return null; if(typeof v === 'number') return v;
-  let s = String(v).replace(/[^\d.,]/g, ''); if(!s) return null;
-  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
-  if(lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-  else if(lc > -1) s = /,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
-  else if(ld > -1 && !/\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
-  const n = parseFloat(s); return isFinite(n) ? n : null;
-}
+      <div class="chips" id="chips" role="group" aria-label="Nach Kategorie filtern"></div>
+      <div id="grid"></div>
+    </section>
 
-/* ---------- Speicher (IndexedDB, bleibt im Browser erhalten) ---------- */
-const idb = new Promise((res, rej) => {
-  const q = indexedDB.open('anprobe', 1);
-  q.onupgradeneeded = () => q.result.createObjectStore('kv');
-  q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
-});
-async function load(){
-  for(let n = 0; n < 4; n++){
-    try{
-      const d = await idb;
-      const v = await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get('s'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
-      if(v){ S = {items:v.items || [], outfits:v.outfits || []}; board = fixOrder((v.board || []).filter(p => imgOf(p.id))); S.outfits.forEach(o => fixOrder(o.pieces)); }
-      navigator.storage?.persist?.(); return true;
-    }catch(e){ await new Promise(r => setTimeout(r, 250)); }
-  }
-  return false; // Lesen fehlgeschlagen: nichts überschreiben
-}
-let pt = 0, ready = false;
-async function flush(){ clearTimeout(pt); pt = 0; if(!ready) return; S.board = board; try{ const d = await idb; d.transaction('kv','readwrite').objectStore('kv').put(S,'s'); }catch(e){} }
-function persist(){ if(!pt) pt = setTimeout(flush, 200); } // speichert spätestens 200 ms nach einer Änderung
-document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') flush(); });
-addEventListener('pagehide', flush);
+    <!-- ===== Spalte 2: Outfit-Board ===== -->
+    <section class="panel" id="stage" aria-labelledby="outfitTitle">
+      <div class="panel-head panel-head--full"><h2 id="outfitTitle">Outfit</h2><span id="saveState" class="meta" role="status"></span></div>
+      <div id="wrap">
+        <div id="board" role="group" aria-label="Anprobe-Board">
+          <div class="hint" id="hint">Tippe im Kleiderschrank auf ein Teil, um es hier anzuprobieren.</div>
+        </div>
+      </div>
+      <p class="sub">Teil anklicken wählt es aus · Ziehen verschiebt · Mausrad oder +/− skaliert · Klick ins Leere oder Esc hebt die Auswahl auf · Doppelklick oder Entf entfernt</p>
+      <div class="tools" role="toolbar" aria-label="Outfit bearbeiten">
+        <button type="button" id="bigger" title="Ausgewähltes Teil größer" aria-label="Größer">+</button>
+        <button type="button" id="smaller" title="Ausgewähltes Teil kleiner" aria-label="Kleiner">−</button>
+        <button type="button" id="front" title="Ausgewähltes Teil vor die anderen legen">Nach vorn</button>
+        <button type="button" id="back" title="Ausgewähltes Teil hinter die anderen legen">Nach hinten</button>
+        <button type="button" id="shuffle">Zufällig kombinieren</button>
+        <button type="button" id="clear">Leeren</button>
+        <button type="button" id="png">Als Bild laden</button>
+        <button type="button" class="pri" id="save">Outfit speichern</button>
+      </div>
 
-/* ---------- Bildverarbeitung: Zuschneiden & Freistellen ---------- */
-async function norm(src, max = 1000){ // verkleinert; behält Transparenz bei PNGs
-  const im = await loadImg(src, /^https?:/.test(src));
-  const k = Math.min(1, max / Math.max(im.width, im.height));
-  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
-  const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(im, 0, 0, c.width, c.height);
-  const d = x.getImageData(0, 0, c.width, c.height).data; let t = 0;
-  for(let i = 3; i < d.length; i += 16) if(d[i] < 240) t++;
-  const alpha = t > d.length / 16 * .01;
-  return {url: alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', .9), alpha};
-}
-function cutout(cv, tol){ // Hintergrund = vom Rand aus erreichbare, ähnlich gefärbte Fläche
-  const w = cv.width, h = cv.height, x = cv.getContext('2d', {willReadFrequently:true}), id = x.getImageData(0, 0, w, h), d = id.data, n = w * h;
-  const R = [], G = [], B = [], edge = i => { R.push(d[i*4]); G.push(d[i*4+1]); B.push(d[i*4+2]); };
-  for(let i = 0; i < w; i++){ edge(i); edge((h-1)*w + i); } for(let j = 1; j < h-1; j++){ edge(j*w); edge(j*w + w-1); }
-  const med = a => a.sort((p, q) => p - q)[a.length >> 1], mr = med(R), mg = med(G), mbl = med(B);
-  const dm = i => Math.hypot(d[i*4]-mr, d[i*4+1]-mg, d[i*4+2]-mbl);
-  const dp = (i, j) => Math.hypot(d[i*4]-d[j*4], d[i*4+1]-d[j*4+1], d[i*4+2]-d[j*4+2]);
-  const tg = tol * 2.4, ts = Math.max(5, tol * .3), bg = new Uint8Array(n), st = new Int32Array(n); let sp = 0;
-  const seed = i => { if(!bg[i] && (d[i*4+3] < 10 || dm(i) < tg)){ bg[i] = 1; st[sp++] = i; } };
-  for(let i = 0; i < w; i++){ seed(i); seed((h-1)*w + i); } for(let j = 0; j < h; j++){ seed(j*w); seed(j*w + w-1); }
-  while(sp){
-    const i = st[--sp], px = i % w, py = (i / w) | 0;
-    const nb = [px > 0 ? i-1 : -1, px < w-1 ? i+1 : -1, py > 0 ? i-w : -1, py < h-1 ? i+w : -1];
-    for(const j of nb) if(j >= 0 && !bg[j] && (d[j*4+3] < 10 || (dp(i, j) < ts && dm(j) < tg))){ bg[j] = 1; st[sp++] = j; }
-  }
-  // kleine Reste (Schatten, Etiketten) entfernen, größte Flächen behalten
-  const seen = new Uint8Array(n), comps = []; 
-  for(let s0 = 0; s0 < n; s0++){
-    if(bg[s0] || seen[s0]) continue;
-    const list = [s0]; seen[s0] = 1;
-    for(let q = 0; q < list.length; q++){ const i = list[q], px = i % w, py = (i / w) | 0;
-      for(const j of [px > 0 ? i-1 : -1, px < w-1 ? i+1 : -1, py > 0 ? i-w : -1, py < h-1 ? i+w : -1]) if(j >= 0 && !bg[j] && !seen[j]){ seen[j] = 1; list.push(j); } }
-    comps.push(list);
-  }
-  const big = Math.max(0, ...comps.map(c => c.length));
-  comps.forEach(c => { if(c.length < Math.max(30, n * .004) && c.length < big) c.forEach(i => bg[i] = 1); });
-  // Kante: 1 px abtragen und weichzeichnen
-  const fg = i => i < 0 || i >= n ? 1 : (bg[i] ? 0 : 1), er = new Uint8Array(n);
-  for(let i = 0; i < n; i++){ const px = i % w, py = (i / w) | 0; er[i] = !bg[i] && (px === 0 || fg(i-1)) && (px === w-1 || fg(i+1)) && (py === 0 || fg(i-w)) && (py === h-1 || fg(i+w)) ? 255 : 0; }
-  for(let py = 0; py < h; py++) for(let px = 0; px < w; px++){
-    let s = 0, c = 0; for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++){ const X = px+dx, Y = py+dy; if(X >= 0 && X < w && Y >= 0 && Y < h){ s += er[Y*w+X]; c++; } }
-    const i = py*w + px; d[i*4+3] = Math.round(s / c * d[i*4+3] / 255);
-  }
-  x.putImageData(id, 0, 0); return cv;
-}
-function trim(cv){ // schneidet transparenten Rand weg
-  const w = cv.width, h = cv.height, d = cv.getContext('2d', {willReadFrequently:true}).getImageData(0, 0, w, h).data;
-  let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++) if(d[(y*w + x)*4 + 3] > 16){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
-  if(x1 < 0) return cv;
-  const p = Math.round(Math.max(x1 - x0, y1 - y0) * .03) + 1; x0 = Math.max(0, x0-p); y0 = Math.max(0, y0-p); x1 = Math.min(w-1, x1+p); y1 = Math.min(h-1, y1+p);
-  const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
-  o.getContext('2d').drawImage(cv, x0, y0, o.width, o.height, 0, 0, o.width, o.height); return o;
-}
-async function aiCut(cv){ // optional: genaues KI-Freistellen im Browser (lädt Modell von jsDelivr/imgly)
-  status('KI-Modell wird geladen … (einmalig ca. 40 MB)');
-  const m = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-  const blob = await m.removeBackground(cv.toDataURL('image/png'), {progress:(k, c, t) => { if(t) status('KI: ' + Math.round(c / t * 100) + ' %'); }});
-  const im = await loadImg(URL.createObjectURL(blob)), o = document.createElement('canvas'); o.width = im.width; o.height = im.height; o.getContext('2d').drawImage(im, 0, 0); return o;
-}
-function countParts(cv){ // zählt getrennte Teile (z. B. Schuhpaar = 2)
-  const k = Math.min(1, 160 / Math.max(cv.width, cv.height)), w = Math.max(1, Math.round(cv.width * k)), h = Math.max(1, Math.round(cv.height * k));
-  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(cv, 0, 0, w, h);
-  const d = x.getImageData(0, 0, w, h).data, seen = new Uint8Array(w * h), sizes = [];
-  for(let s0 = 0; s0 < w * h; s0++){
-    if(seen[s0] || d[s0*4+3] < 128) continue; const list = [s0]; seen[s0] = 1;
-    for(let q = 0; q < list.length; q++){ const i = list[q], px = i % w, py = (i / w) | 0;
-      for(const j of [px > 0 ? i-1 : -1, px < w-1 ? i+1 : -1, py > 0 ? i-w : -1, py < h-1 ? i+w : -1]) if(j >= 0 && !seen[j] && d[j*4+3] >= 128){ seen[j] = 1; list.push(j); } }
-    sizes.push(list.length);
-  }
-  const big = Math.max(0, ...sizes); return sizes.filter(n => n >= big * .3 && n >= 20).length;
-}
-function mirrorPair(cv){ // ergänzt einen gespiegelten zweiten Schuh
-  const g = Math.round(cv.width * .04), o = document.createElement('canvas'); o.width = cv.width * 2 + g; o.height = cv.height; const x = o.getContext('2d');
-  x.drawImage(cv, 0, 0); x.save(); x.translate(o.width, 0); x.scale(-1, 1); x.drawImage(cv, 0, 0); x.restore(); return o;
-}
-const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false});
-function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(draft) $('mirror').checked = !!draft.mirror; }
-let tok = 0;
-async function process(){
-  if(!draft || !draft.orig) return; const my = ++tok; draft.busy = true;
-  try{
-    const im = await loadImg(draft.orig), c = draft.crop || {x:0, y:0, w:im.width, h:im.height};
-    const k = Math.min(1, 700 / Math.max(c.w, c.h)), cv = document.createElement('canvas');
-    cv.width = Math.max(1, Math.round(c.w * k)); cv.height = Math.max(1, Math.round(c.h * k));
-    cv.getContext('2d', {willReadFrequently:true}).drawImage(im, c.x, c.y, c.w, c.h, 0, 0, cv.width, cv.height);
-    let out = cv, cut = false;
-    if(draft.rm){
-      cut = true;
-      if(draft.alpha) out = cv;
-      else if(draft.ai){ try{ out = await aiCut(cv); status(''); }catch(e){ draft.ai = false; status('KI-Freistellen nicht verfügbar (Internet nötig). Nutze die normale Freistellung.', true); out = cutout(cv, draft.tol); } }
-      else out = cutout(cv, draft.tol);
-      out = trim(out);
-    }
-    if($('cat').value === 'Schuhe'){ if(draft.rm && !draft.mirrorTouched) draft.mirror = countParts(out) < 2; if(draft.mirror) out = mirrorPair(out); } else draft.mirror = false;
-    if(my !== tok) return;
-    draft.img = cut ? out.toDataURL('image/png') : out.toDataURL('image/jpeg', .9); draft.cut = cut;
-    const r = new Image(); r.src = draft.img; r.alt = ''; $('res').replaceChildren(r); syncMirror();
-  }catch(e){ if(my === tok) status('Bild konnte nicht verarbeitet werden.', true); }
-  finally{ if(my === tok) draft.busy = false; }
-}
-let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process, 120); };
+      <!-- Modul C: Accessoire-Arbeitsplatz (Schritt 2: Drehung und Position) -->
+      <section class="bench" id="workbench" aria-labelledby="benchTitle">
+        <h3 id="benchTitle">Accessoire-Arbeitsplatz</h3>
+        <p id="benchHint" class="hint">Wähle ein Accessoire auf dem Board, um es stufenlos zu drehen und zu positionieren.</p>
+        <fieldset id="benchControls" disabled aria-describedby="benchHint">
+          <legend class="sr-only">Drehung und Position des ausgewählten Accessoires</legend>
+          <div class="ctl">
+            <label for="rotRange">Drehung</label>
+            <input id="rotRange" type="range" min="0" max="359" step="1" value="0" aria-valuetext="0 Grad">
+            <output id="rotOut" for="rotRange">0°</output>
+          </div>
+          <div class="ctl">
+            <label for="posX">Position links/rechts</label>
+            <input id="posX" type="range" min="0" max="400" step="1" value="0">
+            <output id="posXOut" for="posX">0</output>
+          </div>
+          <div class="ctl">
+            <label for="posY">Position oben/unten</label>
+            <input id="posY" type="range" min="0" max="600" step="1" value="0">
+            <output id="posYOut" for="posY">0</output>
+          </div>
+          <div class="bench-actions">
+            <button type="button" class="small" id="rotMinus" aria-label="15 Grad nach links drehen">−15°</button>
+            <button type="button" class="small" id="rotPlus" aria-label="15 Grad nach rechts drehen">+15°</button>
+            <button type="button" class="small" id="rotReset">Drehung zurücksetzen</button>
+          </div>
+        </fieldset>
+      </section>
 
-/* ---------- Hinzufügen/Bearbeiten-Dialog ---------- */
-CATS.forEach(c => $('cat').add(new Option(c, c)));
-const CATRX = [[/schuh|sneaker|stiefel|boot|shoe|loafer|sandale|sandal|pumps|trainer|slipper/i, 'Schuhe'], [/jacke|mantel|coat|jacket|blazer|parka|weste|anorak|trench|bomber/i, 'Jacke'], [/hose|jeans|pants|trouser|chino|shorts?\b|rock\b|skirt|jogger|leggings/i, 'Hose/Rock'], [/shirt|pullover|hoodie|sweat|top\b|bluse|hemd|polo|strick|cardigan|longsleeve|tank|kleid|dress/i, 'Oberteil'], [/tasche|bag\b|mütze|cap\b|beanie|gürtel|belt|schal|scarf|uhr\b|watch|brille|hut\b|hat\b|rucksack|handschuh/i, 'Accessoire']];
-function autoCat(t){ const m = CATRX.find(([r]) => r.test(t)); if(m){ $('cat').value = m[1]; syncMirror(); } }
-function status(t, err){ $('status').textContent = t; $('status').className = err ? 'err' : ''; }
-function showOrig(){
-  const d = $('drop');
-  if(!draft || !draft.orig){ d.className = ''; d.textContent = DROP; return; }
-  d.className = 'has'; d.innerHTML = '<div id="pv"><img alt=""><div id="selbox"></div></div>';
-  const pv = $('pv'), im = pv.querySelector('img'), box = $('selbox'); im.src = draft.orig;
-  pv.onpointerdown = e => {
-    e.preventDefault(); pv.setPointerCapture(e.pointerId);
-    const r = im.getBoundingClientRect(), cl = (v, m) => Math.max(0, Math.min(m, v)), sx = cl(e.clientX - r.left, r.width), sy = cl(e.clientY - r.top, r.height); let cur = {x:sx, y:sy, w:0, h:0};
-    pv.onpointermove = m => { const ex = cl(m.clientX - r.left, r.width), ey = cl(m.clientY - r.top, r.height); cur = {x:Math.min(sx, ex), y:Math.min(sy, ey), w:Math.abs(ex - sx), h:Math.abs(ey - sy)}; Object.assign(box.style, {display:'block', left:cur.x+'px', top:cur.y+'px', width:cur.w+'px', height:cur.h+'px'}); };
-    pv.onpointerup = () => {
-      pv.onpointermove = pv.onpointerup = null;
-      if(cur.w < 12 || cur.h < 12){ draft.crop = null; box.style.display = 'none'; }
-      else { const kx = im.naturalWidth / r.width, ky = im.naturalHeight / r.height; draft.crop = {x:Math.round(cur.x*kx), y:Math.round(cur.y*ky), w:Math.round(cur.w*kx), h:Math.round(cur.h*ky)}; }
-      process();
-    };
-  };
-}
-function syncOpts(){ syncMirror(); $('rm').checked = draft.rm; $('tol').value = draft.tol; $('tol').disabled = !draft.rm || draft.alpha; $('ai').disabled = !draft.rm || draft.alpha; }
-function openDlg(it){
-  editing = it || null;
-  draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
-  $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
-  $('url').value = it ? it.link || '' : ''; $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
-  $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
-  status(''); showOrig(); syncOpts();
-  if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
-  else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
-  if(!$('dlg').open) $('dlg').showModal();
-}
-async function setSource(src){
-  if(!draft) draft = blank();
-  const n = await norm(src); draft.orig = n.url; draft.alpha = n.alpha; draft.crop = null; draft.ai = false; showOrig(); syncOpts(); await process();
-}
-async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
-$('addBtn').onclick = () => openDlg();
-$('cancel').onclick = () => $('dlg').close();
-$('drop').onclick = () => { if(!draft || !draft.orig) $('file').click(); };
-$('drop').onkeydown = e => { if(e.key === 'Enter' && (!draft || !draft.orig)) $('file').click(); };
-$('pick').onclick = () => $('file').click();
-$('file').onchange = e => { takeFile(e.target.files[0]); e.target.value = ''; };
-$('url').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); $('load').click(); } };
-['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
-['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
-document.addEventListener('paste', e => { const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
-$('cat').onchange = () => { syncMirror(); if(draft && draft.orig) process(); };
-$('mirror').onchange = () => { draft.mirror = $('mirror').checked; draft.mirrorTouched = true; process(); };
-$('rm').onchange = () => { draft.rm = $('rm').checked; draft.ai = false; syncOpts(); process(); };
-$('tol').oninput = () => { draft.tol = +$('tol').value; draft.ai = false; processSoon(); };
-$('ai').onclick = () => { if(!draft.orig) return; draft.ai = true; process(); };
-$('rcrop').onclick = () => { if(!draft) return; draft.crop = null; const b = $('selbox'); if(b) b.style.display = 'none'; process(); };
+      <div id="sum"></div>
+    </section>
 
-/* ---------- Link-Import (Bild, Name, Preis) ---------- */
-function parsePage(html, base){
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const m = k => doc.querySelector(`meta[property="${k}"],meta[name="${k}"]`)?.content?.trim() || '';
-  let title = m('og:title') || doc.title || '', image = m('og:image') || m('twitter:image'), price = parsePrice(m('product:price:amount') || m('og:price:amount')), cur = m('product:price:currency') || m('og:price:currency');
-  const prods = []; const walk = n => { if(!n || typeof n !== 'object') return; if(Array.isArray(n)) return n.forEach(walk); if([].concat(n['@type'] || []).includes('Product')) prods.push(n); if(n['@graph']) walk(n['@graph']); };
-  doc.querySelectorAll('script[type="application/ld+json"]').forEach(s => { try{ walk(JSON.parse(s.textContent)); }catch(e){} });
-  for(const p of prods){
-    if(!title) title = p.name || '';
-    if(!image){ const im = [].concat(p.image || [])[0]; image = typeof im === 'string' ? im : im?.url || ''; }
-    if(price == null){
-      const offers = [].concat(p.offers || []).flatMap(o => o && o.offers ? [].concat(o.offers) : [o]);
-      for(const o of offers){ const v = parsePrice(o?.price ?? o?.lowPrice ?? o?.priceSpecification?.price); if(v != null){ price = v; cur = cur || o.priceCurrency || o.priceSpecification?.priceCurrency || ''; break; } }
-    }
-  }
-  if(price == null){ const e = doc.querySelector('[itemprop=price]'); if(e) price = parsePrice(e.getAttribute('content') || e.textContent); }
-  if(image){ try{ image = new URL(image, base).href; }catch(e){ image = ''; } }
-  return {title:title.trim(), image, price, cur: cur.toUpperCase()};
-}
-function consent(){
-  try{ if(localStorage.getItem('anprobe_proxy') === '1') return true; }catch(e){}
-  if(!confirm('Hier läuft kein eigener Server. Für Produktlinks wird deshalb ein öffentlicher Abruf-Dienst genutzt (allorigins.win für Seiten, wsrv.nl für Bilder). Die Link-Adresse wird dabei an diese Dienste gesendet. Fortfahren?')) return false;
-  try{ localStorage.setItem('anprobe_proxy', '1'); }catch(e){} return true;
-}
-const PROXIES = ['https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
-async function getText(u){
-  if(LOCAL){ try{ const r = await fetch('/api/raw?url=' + enc(u)); if(r.ok) return await r.text(); }catch(e){} }
-  if(!consent()) throw new Error('Abgebrochen.');
-  for(const p of PROXIES){ try{ const r = await fetch(p + enc(u)); if(r.ok){ const t = await r.text(); if(t.length > 200) return t; } }catch(e){} }
-  throw new Error('Die Seite konnte nicht abgerufen werden.');
-}
-async function getImg(u){ // liefert eine Bildquelle, die sich in ein Canvas zeichnen lässt
-  if(LOCAL){ try{ const r = await fetch('/api/raw?url=' + enc(u)); if(r.ok) return await readFile(await r.blob()); }catch(e){} }
-  try{ await loadImg(u, true); return u; }catch(e){}
-  if(!consent()) throw new Error('Abgebrochen.');
-  const p = 'https://wsrv.nl/?url=' + enc(u) + '&w=1000&output=png';
-  try{ await loadImg(p, true); return p; }catch(e){ throw new Error('Das Bild konnte nicht geladen werden. Mach stattdessen einen Screenshot.'); }
-}
-$('load').onclick = async () => {
-  const u = $('url').value.trim();
-  if(!/^https?:\/\//i.test(u)){ status('Bitte einen Link mit https:// eingeben.', true); return; }
-  status('Lade …'); $('load').disabled = true;
-  try{
-    let src, info = {};
-    if(/\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(u)) src = await getImg(u);
-    else { info = parsePage(await getText(u), u); if(!info.image) throw new Error('Auf der Seite wurde kein Produktbild gefunden. Nutze einen Screenshot.'); src = await getImg(info.image); }
-    if(info.title && !$('name').value) $('name').value = info.title.slice(0, 70);
-    if(info.title) autoCat(info.title);
-    if(info.price != null){ $('price').value = info.price.toFixed(2).replace('.', ','); if([...$('cur').options].some(o => o.value === info.cur)) $('cur').value = info.cur; }
-    await setSource(src);
-    status(info.price != null ? 'Bild, Name und Preis geladen – bitte kurz prüfen.' : info.image ? 'Bild geladen. Einen Preis habe ich nicht gefunden – trage ihn ggf. ein.' : '');
-  }catch(e){ status(e.message || 'Konnte nichts laden.', true); }
-  finally{ $('load').disabled = false; }
-};
-$('ok').onclick = () => {
-  if(!draft || !draft.img){ status('Bitte zuerst ein Bild hinzufügen.', true); return; }
-  if(draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
-  const u = $('url').value.trim(), pr = parsePrice($('price').value);
-  const f = {img:draft.img, orig:draft.orig, alpha:draft.alpha, cut:draft.cut, mirror:!!draft.mirror, name:$('name').value.trim() || 'Ohne Namen', cat:$('cat').value, link:/^https?:/.test(u) ? u : '', price:pr, cur:$('cur').value};
-  if(editing) Object.assign(editing, f); else S.items.unshift({id:'i'+Date.now(), ...f});
-  renderAll(); $('dlg').close();
-};
+    <!-- ===== Spalte 3: Gespeicherte Outfits ===== -->
+    <section class="panel" aria-labelledby="savedTitle">
+      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2></div>
+      <div id="outs"></div>
+    </section>
+  </main>
 
-/* ---------- Kleiderschrank ---------- */
-function renderChips(){
-  $('chips').replaceChildren(...['Alle',...CATS].map(c => { const b = document.createElement('button'); b.textContent = c; if(c === filter) b.className = 'on'; b.onclick = () => { filter = c; renderAll(); }; return b; }));
-}
-function renderGrid(){
-  const list = S.items.filter(i => filter === 'Alle' || i.cat === filter);
-  $('count').textContent = S.items.length + ' Teile';
-  if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (S.items.length ? 'Nichts in dieser Kategorie.' : 'Noch leer. Füge deinen ersten Screenshot oder Link hinzu.') + '</div>'; return; }
-  $('grid').replaceChildren(...list.map(i => {
-    const d = document.createElement('div'); d.className = 'card' + (board.some(p => p.id === i.id) ? ' used' : '');
-    d.innerHTML = '<img alt=""><div class="n"><span></span><small></small></div><div class="x"></div>';
-    const im = d.querySelector('img'); im.src = i.img; if(!i.cut) im.classList.add('mb');
-    d.querySelector('span').textContent = i.name;
-    d.querySelector('small').textContent = i.cat + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
-    if(/^https?:/.test(i.link || '')){ const a = document.createElement('a'); a.className = 'h'; a.href = i.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = (hostOf(i.link) || 'Angebot') + ' ↗'; a.title = i.link; a.onclick = e => e.stopPropagation(); a.onkeydown = e => e.stopPropagation(); d.querySelector('.n').append(a); }
-    const x = d.querySelector('.x');
-    if(i.link){ const a = document.createElement('button'); a.textContent = '↗'; a.title = 'Zum Angebot'; a.setAttribute('aria-label', 'Zum Angebot'); a.onclick = e => { e.stopPropagation(); open(i.link, '_blank', 'noopener'); }; x.append(a); }
-    const ed = document.createElement('button'); ed.textContent = '✎'; ed.title = 'Bearbeiten'; ed.setAttribute('aria-label', 'Bearbeiten'); ed.onclick = e => { e.stopPropagation(); openDlg(i); }; x.append(ed);
-    const del = document.createElement('button'); del.textContent = '✕'; del.title = 'Löschen'; del.setAttribute('aria-label', 'Löschen');
-    del.onclick = e => { e.stopPropagation(); if(confirm('„' + i.name + '“ löschen?')){ S.items = S.items.filter(k => k.id !== i.id); board = board.filter(p => p.id !== i.id); if(sel === i.id) sel = null; S.outfits.forEach(o => o.pieces = o.pieces.filter(p => p.id !== i.id)); renderAll(); } };
-    x.append(del);
-    d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-pressed', board.some(p => p.id === i.id));
-    d.onclick = () => toggle(i);
-    d.onkeydown = e => { if(e.target === d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); toggle(i); } };
-    return d;
-  }));
-}
+  <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
 
-/* ---------- Outfit-Board ---------- */
-function toggle(i){
-  const ex = board.find(p => p.id === i.id);
-  if(ex){ board = board.filter(p => p !== ex); if(sel === i.id) sel = null; }
-  else { board = board.filter(p => item(p.id)?.cat !== i.cat || i.cat === 'Accessoire'); addPiece(i); }
-  if(sel && !board.some(p => p.id === sel)) sel = null;
-  renderAll();
-}
-const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; // Standard-Reihenfolge von hinten nach vorn
-const rank = id => RANK[item(id)?.cat] ?? 2;
-function addPiece(i){ const d = DEF[i.cat]; let k = board.length; while(k > 0 && rank(board[k-1].id) > RANK[i.cat]) k--; board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2]}); }
-function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
-function moveLayer(id, to){ const k = board.findIndex(p => p.id === id); if(k < 0) return; const [p] = board.splice(k, 1); board.splice(Math.max(0, Math.min(board.length, to)), 0, p); renderBoard(); }
-function renderBoard(){
-  [...$('board').querySelectorAll('.p')].forEach(n => n.remove());
-  $('hint').style.display = board.length ? 'none' : 'grid';
-  ['bigger','smaller','front','back'].forEach(id => $(id).disabled = !sel);
-  board.forEach((p, idx) => {
-    const im = new Image(); im.src = imgOf(p.id); im.className = 'p' + (p.id === sel ? ' sel' : '') + mb(item(p.id)); im.draggable = false; im.alt = '';
-    Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1});
-    im.onpointerdown = e => {
-      e.preventDefault(); e.stopPropagation(); im.setPointerCapture(e.pointerId);
-      if(sel !== p.id){ sel = p.id; document.querySelectorAll('.p').forEach(n => n.classList.remove('sel')); im.classList.add('sel'); ['bigger','smaller','front','back'].forEach(id => $(id).disabled = false); }
-      const sx = e.clientX / K - p.x, sy = e.clientY / K - p.y;
-      im.onpointermove = m => { p.x = Math.max(40 - p.w, Math.min(360, m.clientX / K - sx)); p.y = Math.max(40 - im.offsetHeight, Math.min(560, m.clientY / K - sy)); im.style.left = p.x+'px'; im.style.top = p.y+'px'; };
-      im.onpointerup = () => { im.onpointermove = im.onpointerup = null; renderGrid(); persist(); };
-    };
-    im.ondblclick = () => { board = board.filter(k => k !== p); if(sel === p.id) sel = null; renderAll(); };
-    im.onwheel = e => { e.preventDefault(); resize(p, e.deltaY < 0 ? 1.06 : .94); };
-    $('board').append(im);
-  });
-  renderSum(); persist();
-}
-$('board').addEventListener('pointerdown', e => { if(e.target === $('board') && sel){ sel = null; renderBoard(); } });
-function resize(p, f){ const cx = p.x + p.w/2; p.w = Math.max(40, Math.min(560, p.w * f)); p.x = cx - p.w/2; renderBoard(); }
-$('bigger').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, 1.1); };
-$('smaller').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, .9); };
-$('front').onclick = () => { if(sel) moveLayer(sel, board.length); };
-$('back').onclick = () => { if(sel) moveLayer(sel, 0); };
-$('clear').onclick = () => { board = []; sel = null; renderAll(); };
-document.addEventListener('keydown', e => {
-  if($('dlg').open || $('d3').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if(e.key === 'Delete' && sel){ board = board.filter(p => p.id !== sel); sel = null; renderAll(); }
-  if(e.key === 'Escape' && sel){ sel = null; renderBoard(); }
-});
-$('shuffle').onclick = () => {
-  const pick = c => { const l = S.items.filter(i => i.cat === c); return l[Math.floor(Math.random()*l.length)]; };
-  board = []; sel = null;
-  ['Oberteil','Hose/Rock','Schuhe'].concat(Math.random() < .5 ? ['Jacke'] : [], Math.random() < .35 ? ['Accessoire'] : []).forEach(c => { const i = pick(c); if(i) addPiece(i); });
-  if(!board.length) alert('Füge zuerst Teile zum Kleiderschrank hinzu.');
-  renderAll();
-};
-$('png').onclick = async () => {
-  if(!board.length) return;
-  const c = document.createElement('canvas'); c.width = 800; c.height = 1200; const x = c.getContext('2d');
-  x.fillStyle = '#f3f4f7'; x.fillRect(0, 0, 800, 1200);
-  for(const p of board){ const im = await loadImg(imgOf(p.id)); x.globalCompositeOperation = item(p.id)?.cut ? 'source-over' : 'multiply'; x.drawImage(im, p.x * 2, p.y * 2, p.w * 2, p.w * 2 * im.height / im.width); }
-  const a = document.createElement('a'); a.download = 'outfit.png'; a.href = c.toDataURL('image/png'); a.click();
-};
-function totals(pieces){
-  const by = {}; let miss = 0;
-  pieces.forEach(p => { const it = item(p.id); if(!it) return; if(it.price == null) miss++; else { const c = it.cur || 'EUR'; by[c] = (by[c] || 0) + it.price; } });
-  return {txt:Object.entries(by).map(([c, v]) => money(v, c)).join(' + '), miss};
-}
-const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./, ''); }catch(e){ return ''; } };
-function renderSum(){
-  const box = $('sum'); box.replaceChildren(); if(!board.length) return;
-  const h = document.createElement('div'); h.className = 'm'; h.style.margin = '0 0 4px'; h.textContent = 'Ebenen (oben liegt vorn) · Preis · Angebot'; box.append(h);
-  for(let k = board.length - 1; k >= 0; k--){
-    const p = board[k], it = item(p.id); if(!it) continue;
-    const r = document.createElement('div'); r.className = 'r' + (p.id === sel ? ' on' : '');
-    const lay = document.createElement('span'); lay.className = 'lay';
-    [['▲', 'Eine Ebene nach vorn', k + 1, k < board.length - 1], ['▼', 'Eine Ebene nach hinten', k - 1, k > 0]].forEach(([t, ti, to, en]) => { const bt = document.createElement('button'); bt.textContent = t; bt.title = ti; bt.setAttribute('aria-label', ti + ': ' + it.name); bt.disabled = !en; bt.onclick = () => moveLayer(p.id, to); lay.append(bt); });
-    const n = document.createElement('span'); n.className = 'nm'; n.textContent = it.name; n.title = it.name; n.onclick = () => { sel = p.id; renderBoard(); };
-    const pr = document.createElement('span'); pr.textContent = it.price != null ? money(it.price, it.cur) : '–';
-    r.append(lay, n, pr);
-    if(/^https?:/.test(it.link || '')){ const a = document.createElement('a'); a.href = it.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = (hostOf(it.link) || 'Angebot') + ' ↗'; a.title = 'Zum Angebot: ' + it.link; r.append(a); }
-    box.append(r);
-  }
-  const t = totals(board), d = document.createElement('div'); d.className = 't';
-  d.innerHTML = '<span>Gesamt</span><span></span>'; d.lastChild.textContent = t.txt || '–'; box.append(d);
-  if(t.miss){ const m = document.createElement('div'); m.className = 'm'; m.textContent = 'Bei ' + t.miss + (t.miss === 1 ? ' Teil fehlt' : ' Teilen fehlt') + ' der Preis.'; box.append(m); }
-}
-$('save').onclick = () => {
-  if(!board.length) return;
-  const name = prompt('Name des Outfits:', 'Outfit ' + (S.outfits.length + 1)); if(name === null) return;
-  S.outfits.unshift({id:'o'+Date.now(), name:name.trim() || 'Outfit', pieces:JSON.parse(JSON.stringify(board))});
-  persist(); renderOuts();
-};
-$('exp').onclick = () => { S.board = board; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], {type:'application/json'})); a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); };
-$('imp').onclick = () => $('impf').click();
-$('impf').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
-  try{ const j = JSON.parse(await f.text()); if(!Array.isArray(j.items)) throw 0; if(!confirm('Aktuelle Daten durch das Backup ersetzen?')) return;
-    S = {items:j.items, outfits:j.outfits || []}; board = fixOrder((j.board || []).filter(p => imgOf(p.id))); S.outfits.forEach(o => fixOrder(o.pieces)); sel = null; renderAll();
-  }catch(err){ alert('Diese Datei ist kein gültiges Anprobe-Backup.'); }
-};
-function fit(){ K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * K}px;height:${600 * K}px`; $('board').style.transform = `scale(${K})`; }
-addEventListener('resize', fit);
+  <!-- ===== Dialog: Teil hinzufügen / bearbeiten ===== -->
+  <dialog id="dlg" aria-labelledby="dlgTitle">
+    <h2 id="dlgTitle">Neues Teil</h2>
+    <label for="url">Link zum Angebot (wird beim Teil gespeichert) oder Bild-URL</label>
+    <div class="row">
+      <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" placeholder="https://…">
+      <button type="button" id="load" title="Bild, Name und Preis von der Seite holen">Daten laden</button>
+    </div>
+    <div id="status" role="status"></div>
+    <div id="panes">
+      <div><div class="cap" id="capOrig">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0" role="button" aria-describedby="capOrig"></div></div>
+      <div><div class="cap">Ergebnis</div><div id="res"><span>Noch kein Bild</span></div></div>
+    </div>
+    <input type="file" id="file" accept="image/*" hidden>
+    <div id="opts">
+      <label class="ck"><input type="checkbox" id="rm" checked> Hintergrund entfernen</label>
+      <label class="ck" title="Höher = mehr Hintergrund und Schatten werden entfernt">Toleranz <input type="range" id="tol" min="6" max="80" value="28"></label>
+      <button type="button" id="ai" title="Genauer, lädt beim ersten Mal ein KI-Modell (ca. 40 MB)">KI-Freistellen</button>
+      <button type="button" id="pick">Anderes Bild</button>
+      <button type="button" id="rcrop">Ausschnitt zurücksetzen</button>
+    </div>
+    <label class="ck ck--spaced" id="mirrorRow" hidden><input type="checkbox" id="mirror"> Zweiten Schuh ergänzen (gespiegelt, wenn nur ein Schuh zu sehen ist)</label>
+    <div class="g2">
+      <div><label for="name">Name</label><input id="name" maxlength="120" placeholder="z. B. Beiger Trenchcoat"></div>
+      <div><label for="cat">Kategorie</label><select id="cat"></select></div>
+    </div>
+    <label for="price">Preis</label>
+    <div class="row">
+      <input id="price" inputmode="decimal" maxlength="14" placeholder="z. B. 49,99">
+      <select id="cur" aria-label="Währung"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select>
+    </div>
+    <div class="foot"><button type="button" id="cancel">Abbrechen</button><button type="button" class="pri" id="ok">Speichern</button></div>
+  </dialog>
 
-/* ---------- Gespeicherte Outfits ---------- */
-function renderOuts(){
-  if(!S.outfits.length){ $('outs').innerHTML = '<div class="empty" style="padding:10px 0">Noch keine Outfits gespeichert.</div>'; return; }
-  $('outs').replaceChildren(...S.outfits.map(o => {
-    const d = document.createElement('div'); d.className = 'out';
-    d.innerHTML = '<div class="mini"><div></div></div><div><b></b><small></small><div class="b"><button>Laden</button><button>Löschen</button></div></div>';
-    d.querySelector('b').textContent = o.name; d.querySelector('small').textContent = totals(o.pieces).txt;
-    o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1}); d.querySelector('.mini>div').append(im); });
-    const [ld, rm] = d.querySelectorAll('button');
-    ld.onclick = () => { board = fixOrder(JSON.parse(JSON.stringify(o.pieces)).filter(p => imgOf(p.id))); sel = null; renderAll(); };
-    rm.onclick = () => { if(confirm('Outfit „' + o.name + '“ löschen?')){ S.outfits = S.outfits.filter(k => k !== o); persist(); renderOuts(); } };
-    return d;
-  }));
-}
-
-function renderAll(){ fit(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
-/* ---------- Browser-Erweiterung (Rechtsklick auf ein Bild) ---------- */
-const incoming = [], seenExt = new Set();
-const toExt = o => { try{ postMessage({source:'anprobe-app', ...o}, location.origin); }catch(e){} };
-const okSrc = v => typeof v === 'string' && v.length < 14e6 && (/^data:image\//.test(v) || /^https?:\/\//.test(v));
-function nextIncoming(){
-  if(!ready || $('dlg').open || $('d3').open) return;
-  const it = incoming.shift(); if(!it) return;
-  openDlg(); const lk = /^https?:\/\//.test(it.link || '') ? it.link : '';
-  $('url').value = lk; if(it.title) $('name').value = String(it.title).slice(0, 70);
-  const pr = parsePrice(it.price); if(pr != null){ $('price').value = pr.toFixed(2).replace('.', ','); const c = String(it.cur || '').toUpperCase(); if([...$('cur').options].some(o => o.value === c)) $('cur').value = c; }
-  autoCat(String(it.title || '')); status('Über die Erweiterung hinzugefügt – bitte Ausschnitt, Kategorie und Preis prüfen.');
-  (/^data:/.test(it.image || '') ? Promise.resolve(it.image) : getImg(it.image || it.src)).then(setSource).catch(e => status(e.message || 'Bild konnte nicht geladen werden.', true));
-}
-addEventListener('message', e => {
-  const m = e.data; if(e.source !== window || !m || m.source !== 'anprobe-ext' || m.type !== 'add' || !Array.isArray(m.items)) return;
-  const ids = m.items.map(i => i && i.id).filter(Boolean);
-  m.items.forEach(i => { if(i && i.id && !seenExt.has(i.id) && okSrc(i.image || i.src)){ seenExt.add(i.id); incoming.push(i); } });
-  toExt({type:'ack', ids}); nextIncoming();
-});
-$('dlg').addEventListener('close', () => setTimeout(nextIncoming, 150));
-
-/* ---------- 3D-Ansicht (CSS-3D, ohne Bibliothek) ---------- */
-let ang = -28, tilt = -8, spinRaf = 0, b3 = 0;
-const setRot = () => { $('rot').style.transform = `rotateX(${tilt}deg) rotateY(${ang}deg)`; };
-function fit3(){ const k = Math.min(1, (Math.min(innerWidth * .94, 500) - 46) / 400); $('s3wrap').style.cssText = `width:${400 * k}px;height:${600 * k}px`; $('scene3').style.transform = `scale(${k})`; }
-async function build3d(){
-  const my = ++b3, D = +$('depth').value, n = board.length, fig = document.createElement('div'); let bottom = 40;
-  for(let i = 0; i < n; i++){
-    const p = board[i], it = item(p.id); if(!it) continue; const im = await loadImg(it.img), h = p.w * im.height / im.width; bottom = Math.max(bottom, p.y + h);
-    const g = document.createElement('div'); g.className = 'grp'; Object.assign(g.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', height:h+'px', transform:`translateZ(${(i - (n - 1) / 2) * Math.max(8, D * .5)}px)`});
-    const mk = (cls, tf, flt) => { const e = new Image(); e.src = it.img; e.alt = ''; e.draggable = false; e.className = cls; e.style.transform = tf; if(flt) e.style.filter = flt; g.append(e); };
-    for(let k = 1; k < 13; k++) mk('m', `translateZ(${(k / 13 - .5) * D}px)`, 'brightness(.5)');
-    mk('b', `translateZ(${-D / 2}px) rotateY(180deg)`, 'brightness(.72)'); mk('f', `translateZ(${D / 2}px)`, '');
-    fig.append(g);
-  }
-  if(my !== b3) return; $('fig').replaceChildren(...fig.children); $('floor').style.top = Math.min(560, bottom) - 180 + 'px'; setRot();
-}
-function spin(){ cancelAnimationFrame(spinRaf); if(!$('d3').open || !$('spin').checked) return; ang += .5; setRot(); spinRaf = requestAnimationFrame(spin); }
-$('v3d').onclick = () => {
-  if(!board.length){ alert('Lege zuerst Teile aufs Board, dann kannst du das Outfit in 3D ansehen.'); return; }
-  $('spin').checked = !matchMedia('(prefers-reduced-motion: reduce)').matches; $('d3').showModal(); fit3(); build3d().then(spin);
-};
-$('d3x').onclick = () => $('d3').close(); $('d3').addEventListener('close', () => { cancelAnimationFrame(spinRaf); setTimeout(nextIncoming, 150); });
-$('spin').onchange = spin; $('r3').onclick = () => { ang = -28; tilt = -8; setRot(); };
-let dt3; $('depth').oninput = () => { clearTimeout(dt3); dt3 = setTimeout(build3d, 120); };
-$('s3wrap').onpointerdown = e => {
-  e.preventDefault(); const w = $('s3wrap'); w.setPointerCapture(e.pointerId); w.style.cursor = 'grabbing'; let lx = e.clientX, ly = e.clientY;
-  w.onpointermove = m => { ang += (m.clientX - lx) * .6; tilt = Math.max(-40, Math.min(25, tilt - (m.clientY - ly) * .3)); lx = m.clientX; ly = m.clientY; setRot(); };
-  w.onpointerup = () => { w.onpointermove = w.onpointerup = null; w.style.cursor = 'grab'; };
-};
-addEventListener('resize', () => { if($('d3').open) fit3(); });
-
-load().then(ok => { ready = ok; if(!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.'; renderAll(); toExt({type:'ready'}); nextIncoming(); });
-</script>
+  <!-- ===== Dialog: Barcode-Scanner (Schritt 1: Gerüst; Kamera-Logik folgt in Schritt 3) ===== -->
+  <dialog id="scanDlg" aria-labelledby="scanTitle">
+    <div class="dlg-head">
+      <h2 id="scanTitle">Barcode scannen</h2>
+      <button type="button" id="scanClose" aria-label="Scanner schließen">✕</button>
+    </div>
+    <div class="scan-view" id="scanView" hidden>
+      <video id="scanVideo" playsinline muted aria-label="Kamera-Vorschau"></video>
+      <div class="scan-frame" aria-hidden="true"></div>
+    </div>
+    <p id="scanStatus" class="status" role="status" aria-live="polite">Kamera noch nicht gestartet.</p>
+    <div class="quick-actions">
+      <button type="button" class="pri" id="scanStart">Kamera starten</button>
+      <button type="button" id="scanStop" hidden>Kamera stoppen</button>
+    </div>
+    <!-- Fallback für Geräte ohne Kamera oder ohne Erlaubnis: EAN/UPC von Hand eintragen -->
+    <div class="scan-fallback">
+      <label for="eanInput">Oder Nummer unter dem Barcode eingeben (EAN-8, UPC-A 12, EAN-13)</label>
+      <div class="field-row">
+        <input id="eanInput" type="text" inputmode="numeric" autocomplete="off" maxlength="14" pattern="[0-9]{8}|[0-9]{12,14}" aria-describedby="eanHint">
+        <button type="button" id="eanGo">Prüfen</button>
+      </div>
+      <p id="eanHint" class="hint">Nur Ziffern. Die Prüfziffer wird automatisch kontrolliert.</p>
+    </div>
+  </dialog>
 </body>
 </html>
