@@ -1,0 +1,83 @@
+// Unit-Tests für die reinen Funktionen in js/scraper.js (ohne DOM).  Start:  node --test tests/
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as s from '../js/scraper.js';
+
+test('validateUrl: akzeptiert normale Shop-Links und normalisiert sie', () => {
+  assert.deepEqual(s.validateUrl('  https://www.zalando.de/herren/?q=a b#top '), { ok: true, url: 'https://www.zalando.de/herren/?q=a%20b' });
+  assert.equal(s.validateUrl('http://shop.example.com:8080/p').ok, true);
+});
+
+test('validateUrl: lehnt gefährliche und unsinnige Eingaben ab', () => {
+  const bad = ['', '   ', 'kein link', 'javascript:alert(1)', 'data:text/html,<script>', 'file:///etc/passwd', 'ftp://x.de/a',
+    'https://user:pw@shop.de/', 'https://shop.de:22/', 'https://shop.de:3306/', 'https://localhost/', 'https://a.localhost/',
+    'http://127.0.0.1/', 'http://0.0.0.0/', 'http://10.0.0.5/', 'http://192.168.1.1/', 'http://172.20.1.1/', 'http://169.254.169.254/latest/meta-data',
+    'http://100.64.0.1/', 'http://[::1]/', 'http://[fd00::1]/', 'http://[::ffff:127.0.0.1]/', 'http://2130706433/', 'http://intranet/', 'https://drucker.local/', 'https://x.internal/',
+    'https://shop.de/\u0000', 'https://shop.de/\u202etxt', 'x'.repeat(3000), 'https://' + 'a'.repeat(2100) + '.de', null, undefined, 42, {}];
+  for (const u of bad) assert.equal(s.validateUrl(u).ok, false, String(u).slice(0, 50));
+});
+
+test('validateUrl: allowLocal erlaubt lokale Ziele (nur für die Entwicklung)', () => {
+  assert.equal(s.validateUrl('http://127.0.0.1:8001/p', { allowLocal: true }).ok, true);
+  assert.equal(s.validateUrl('http://localhost:3000/', { allowLocal: true }).ok, true);
+  assert.equal(s.validateUrl('javascript:alert(1)', { allowLocal: true }).ok, false); // Schema bleibt verboten
+  assert.equal(s.validateUrl('https://u:p@x.de/', { allowLocal: true }).ok, false);
+});
+
+test('sanitizeText: Tags, Steuer- und Richtungszeichen, Länge', () => {
+  assert.equal(s.sanitizeText('  Rotes   Shirt \n\t Basic '), 'Rotes Shirt Basic');
+  assert.equal(s.sanitizeText('<b>Hose</b><script>alert(1)</script> blau'), 'Hose alert(1) blau');
+  assert.equal(s.sanitizeText('a\u0000b\u202ec\u200bd'), 'a b c d');
+  assert.equal(s.sanitizeText('Tom &amp; Jerry &quot;Mix&quot; l&#39;été'), `Tom & Jerry "Mix" l'été`);
+  assert.equal(s.sanitizeText('x'.repeat(500)).length, 120);
+  assert.equal(s.sanitizeText('x'.repeat(500), 10).length, 10);
+  for (const v of [null, undefined, {}, [], true]) assert.equal(s.sanitizeText(v), '');
+  assert.equal(s.sanitizeText(42), '42');
+});
+
+test('parsePrice: gängige Schreibweisen', () => {
+  const cases = { '49,99': 49.99, '1.299,00': 1299, '1,299.00': 1299, '€ 49.95': 49.95, '1.299': 1299, '12': 12, '49,99 €': 49.99, 'ab 19,90 EUR': 19.9 };
+  for (const [k, v] of Object.entries(cases)) assert.equal(s.parsePrice(k), v, k);
+  assert.equal(s.parsePrice('1 299,00 €'), 1299);
+  assert.equal(s.parsePrice('1\u00a0299,00'), 1299);
+  assert.equal(s.parsePrice('19,90 - 29,90'), 19.9);   // Preisspanne: erster Wert
+  assert.equal(s.parsePrice('49,99.'), 49.99);
+  for (const bad of ['abc', '', null, undefined, NaN, Infinity, '-5', '€ -5,00', '\u22125', '–7']) assert.equal(s.parsePrice(bad), null, String(bad));
+  assert.equal(s.parsePrice(35.5), 35.5);
+});
+
+test('sanitizePrice: Bereich und Rundung', () => {
+  assert.equal(s.sanitizePrice(49.999), 50);
+  assert.equal(s.sanitizePrice(0), 0);
+  for (const bad of [-1, 100001, NaN, Infinity, '5', null, undefined]) assert.equal(s.sanitizePrice(bad), null);
+});
+
+test('normalizeCurrency: nur bekannte Codes', () => {
+  assert.equal(s.normalizeCurrency(' eur '), 'EUR');
+  assert.equal(s.normalizeCurrency('XXX', 'EUR'), 'EUR');
+  assert.equal(s.normalizeCurrency('<script>'), '');
+  assert.equal(s.normalizeCurrency(5, 'CHF'), 'CHF');
+});
+
+test('sanitizeImageUrl: löst relative Adressen auf, blockiert Gefährliches', () => {
+  assert.equal(s.sanitizeImageUrl('/img/a.jpg', 'https://shop.de/p/1'), 'https://shop.de/img/a.jpg');
+  assert.equal(s.sanitizeImageUrl('//cdn.shop.de/a.jpg', 'https://shop.de/p'), 'https://cdn.shop.de/a.jpg');
+  for (const bad of ['javascript:alert(1)', 'data:image/svg+xml,<svg onload=alert(1)>', 'file:///etc/passwd', 'http://127.0.0.1/a.png', 'https://u:p@x.de/a.png', '', null, 5, 'x'.repeat(3000)]) {
+    assert.equal(s.sanitizeImageUrl(bad, 'https://shop.de/'), '', String(bad).slice(0, 40));
+  }
+});
+
+test('sanitizeImageSrc: nur data:image (Raster) oder https', () => {
+  assert.ok(s.sanitizeImageSrc('data:image/png;base64,AAAA'));
+  assert.ok(s.sanitizeImageSrc('https://cdn.de/a.png'));
+  for (const bad of ['data:image/svg+xml;base64,AAAA', 'data:text/html;base64,AAAA', 'javascript:alert(1)', 'http://a.de/a.png', '', null, 3]) assert.equal(s.sanitizeImageSrc(bad), '');
+});
+
+test('sanitizeItem: bereinigt Backup-Einträge', () => {
+  const cats = ['Oberteil', 'Jacke', 'Hose/Rock', 'Schuhe', 'Accessoire'];
+  const ok = s.sanitizeItem({ id: 'i1', name: '<b>Shirt</b>', cat: 'Jacke', img: 'data:image/png;base64,AAAA', link: 'https://a.de/x#h', price: 19.999, cur: 'usd', ean: '4006381333931', evil: 'x', cut: 1 }, cats);
+  assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', ean: '4006381333931' });
+  const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'https://a.de/p.png', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
+  assert.equal(odd.cat, 'Oberteil'); assert.equal(odd.link, ''); assert.equal(odd.price, null); assert.equal(odd.name, 'Ohne Namen'); assert.equal('ean' in odd, false);
+  for (const bad of [null, 1, 'x', {}, { id: '', img: 'https://a.de/a.png' }, { id: 'a' }, { id: 'a', img: 'javascript:alert(1)' }, { id: 'x'.repeat(65), img: 'https://a.de/a.png' }]) assert.equal(s.sanitizeItem(bad, cats), null);
+});
