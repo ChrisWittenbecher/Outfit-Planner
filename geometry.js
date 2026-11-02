@@ -3,7 +3,7 @@
  * Anprobe – Geometrie für Drehen und Positionieren (Schritt 2).
  *
  * Reine Funktionen ohne DOM-Zugriff. Dadurch lassen sie sich in Node testen
- * (tests/geometry.test.mjs) und mit TypeScript prüfen (`tsc --checkJs`).
+ * (geometry.test.mjs) und mit TypeScript prüfen (`tsc --checkJs`).
  *
  * Konventionen
  * - Board: 400 × 600 px, Ursprung oben links, x nach rechts, y nach unten.

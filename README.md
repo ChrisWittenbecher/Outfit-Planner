@@ -6,14 +6,14 @@ Die App ist eine reine Web-App (HTML, CSS, JavaScript) ohne Build-Schritt, ohne 
 
 ## So kommt die Seite auf GitHub Pages
 
-1. Entpacke das ZIP und öffne den entpackten Ordner.
+Alle Dateien liegen **direkt im Hauptverzeichnis** (keine Unterordner). Das macht den Upload einfach.
+
+1. Entpacke das ZIP.
 2. Öffne dein Repository auf github.com → **Add file → Upload files**.
-3. Markiere **alles im Ordner** (`index.html`, `css`, `js`, `assets`, …) und ziehe es in das Upload-Fenster. Wichtig: den *Inhalt* ziehen, nicht den Ordner selbst. `index.html` muss im Hauptverzeichnis des Repos landen.
+3. Markiere **alle Dateien** im entpackten Ordner (Strg+A) und ziehe sie in das Upload-Fenster. Dateien mit gleichem Namen werden überschrieben.
 4. Unten auf **Commit changes** klicken.
 5. Im Repo **Settings → Pages**: Source **Deploy from a branch**, Branch `main`, Ordner `/ (root)`, speichern.
 6. Nach ein bis zwei Minuten läuft die Seite unter `https://DEIN-NAME.github.io/REPO-NAME/`.
-
-Alte Dateien im Repo (zum Beispiel eine frühere `index.html` oder der Ordner `extension/`) werden durch den Upload nicht automatisch gelöscht. Entferne sie bei Bedarf einzeln (Datei öffnen → Papierkorb-Symbol).
 
 Zeigt die Seite noch die alte Version, lade sie mit Strg/Cmd + Shift + R neu.
 
@@ -66,19 +66,19 @@ python3 server.py 8080     # anderer Port
 
 Öffne die Seite über den Server (oder GitHub Pages), **nicht** per Doppelklick auf `index.html`: Browser blockieren ES-Module bei `file://`. In diesem Fall zeigt die Seite einen Hinweis.
 
-## Projektstruktur
+## Projektstruktur (alles im Hauptverzeichnis)
 
 ```
 index.html          Seitengerüst (semantisches HTML, Content-Security-Policy)
-css/styles.css      Styles in Cascade Layers (reset → tokens → base → layout → components → modules → utilities)
-js/app.js           Anwendungslogik
-js/main.js          lädt die ES-Module und stellt window.Anprobe bereit
-js/geometry.js      Drehen und Positionieren (reine Mathematik)
-js/scraper.js       Link-Prüfung, Auslesen und Bereinigen von Produktdaten, Backup-Prüfung
-js/barcode.js       Barcode-Prüfziffer (EAN-8, UPC-A, EAN-13, GTIN-14)
-js/scanner.js       Kamera und Erkennung (eingebaute API, sonst ZXing)
-assets/icons/       App-Icons
-tests/              Unit-Tests
+styles.css          Styles in Cascade Layers (reset → tokens → base → layout → components → modules → utilities)
+app.js              Anwendungslogik
+main.js             lädt die ES-Module und stellt window.Anprobe bereit
+geometry.js         Drehen und Positionieren (reine Mathematik)
+scraper.js          Link-Prüfung, Auslesen und Bereinigen von Produktdaten, Backup-Prüfung
+barcode.js          Barcode-Prüfziffer (EAN-8, UPC-A, EAN-13, GTIN-14)
+scanner.js          Kamera und Erkennung (eingebaute API, sonst ZXing)
+*.test.mjs          Unit-Tests
+icon16/48/128.png   App-Icons
 server.py           optionaler lokaler Server (Link-Import ohne Fremddienste)
 ```
 
@@ -101,7 +101,7 @@ Semantische Bereiche, „Zum Inhalt springen“-Link, sichtbarer Tastaturfokus, 
 ## Tests
 
 ```bash
-node --test tests/*.test.mjs        # 25 Unit-Tests (Geometrie, Barcode, Eingabeprüfung)
+node --test *.test.mjs              # 25 Unit-Tests (Geometrie, Barcode, Eingabeprüfung)
 npx -p typescript tsc -p tsconfig.json   # strikte Typprüfung der Module
 ```
 
@@ -127,7 +127,7 @@ Die Module sind mit JSDoc typisiert und bestehen `tsc --strict --checkJs`.
 ## Fehlerbehebung
 
 - **Seite zeigt 404:** `index.html` muss im Hauptverzeichnis des Repos liegen und genau so heißen.
-- **Seite ist leer oder zeigt „Module konnten nicht geladen werden“:** Die Ordner `js/`, `css/` und `assets/` müssen mit hochgeladen sein. Lokal über `python3 server.py` öffnen.
+- **Seite ist leer oder zeigt „Module konnten nicht geladen werden“:** Alle Dateien (`app.js`, `main.js`, `geometry.js`, `scraper.js`, `barcode.js`, `scanner.js`, `styles.css`, Icons) müssen im Hauptverzeichnis liegen. Lokal über `python3 server.py` öffnen.
 - **Alte Version sichtbar:** Mit Strg/Cmd + Shift + R neu laden.
 - **Schrank ist leer:** Du bist auf einer anderen Adresse oder einem anderen Gerät. Stelle ein Backup wieder her.
 - **Kamera startet nicht:** Erlaube die Kamera in den Browser-Einstellungen. Wird sie von einer anderen App benutzt, schließe diese. Sonst gib die Nummer unter dem Barcode ein.

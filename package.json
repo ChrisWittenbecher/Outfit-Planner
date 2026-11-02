@@ -5,7 +5,7 @@
   "description": "Anprobe – Outfit-Planer (statische Web-App)",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test *.test.mjs",
     "typecheck": "npx -p typescript tsc -p tsconfig.json",
     "start": "python3 server.py"
   }

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Anprobe – Anwendungslogik
-   Module (js/): geometry.js (Drehen), scraper.js (Link-Import, Bereinigung),
+   Module: geometry.js (Drehen), scraper.js (Link-Import, Bereinigung),
    barcode.js (Prüfziffer), scanner.js (Kamera), main.js (lädt die Module).
    Aufbau dieser Datei:
      1. Typen und Zustand      4. Bildverarbeitung (Freistellen, Zuschnitt)
@@ -9,13 +9,13 @@
    ========================================================================== */
 'use strict';
 
-/* Abhängigkeit: js/main.js (ES-Modul) stellt window.Anprobe bereit und lädt vor dieser Datei.
+/* Abhängigkeit: main.js (ES-Modul) stellt window.Anprobe bereit und lädt vor dieser Datei.
    ES-Module laufen nicht per Doppelklick (file://) – dann hilft ein Hinweis statt einer leeren Seite. */
 const Anprobe = /** @type {any} */ (window).Anprobe;
 const Geo = Anprobe?.geometry, Scraper = Anprobe?.scraper, Barcode = Anprobe?.barcode, Scanner = Anprobe?.scanner;
 if(!(Geo && Scraper && Barcode && Scanner)){
   document.getElementById('saveState').textContent = 'Module konnten nicht geladen werden. Bitte über GitHub Pages oder „python3 server.py“ öffnen (nicht per Doppelklick).';
-  throw new Error('Anprobe: js/main.js (ES-Module) wurde nicht geladen');
+  throw new Error('Anprobe: main.js (ES-Module) wurde nicht geladen');
 }
 
 /**
@@ -55,7 +55,7 @@ const mb = it => it && it.cut ? '' : ' mb';
 const loadImg = (src, cors) => new Promise((res, rej) => { const i = new Image(); if(cors) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
 const readFile = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
 const money = (v, c) => { try{ return new Intl.NumberFormat('de-DE', {style:'currency', currency:c || 'EUR'}).format(v); }catch(e){ return v.toFixed(2) + ' ' + c; } };
-const parsePrice = Scraper.parsePrice; // Preis aus Text lesen (siehe js/scraper.js)
+const parsePrice = Scraper.parsePrice; // Preis aus Text lesen (siehe scraper.js)
 const newId = () => 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /* ---------- Speicher (IndexedDB, bleibt im Browser erhalten) ---------- */
@@ -386,7 +386,7 @@ function moveLayer(id, to){ const k = board.findIndex(p => p.id === id); if(k < 
    - Drehung um die Bildmitte (CSS rotate), Position = Mittelpunkt des Teils
    - Bedienung: Griff am Teil (Maus, Touch, Tastatur), Regler im Arbeitsplatz,
      Tasten [ und ] drehen, Pfeiltasten schieben (Shift = größere Schritte)
-   - Die Mathematik liegt in js/geometry.js (rein und getestet)
+   - Die Mathematik liegt in geometry.js (rein und getestet)
    ========================================================================== */
 const KNOB_GAP = 30;          // Abstand des Drehgriffs zur Kante des Teils (px)
 const aspects = new Map();    // id -> Höhe/Breite des Bildes (wird beim Laden gemerkt)
@@ -617,7 +617,7 @@ function toastAdded(it){
 
 /* ==========================================================================
    Modul A – Produkt per Link (Schritt 3)
-   Eingabe prüfen (js/scraper.js) → Seite laden → Name, Bild, Preis auslesen und bereinigen →
+   Eingabe prüfen (scraper.js) → Seite laden → Name, Bild, Preis auslesen und bereinigen →
    bei eindeutigem Ergebnis direkt hinzufügen (mit „Rückgängig“), sonst im Dialog prüfen lassen.
    ========================================================================== */
 /** @param {string} t Meldung  @param {boolean} [err] Fehlerdarstellung */
@@ -645,7 +645,7 @@ $('linkForm').addEventListener('submit', e => { e.preventDefault(); importFromLi
 
 /* ==========================================================================
    Modul B – Barcode-Scanner (Schritt 3)
-   Kamera + Erkennung: js/scanner.js. Prüfziffer: js/barcode.js.
+   Kamera + Erkennung: scanner.js. Prüfziffer: barcode.js.
    Produktsuche: offene Datenbanken (Open Products/Beauty/Food Facts). Für Kleidung ist die Trefferquote
    niedrig – ohne Treffer öffnet sich der Dialog mit dem Barcode, und du ergänzt Bild und Namen.
    ========================================================================== */

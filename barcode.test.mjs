@@ -1,7 +1,7 @@
-// Unit-Tests für js/barcode.js.  Start:  node --test tests/
+// Unit-Tests für barcode.js.  Start:  node --test *.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as b from '../js/barcode.js';
+import * as b from './barcode.js';
 
 test('normalizeCode: nur Ziffern, Leerzeichen und Bindestriche erlaubt', () => {
   assert.equal(b.normalizeCode(' 4006381 333931 '), '4006381333931');
