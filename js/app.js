@@ -1,6 +1,6 @@
 /* ==========================================================================
    Anprobe – Anwendungslogik
-   Module: geometry.js (Drehen), scraper.js (Link-Import, Bereinigung),
+   Module (js/): geometry.js (Drehen), scraper.js (Link-Import, Bereinigung),
    barcode.js (Prüfziffer), scanner.js (Kamera), main.js (lädt die Module).
    Aufbau dieser Datei:
      1. Typen und Zustand      4. Bildverarbeitung (Freistellen, Zuschnitt)
@@ -9,13 +9,13 @@
    ========================================================================== */
 'use strict';
 
-/* Abhängigkeit: main.js (ES-Modul) stellt window.Anprobe bereit und lädt vor dieser Datei.
+/* Abhängigkeit: js/main.js (ES-Modul) stellt window.Anprobe bereit und lädt vor dieser Datei.
    ES-Module laufen nicht per Doppelklick (file://) – dann hilft ein Hinweis statt einer leeren Seite. */
 const Anprobe = /** @type {any} */ (window).Anprobe;
 const Geo = Anprobe?.geometry, Scraper = Anprobe?.scraper, Barcode = Anprobe?.barcode, Scanner = Anprobe?.scanner;
 if(!(Geo && Scraper && Barcode && Scanner)){
   document.getElementById('saveState').textContent = 'Module konnten nicht geladen werden. Bitte über GitHub Pages oder „python3 server.py“ öffnen (nicht per Doppelklick).';
-  throw new Error('Anprobe: main.js (ES-Module) wurde nicht geladen');
+  throw new Error('Anprobe: js/main.js (ES-Module) wurde nicht geladen');
 }
 
 /**
@@ -55,7 +55,7 @@ const mb = it => it && it.cut ? '' : ' mb';
 const loadImg = (src, cors) => new Promise((res, rej) => { const i = new Image(); if(cors) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
 const readFile = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
 const money = (v, c) => { try{ return new Intl.NumberFormat('de-DE', {style:'currency', currency:c || 'EUR'}).format(v); }catch(e){ return v.toFixed(2) + ' ' + c; } };
-const parsePrice = Scraper.parsePrice; // Preis aus Text lesen (siehe scraper.js)
+const parsePrice = Scraper.parsePrice; // Preis aus Text lesen (siehe js/scraper.js)
 const newId = () => 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /* ---------- Speicher (IndexedDB, bleibt im Browser erhalten) ---------- */
@@ -240,7 +240,12 @@ async function setSource(src){
   const n = await norm(src); draft.orig = n.url; draft.alpha = n.alpha; draft.crop = null; draft.ai = false; showOrig(); syncOpts(); await process();
 }
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
-$('addBtn').onclick = () => openDlg();
+/** Öffnet die Auswahl „Link / Barcode / Bild“. */
+function openAdd(){ setLinkStatus(''); if(!$('addDlg').open) $('addDlg').showModal(); }
+$('addBtn').onclick = openAdd;
+$('fab').onclick = openAdd;
+$('addClose').onclick = () => $('addDlg').close();
+$('addImage').onclick = () => { $('addDlg').close(); openDlg(); };
 $('cancel').onclick = () => $('dlg').close();
 $('drop').onclick = () => { if(!draft || !draft.orig) $('file').click(); };
 $('drop').onkeydown = e => { if(e.key === 'Enter' && (!draft || !draft.orig)) $('file').click(); };
@@ -386,7 +391,7 @@ function moveLayer(id, to){ const k = board.findIndex(p => p.id === id); if(k < 
    - Drehung um die Bildmitte (CSS rotate), Position = Mittelpunkt des Teils
    - Bedienung: Griff am Teil (Maus, Touch, Tastatur), Regler im Arbeitsplatz,
      Tasten [ und ] drehen, Pfeiltasten schieben (Shift = größere Schritte)
-   - Die Mathematik liegt in geometry.js (rein und getestet)
+   - Die Mathematik liegt in js/geometry.js (rein und getestet)
    ========================================================================== */
 const KNOB_GAP = 30;          // Abstand des Drehgriffs zur Kante des Teils (px)
 const aspects = new Map();    // id -> Höhe/Breite des Bildes (wird beim Laden gemerkt)
@@ -499,7 +504,7 @@ $('front').onclick = () => { if(sel) moveLayer(sel, board.length); };
 $('back').onclick = () => { if(sel) moveLayer(sel, 0); };
 $('clear').onclick = () => { board = []; sel = null; renderAll(); };
 document.addEventListener('keydown', e => {
-  if($('dlg').open || $('scanDlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if($('dlg').open || $('scanDlg').open || $('addDlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.key === 'Delete' && sel){ board = board.filter(p => p.id !== sel); sel = null; renderAll(); }
   if(e.key === 'Escape' && sel){ sel = null; renderBoard(); }
   const p = selPiece(); if(!p || document.activeElement !== document.body) return;
@@ -617,7 +622,7 @@ function toastAdded(it){
 
 /* ==========================================================================
    Modul A – Produkt per Link (Schritt 3)
-   Eingabe prüfen (scraper.js) → Seite laden → Name, Bild, Preis auslesen und bereinigen →
+   Eingabe prüfen (js/scraper.js) → Seite laden → Name, Bild, Preis auslesen und bereinigen →
    bei eindeutigem Ergebnis direkt hinzufügen (mit „Rückgängig“), sonst im Dialog prüfen lassen.
    ========================================================================== */
 /** @param {string} t Meldung  @param {boolean} [err] Fehlerdarstellung */
@@ -633,7 +638,7 @@ async function importFromLink(raw){
   importing = true; $('linkGo').disabled = true; setLinkStatus('Lade Produktseite …');
   try{
     const {info, src, error} = await fetchProduct(v.url), cat = guessCat(info.title);
-    $('linkInput').value = ''; setLinkStatus('');
+    $('linkInput').value = ''; setLinkStatus(''); $('addDlg').close();
     if(src && info.title && cat){ toastAdded(await addItemFromImage({src, name:info.title, cat, link:v.url, price:info.price, cur:info.cur})); return; }
     // Nicht eindeutig (keine Kategorie, kein Bild …): alles Gefundene im Dialog zur Prüfung zeigen
     openDlg(); $('url').value = v.url; fillFromInfo(info); if(src) await setSource(src);
@@ -645,7 +650,7 @@ $('linkForm').addEventListener('submit', e => { e.preventDefault(); importFromLi
 
 /* ==========================================================================
    Modul B – Barcode-Scanner (Schritt 3)
-   Kamera + Erkennung: scanner.js. Prüfziffer: barcode.js.
+   Kamera + Erkennung: js/scanner.js. Prüfziffer: js/barcode.js.
    Produktsuche: offene Datenbanken (Open Products/Beauty/Food Facts). Für Kleidung ist die Trefferquote
    niedrig – ohne Treffer öffnet sich der Dialog mit dem Barcode, und du ergänzt Bild und Namen.
    ========================================================================== */
@@ -688,10 +693,10 @@ async function startScan(){
   try{ await getScanner().start(); }
   catch(e){ scanUi(false); scanSay(e.message, true); $('eanInput').focus(); } // Fallback: Nummer von Hand eingeben
 }
-$('scanBtn').onclick = () => { $('eanInput').value = ''; $('eanInput').setAttribute('aria-invalid', 'false'); $('scanDlg').showModal(); startScan(); };
+$('scanBtn').onclick = () => { $('addDlg').close(); $('eanInput').value = ''; $('eanInput').setAttribute('aria-invalid', 'false'); $('scanDlg').showModal(); startScan(); };
 $('scanStart').onclick = startScan;
 $('scanStop').onclick = () => { scanner?.stop(); scanSay('Kamera gestoppt.'); };
-$('scanClose').onclick = () => $('scanDlg').close();
+$('scanClose').onclick = () => { $('scanDlg').close(); openAdd(); };
 $('scanDlg').addEventListener('close', () => scanner?.stop());
 document.addEventListener('visibilitychange', () => { if(document.hidden) scanner?.stop(); });
 function submitEan(){

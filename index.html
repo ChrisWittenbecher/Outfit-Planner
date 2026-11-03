@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f1ec">
   <title>Anprobe – Outfit-Planer</title>
   <meta name="description" content="Plane Outfits aus Screenshots und Shop-Links: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light">
@@ -12,18 +13,18 @@
     Content-Security-Policy (strikt, ohne 'unsafe-inline'):
     - script-src: eigene Dateien + jsDelivr (nur für das optionale KI-Freistellen, dynamischer Import)
     - 'wasm-unsafe-eval': nötig, damit das KI-Modell (WebAssembly) laufen darf
-    - style-src 'self': alle Styles liegen in styles.css (JS darf Styles per CSSOM setzen)
+    - style-src 'self': alle Styles liegen in css/styles.css (JS darf Styles per CSSOM setzen)
     - img-src: Produktbilder kommen von beliebigen https-Shops sowie als data:/blob: aus dem Canvas
     - connect-src: nur eigener Ursprung, die festen Abruf-Dienste für den Link-Import und die offenen Produktdatenbanken (Barcode)
     - worker-src blob: für den KI-Worker, media-src blob: für den Kamera-Stream; jsDelivr liefert auch den Barcode-Rückfall (ZXing)
-    - Module: main.js und geometry.js sind ES-Module (script-src 'self' genügt)
+    - Module: js/main.js und js/geometry.js sind ES-Module (script-src 'self' genügt)
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.allorigins.win https://api.codetabs.com https://staticimgly.com https://cdn.jsdelivr.net https://world.openproductsfacts.org https://world.openbeautyfacts.org https://world.openfoodfacts.org; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-  <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
-  <link rel="apple-touch-icon" href="icon128.png">
-  <link rel="stylesheet" href="styles.css">
-  <script type="module" src="main.js"></script>
-  <script src="app.js" defer></script>
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon128.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js"></script>
+  <script src="js/app.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Zum Inhalt springen</a>
@@ -38,27 +39,13 @@
     </div>
   </header>
 
+  <button type="button" class="pri fab" id="fab" aria-label="Kleidungsstück hinzufügen" aria-haspopup="dialog">+</button>
+
   <main id="main" class="layout">
 
     <!-- ===== Spalte 1: Kleiderschrank ===== -->
     <section class="panel" aria-labelledby="wardrobeTitle">
       <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
-
-      <!-- Modul A: Produkt per Link (Schritt 1: nutzt den vorhandenen Import, Härtung folgt in Schritt 3) -->
-      <form id="linkForm" class="quick" novalidate aria-labelledby="linkTitle">
-        <h3 id="linkTitle">Produkt per Link hinzufügen</h3>
-        <label for="linkInput" class="sr-only">Link zum Produkt</label>
-        <div class="field-row">
-          <input id="linkInput" name="link" type="url" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="https://shop.de/produkt …" aria-describedby="linkHint linkStatus">
-          <button type="submit" class="pri" id="linkGo">Importieren</button>
-        </div>
-        <p id="linkHint" class="hint">Nur http(s)-Links. Ist alles eindeutig, landet das Teil direkt im Kleiderschrank (mit „Rückgängig“). Sonst prüfst du es im Dialog.</p>
-        <p id="linkStatus" class="status" role="status" aria-live="polite"></p>
-        <div class="quick-actions">
-          <!-- Modul B: Barcode-Scanner (öffnet den Scanner-Dialog) -->
-          <button type="button" id="scanBtn" aria-haspopup="dialog">Barcode scannen</button>
-        </div>
-      </form>
 
       <div class="chips" id="chips" role="group" aria-label="Nach Kategorie filtern"></div>
       <div id="grid"></div>
@@ -132,6 +119,40 @@
 
   <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+  <!-- ===== Dialog: Kleidungsstück hinzufügen (Link, Barcode oder Bild) ===== -->
+  <dialog id="addDlg" class="sheet" aria-labelledby="addTitle">
+    <div class="dlg-head">
+      <h2 id="addTitle">Kleidungsstück hinzufügen</h2>
+      <button type="button" id="addClose" aria-label="Schließen">✕</button>
+    </div>
+
+    <!-- Modul A: Produkt per Link -->
+    <form id="linkForm" class="quick" novalidate aria-labelledby="linkTitle">
+      <h3 id="linkTitle">Per Link</h3>
+      <label for="linkInput" class="sr-only">Link zum Produkt</label>
+      <div class="field-row">
+        <input id="linkInput" name="link" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="2048" placeholder="https://shop.de/produkt …" aria-describedby="linkHint linkStatus">
+        <button type="submit" class="pri" id="linkGo">Importieren</button>
+      </div>
+      <p id="linkHint" class="hint">Name, Bild und Preis werden automatisch gelesen. Ist alles eindeutig, landet das Teil direkt im Kleiderschrank (mit „Rückgängig“), sonst prüfst du es kurz.</p>
+      <p id="linkStatus" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <!-- Modul B: Barcode-Scanner (öffnet den Scanner-Dialog) -->
+    <div class="quick">
+      <h3>Per Barcode</h3>
+      <p class="hint">Scanne den Strichcode am Etikett oder tippe die Nummer ein.</p>
+      <div class="quick-actions"><button type="button" id="scanBtn" aria-haspopup="dialog">Barcode scannen</button></div>
+    </div>
+
+    <!-- Bild / Screenshot -->
+    <div class="quick">
+      <h3>Per Bild oder Screenshot</h3>
+      <p class="hint">Das Teil wird automatisch freigestellt und zugeschnitten.</p>
+      <div class="quick-actions"><button type="button" id="addImage" aria-haspopup="dialog">Bild wählen</button></div>
+    </div>
+  </dialog>
 
   <!-- ===== Dialog: Teil hinzufügen / bearbeiten ===== -->
   <dialog id="dlg" aria-labelledby="dlgTitle">

@@ -1,12 +1,17 @@
 {
   "name": "anprobe",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Anprobe – Outfit-Planer (statische Web-App)",
   "type": "module",
   "scripts": {
-    "test": "node --test *.test.mjs",
-    "typecheck": "npx -p typescript tsc -p tsconfig.json",
-    "start": "python3 server.py"
+    "start": "python3 server/server.py",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "node tests/e2e/add-flow.mjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0",
+    "typescript": "^5.6.0"
   }
 }

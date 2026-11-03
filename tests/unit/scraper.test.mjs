@@ -1,7 +1,7 @@
-// Unit-Tests für die reinen Funktionen in scraper.js (ohne DOM).  Start:  node --test *.test.mjs
+// Unit-Tests für die reinen Funktionen in js/scraper.js (ohne DOM).  Start:  node --test tests/unit/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as s from './scraper.js';
+import * as s from '../../js/scraper.js';
 
 test('validateUrl: akzeptiert normale Shop-Links und normalisiert sie', () => {
   assert.deepEqual(s.validateUrl('  https://www.zalando.de/herren/?q=a b#top '), { ok: true, url: 'https://www.zalando.de/herren/?q=a%20b' });

@@ -1,135 +1,130 @@
-# Anprobe – Outfit-Planer
+<div align="center">
 
-Sammle Kleidungsstücke aus Screenshots, Shop-Links oder Barcodes in einem digitalen Kleiderschrank und kombiniere sie zu Outfits. Preise und Links zu den Angeboten bleiben an jedem Teil gespeichert.
+# Anprobe
 
-Die App ist eine reine Web-App (HTML, CSS, JavaScript) ohne Build-Schritt, ohne Konto und ohne Tracking. Alle deine Daten bleiben im Browser.
+**Der Outfit-Planer für das Web.** Sammle Kleidungsstücke per Link, Barcode oder Screenshot, kombiniere sie zu Outfits und behalte Preise und Angebote im Blick.
 
-## So kommt die Seite auf GitHub Pages
+[**Live-Demo**](https://chriswittenbecher.github.io/Outfit-Planner/) · [Funktionen](#funktionen) · [Schnellstart](#schnellstart) · [Datenschutz](#datenschutz-und-sicherheit) · [Entwicklung](#entwicklung)
 
-Alle Dateien liegen **direkt im Hauptverzeichnis** (keine Unterordner). Das macht den Upload einfach.
+</div>
 
-1. Entpacke das ZIP.
-2. Öffne dein Repository auf github.com → **Add file → Upload files**.
-3. Markiere **alle Dateien** im entpackten Ordner (Strg+A) und ziehe sie in das Upload-Fenster. Dateien mit gleichem Namen werden überschrieben.
-4. Unten auf **Commit changes** klicken.
-5. Im Repo **Settings → Pages**: Source **Deploy from a branch**, Branch `main`, Ordner `/ (root)`, speichern.
-6. Nach ein bis zwei Minuten läuft die Seite unter `https://DEIN-NAME.github.io/REPO-NAME/`.
+---
 
-Zeigt die Seite noch die alte Version, lade sie mit Strg/Cmd + Shift + R neu.
+## Überblick
+
+Anprobe ist eine statische Web-App ohne Build-Schritt, ohne Konto und ohne Tracking. Sie läuft auf dem Smartphone genauso wie am Desktop und speichert alle Daten ausschließlich im Browser des Geräts.
+
+Der typische Ablauf:
+
+1. **Hinzufügen:** Über **„+ Kleidungsstück hinzufügen“** wählst du Link, Barcode oder Bild.
+2. **Freistellen:** Der Hintergrund wird automatisch entfernt, das Bild auf das Teil zugeschnitten.
+3. **Kombinieren:** Teile auf dem Anprobe-Board verschieben, skalieren, drehen und stapeln.
+4. **Vergleichen:** Preise, Gesamtsumme und der Link zum Angebot stehen direkt am Outfit.
 
 ## Funktionen
 
-- **Teile hinzufügen:** Screenshot einfügen (Strg/Cmd + V), per Drag & Drop, über die Dateiauswahl, per Produktlink oder per Barcode
-- **Automatisch freistellen:** Der Hintergrund wird entfernt und das Bild auf das Kleidungsstück zugeschnitten. Im Original kannst du einen Bereich aufziehen. Der Regler „Toleranz“ steuert, wie viel Hintergrund und Schatten verschwindet. Für schwierige Bilder gibt es „KI-Freistellen“.
-- **Produkt per Link:** Name, Bild und Preis werden ausgelesen. Ist alles eindeutig, landet das Teil direkt im Kleiderschrank, mit einer Meldung samt **Rückgängig** und **Bearbeiten**. Sonst öffnet sich der Dialog zur Prüfung.
-- **Barcode-Scanner:** Die Handykamera liest EAN-8, UPC-A, EAN-13 (Prüfziffer wird kontrolliert). Ohne Kamera oder ohne Erlaubnis gibst du die Nummer von Hand ein.
-- **Preis und Link:** Jedes Teil speichert Preis, Währung und den Link zum Angebot (sichtbar an der Karte). Unter dem Board siehst du alle Preise und die Summe.
-- **Anprobe-Board:** Teile anklicken, verschieben, mit dem Mausrad oder +/− skalieren.
-- **Drehen und Positionieren (alle Teile):** Runder Griff am Teil (Maus oder Finger, Shift = 15°-Schritte), Regler für Drehung und Position, Tasten `[` und `]` (drehen) und Pfeiltasten (schieben).
-- **Ebenen:** Schuhe liegen standardmäßig hinter der Hose. Änderbar mit „Nach vorn“/„Nach hinten“ oder ▲▼ in der Ebenenliste.
-- **Schuhe:** Zeigt das Bild nur einen Schuh, wird ein gespiegelter zweiter ergänzt (abschaltbar).
-- **Outfits speichern**, laden, als PNG exportieren
-- **Backup und Wiederherstellen:** Alles als JSON-Datei sichern
-
-## Wo liegen meine Daten?
-
-Alles liegt **nur im Browser** deines Geräts (IndexedDB), nichts auf GitHub oder einem Server.
-
-- Jedes Gerät und jede Adresse hat einen **eigenen** Kleiderschrank.
-- Löschst du die Browserdaten, ist der Schrank weg. Mach regelmäßig ein **Backup**.
-- Zum Umziehen auf ein anderes Gerät: dort „Backup“, auf dem Ziel „Wiederherstellen“.
-
-## Externe Dienste (nur bei Bedarf)
-
-| Wann | Dienst | Was wird gesendet |
-|---|---|---|
-| Produktlink auf GitHub Pages | allorigins.win (Seite), wsrv.nl (Bild) | die Link-Adresse. Vorher fragt die Seite einmalig um Erlaubnis. |
-| „KI-Freistellen“ | jsDelivr, staticimgly.com | nichts außer dem Laden des Modells (ca. 40 MB) |
-| Barcode ohne eingebaute Erkennung | jsDelivr (ZXing, feste Version) | nichts, nur das Laden der Bibliothek |
-| Barcode-Produktsuche | Open Products/Beauty/Food Facts | die Barcode-Nummer |
-
-Mit `python3 server.py` (lokal) ruft dein Rechner Produktseiten selbst ab, dann sind allorigins.win und wsrv.nl nicht nötig.
-
-**Grenzen:**
-
-- Manche Shops blockieren automatische Abrufe. Dann hilft ein Screenshot.
-- Preise sind nur so zuverlässig wie die Produktdaten der Seite. Prüfe sie vor dem Verlassen darauf.
-- Für **Kleidung** gibt es keine verlässliche kostenlose Barcode-Datenbank. Die offenen Datenbanken kennen vor allem Lebensmittel und Kosmetik. Ohne Treffer öffnet sich der Dialog mit dem Barcode, und du ergänzt Bild und Namen. Der Barcode bleibt am Teil gespeichert.
-- Die Kamera funktioniert nur über https oder localhost (GitHub Pages ist https).
-
-## Lokal starten (optional)
-
-```bash
-python3 server.py          # öffnet http://localhost:8000
-python3 server.py 8080     # anderer Port
-```
-
-Öffne die Seite über den Server (oder GitHub Pages), **nicht** per Doppelklick auf `index.html`: Browser blockieren ES-Module bei `file://`. In diesem Fall zeigt die Seite einen Hinweis.
-
-## Projektstruktur (alles im Hauptverzeichnis)
-
-```
-index.html          Seitengerüst (semantisches HTML, Content-Security-Policy)
-styles.css          Styles in Cascade Layers (reset → tokens → base → layout → components → modules → utilities)
-app.js              Anwendungslogik
-main.js             lädt die ES-Module und stellt window.Anprobe bereit
-geometry.js         Drehen und Positionieren (reine Mathematik)
-scraper.js          Link-Prüfung, Auslesen und Bereinigen von Produktdaten, Backup-Prüfung
-barcode.js          Barcode-Prüfziffer (EAN-8, UPC-A, EAN-13, GTIN-14)
-scanner.js          Kamera und Erkennung (eingebaute API, sonst ZXing)
-*.test.mjs          Unit-Tests
-icon16/48/128.png   App-Icons
-server.py           optionaler lokaler Server (Link-Import ohne Fremddienste)
-```
-
-## Sicherheit
-
-- **Strenge Content-Security-Policy:** keine Inline-Skripte, keine Inline-Styles, kein `eval`. Skripte kommen nur aus der eigenen Seite und von jsDelivr, Netzwerkzugriffe gehen nur an die oben genannten Dienste.
-- **Eingaben werden geprüft, bevor sie in die App gelangen:**
-  - Links: nur `http(s)`, keine Zugangsdaten (`user:pw@`), keine lokalen oder internen Adressen (localhost, 192.168.x.x, 169.254.x.x …), nur übliche Ports, höchstens 2048 Zeichen.
-  - Produktdaten aus Webseiten: Tags und Steuerzeichen entfernt, Texte gekürzt, Preise auf 0 bis 100 000 begrenzt, Währungen nur aus einer festen Liste, Bild-Adressen nur `http(s)`.
-  - Barcodes: nur Ziffern, Länge und Prüfziffer müssen stimmen, beim Scannen muss der Code zweimal hintereinander erkannt werden.
-  - Backup-Dateien: ungültige Einträge werden verworfen, Werte begrenzt, nur Rasterbilder erlaubt (kein SVG).
-- Texte aus fremden Quellen werden nur als Text angezeigt, nie als HTML.
-- Abrufe laufen ohne Cookies, ohne Referrer, mit Zeitlimit und Größenbegrenzung.
-- Die Kamera wird beendet, sobald der Dialog schließt, ein Code erkannt wird oder der Tab in den Hintergrund geht.
-
-## Barrierefreiheit
-
-Semantische Bereiche, „Zum Inhalt springen“-Link, sichtbarer Tastaturfokus, Dialoge mit Titel, Statusmeldungen für Bildschirmleser, Karten, Ebenenliste, Drehgriff und Scanner per Tastatur bedienbar, Touch-Ziele ab 40 px bei Hauptaktionen.
-
-## Tests
-
-```bash
-node --test *.test.mjs              # 25 Unit-Tests (Geometrie, Barcode, Eingabeprüfung)
-npx -p typescript tsc -p tsconfig.json   # strikte Typprüfung der Module
-```
-
-Die Module sind mit JSDoc typisiert und bestehen `tsc --strict --checkJs`.
-
-## Bedienung im Überblick
-
-| Aktion | So geht's |
+| Bereich | Beschreibung |
 |---|---|
-| Teil zum Outfit hinzufügen oder entfernen | Karte im Kleiderschrank anklicken |
-| Produkt per Link importieren | Link in „Produkt per Link hinzufügen“ einfügen, Importieren |
-| Barcode scannen | „Barcode scannen“, Kamera erlauben, Code ins Rechteck halten |
-| Teil verschieben | auf dem Board ziehen |
-| Teil drehen | runden Griff ziehen (Shift = 15°), Regler „Drehung“, `[` / `]` oder +15° / −15° |
-| Teil exakt verschieben | Regler „Position“ oder Pfeiltasten (Shift = 10 px) |
-| Größe ändern | Mausrad oder Buttons + und − |
-| Ebene ändern | „Nach vorn“, „Nach hinten“ oder ▲▼ in der Liste |
-| Teil vom Board entfernen | Doppelklick oder Entf |
-| Auswahl aufheben | Klick ins Leere oder Esc |
-| Teil bearbeiten (Name, Kategorie, Preis, Link, Zuschnitt) | Stift-Symbol auf der Karte |
-| Aktion rückgängig machen | „Rückgängig“ in der Meldung nach dem Hinzufügen |
+| **Link-Import** | Liest Name, Produktbild und Preis aus Shop-Links (Open Graph, JSON-LD, Produktdaten). Bereinigt Titel, erkennt die Kategorie und zieht bei Modellfotos das Produktbild vor. Eindeutige Treffer landen direkt im Kleiderschrank, mit **Rückgängig**. |
+| **Barcode-Scanner** | Liest EAN-8, UPC-A, EAN-13 und GTIN-14 per Kamera (inklusive Prüfziffer). Ohne Kamera oder Berechtigung gibst du die Nummer von Hand ein. |
+| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. |
+| **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
+| **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile** (Griff, Regler, Tastatur), Ebenen per Schaltfläche oder Liste. |
+| **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
+| **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
+| **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. |
+| **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. |
+| **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
 
-## Fehlerbehebung
+## Schnellstart
 
-- **Seite zeigt 404:** `index.html` muss im Hauptverzeichnis des Repos liegen und genau so heißen.
-- **Seite ist leer oder zeigt „Module konnten nicht geladen werden“:** Alle Dateien (`app.js`, `main.js`, `geometry.js`, `scraper.js`, `barcode.js`, `scanner.js`, `styles.css`, Icons) müssen im Hauptverzeichnis liegen. Lokal über `python3 server.py` öffnen.
-- **Alte Version sichtbar:** Mit Strg/Cmd + Shift + R neu laden.
-- **Schrank ist leer:** Du bist auf einer anderen Adresse oder einem anderen Gerät. Stelle ein Backup wieder her.
-- **Kamera startet nicht:** Erlaube die Kamera in den Browser-Einstellungen. Wird sie von einer anderen App benutzt, schließe diese. Sonst gib die Nummer unter dem Barcode ein.
-- **Link lädt kein Bild oder keinen Preis:** Der Shop blockiert den Abruf, oder der Preis steht nicht in den Produktdaten der Seite. Mach einen Screenshot und trage den Preis ein.
-- **Reste vom Hintergrund oder Schatten:** Toleranz erhöhen (etwa 45), ein Stück im Original markieren oder „KI-Freistellen“ nutzen.
+### Online nutzen (GitHub Pages)
+
+Die App liegt im Repository-Hauptverzeichnis und läuft direkt auf GitHub Pages:
+
+1. Repository öffnen → **Settings → Pages**
+2. **Source:** *Deploy from a branch*, Branch `main`, Ordner `/ (root)`
+3. Nach ein bis zwei Minuten erreichbar unter `https://<name>.github.io/<repository>/`
+
+Zeigt die Seite noch eine alte Version, hilft ein harter Reload (`Strg/Cmd + Shift + R`).
+
+### Lokal starten (empfohlen für den Link-Import)
+
+Voraussetzung ist Python 3.
+
+```bash
+python3 server/server.py          # öffnet http://localhost:8000
+python3 server/server.py 8080     # anderer Port
+```
+
+Der lokale Server liefert die Seite aus und ruft Produktseiten selbst ab. Dadurch sind keine öffentlichen Abruf-Dienste nötig, und mehr Shops funktionieren. Die Seite bitte über den Server öffnen, nicht per Doppelklick auf `index.html`, weil Browser ES-Module bei `file://` blockieren.
+
+## Projektstruktur
+
+```
+.
+├── index.html              Seitengerüst und Content-Security-Policy
+├── css/
+│   └── styles.css          Styles in Cascade Layers
+├── js/
+│   ├── main.js             lädt die ES-Module, stellt window.Anprobe bereit
+│   ├── app.js              Oberfläche und Anwendungslogik
+│   ├── geometry.js         Drehen und Positionieren (reine Funktionen)
+│   ├── scraper.js          Link-Prüfung, Produktdaten lesen und bereinigen
+│   ├── barcode.js          GTIN-Prüfziffern und Normalisierung
+│   └── scanner.js          Kamera und Erkennung (BarcodeDetector, ZXing)
+├── assets/
+│   └── icons/              App-Icons
+├── server/
+│   └── server.py           lokaler Server mit gesichertem Abruf (/api/raw)
+├── tests/
+│   ├── unit/               Unit-Tests (node:test)
+│   └── e2e/                End-to-End-Tests (Playwright)
+├── .github/workflows/      Continuous Integration
+├── package.json
+└── tsconfig.json           strikte Typprüfung per JSDoc
+```
+
+## Datenschutz und Sicherheit
+
+- **Lokale Datenhaltung:** Alles liegt in IndexedDB deines Browsers. Es gibt keinen Server und kein Konto. Jedes Gerät hat einen eigenen Kleiderschrank, zum Umziehen dienen Backup und Wiederherstellen.
+- **Strikte Content-Security-Policy:** kein `unsafe-inline`, feste Liste erlaubter Verbindungen.
+- **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen, Port-Allowlist). Importierte Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
+- **Abgesicherter lokaler Server:** Der Abruf-Endpunkt lauscht nur auf `127.0.0.1`, prüft jede Weiterleitung gegen private Adressen (SSRF-Schutz) und lehnt fremde Ursprünge ab.
+
+### Externe Dienste (nur bei Bedarf)
+
+| Wann | Dienst | Übermittelt |
+|---|---|---|
+| Link-Import auf GitHub Pages | allorigins.win (Seite), wsrv.nl (Bild) | die Link-Adresse, nach einmaliger Zustimmung |
+| KI-Freistellen | jsDelivr, staticimgly.com | nichts, nur Download des Modells (ca. 40 MB) |
+| Barcode ohne eingebaute Erkennung | jsDelivr (ZXing, feste Version) | nichts, nur Download der Bibliothek |
+| Barcode-Produktsuche | Open Products / Beauty / Food Facts | die Barcode-Nummer |
+
+## Bekannte Grenzen
+
+- Manche Shops blockieren automatische Abrufe (Bot-Schutz). Die App meldet das und empfiehlt einen Screenshot. Lokal mit `server/server.py` klappt es häufiger.
+- Preise sind nur so zuverlässig wie die Produktdaten der Seite und sollten vor dem Kauf geprüft werden.
+- Für Kleidung gibt es keine verlässliche freie Barcode-Datenbank. Ohne Treffer ergänzt du Bild und Namen im Dialog, die Nummer bleibt am Teil gespeichert.
+- Der Kamerazugriff erfordert `https` oder `localhost`.
+
+## Entwicklung
+
+Voraussetzungen: Node.js 20 oder neuer und Python 3.
+
+```bash
+npm install                 # TypeScript und Playwright
+npm run typecheck           # strikte Typprüfung (JSDoc)
+npm test                    # Unit-Tests
+npx playwright install chromium
+npm run test:e2e            # End-to-End-Tests, mobil und Desktop
+```
+
+Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/workflows/ci.yml`).
+
+### Architektur in Kürze
+
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js` und `barcode.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
+- **Typsicherheit ohne TypeScript-Quellcode:** JSDoc-Annotationen werden mit `tsc --strict --checkJs` geprüft.
+- **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.

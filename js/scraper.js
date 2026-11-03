@@ -344,7 +344,7 @@ export function extractProduct(doc, baseUrl, opts = {}) {
     if (t) { price = t.price; cur = cur || t.cur; priceSource = 'text'; }
   }
   // Bild-Adressen mit http auf einer https-Seite würden blockiert: auf https anheben
-  if (/^http:\/\//i.test(image) && /^https:/i.test(baseUrl) && !opts.allowLocal) image = image.replace(/^http:/i, 'https:');
+  if (/^http:\/\//i.test(image) && /^https:/i.test(baseUrl)) image = image.replace(/^http:/i, 'https:'); // CSP erlaubt nur https-Bilder
   const finalPrice = sanitizePrice(price);
   return {
     title: cleanTitle(title, meta('og:site_name')),
