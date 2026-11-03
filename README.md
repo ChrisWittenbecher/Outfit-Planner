@@ -27,7 +27,7 @@ Der typische Ablauf:
 |---|---|
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop, Einfügen aus der Zwischenablage oder **direktem Bildlink**. Preis und **Link zum Shop** werden immer am Teil gespeichert (fehlt „https://“, wird es ergänzt). Landet ein Seitenlink im Bildfeld, übernimmt die App ihn als Shop-Link, sofern dieses Feld leer ist. Das Laden per Bildlink klappt nur, wenn der Server des Shops es erlaubt; sonst hilft ein Screenshot. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
-| **Outfit-Fitter** | Teile ordnen sich beim Auflegen **direkt passend zueinander** an, ohne dass du Größe und Lage anpassen musst: Die App misst an den freigestellten Bildern, wie breit der Saum des Oberteils und der Bund der Hose sind, und skaliert die Hose so, dass beides zusammenpasst. Die Schuhe richten sich nach dem Hosensaum, die Jacke ist etwas weiter als das Oberteil, Accessoires stehen daneben. Das Ganze wird auf das Board gestreckt. Verstellst du etwas von Hand, bleibt dein Layout; **„Passend anordnen“** stellt die Passform jederzeit wieder her. Bei Bildern ohne Freistellung nimmt die App übliche Proportionen an. |
+| **Outfit-Fitter** | Teile ordnen sich beim Auflegen **direkt passend zueinander** an, ohne dass du Größe und Lage anpassen musst: Die App misst an den freigestellten Bildern, wie breit der Saum des Oberteils und der Bund der Hose sind, und skaliert die Hose so, dass beides zusammenpasst. Die Schuhe richten sich nach dem Hosensaum, die Jacke ist etwas weiter als das Oberteil, Accessoires stehen daneben. Das Ganze wird auf das Board gestreckt. Verstellst du etwas von Hand, bleibt dein Layout (auch nach dem Neuladen); **„Passend anordnen“** stellt die Passform jederzeit wieder her. Bei Bildern ohne Freistellung nimmt die App übliche Proportionen an. |
 | **Anprobe-Board** | **Doppeltipp** (am Smartphone) oder Doppelklick (Maus) nimmt ein Teil vom Board, ebenso die Entf-Taste; ein Hinweis mit „Rückgängig“ holt es zurück. Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
@@ -50,6 +50,9 @@ Die App liegt im Repository-Hauptverzeichnis und läuft direkt auf GitHub Pages:
 
 Zeigt die Seite noch eine alte Version, hilft ein harter Reload (`Strg/Cmd + Shift + R`).
 
+**Version prüfen und aktualisieren:** Unten auf der Seite steht die Versionsnummer, daneben **„Nach Update suchen“**. Die App vergleicht sich außerdem selbst mit `version.json` und bietet ein Update an, wenn sie veraltet ist. „Aktualisieren“ lädt alle Dateien am Zwischenspeicher vorbei neu. Das ist besonders am iPhone nützlich, wo geöffnete Tabs und Startbildschirm-Apps tagelang alte Dateien behalten. Eine ältere Version ohne diese Anzeige muss einmal von Hand erneuert werden: Tab schließen und die Adresse neu öffnen, oder unter *Einstellungen → Safari → Verlauf und Websitedaten löschen*.
+Bei jeder Veröffentlichung die Version in `package.json`, `version.json` und `js/version.js` gemeinsam hochzählen (der Unit-Test `version.test.mjs` prüft das).
+
 ### Ohne Hosting ausprobieren
 
 Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. Für einen schnellen lokalen Test genügt jeder Datei-Server im Projektordner, zum Beispiel `npx serve` oder `python3 -m http.server 8000`. Die Seite bitte über `http://localhost` öffnen und nicht per Doppelklick auf `index.html`, weil Browser ES-Module bei `file://` blockieren.
@@ -59,6 +62,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 ```
 .
 ├── index.html              Seitengerüst und Content-Security-Policy
+├── version.json            Versionsnummer für den Update-Hinweis
 ├── css/
 │   └── styles.css          Styles in Cascade Layers, alle Farben als Design-Tokens
 ├── js/
@@ -83,12 +87,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── prices.js           Preisverlauf, Preisänderung, Summen (reine Funktionen, getestet)
 │   ├── fit.js              Outfit-Fitter: Rechnung der Passform (reine Funktionen, getestet)
 │   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
+│   ├── update.js           Versionsanzeige und Update-Hinweis
+│   ├── version.js          Versionsnummer (gleich wie package.json und version.json)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -114,11 +120,12 @@ Voraussetzung: Node.js 20 oder neuer.
 npm install                 # TypeScript und Playwright
 npm run typecheck           # strikte Typprüfung (JSDoc)
 npm test                    # Unit-Tests
-npx playwright install chromium
-npm run test:e2e            # End-to-End-Test, mobil und Desktop
+npx playwright install chromium webkit
+npm run test:e2e            # End-to-End-Tests, mobil und Desktop (Chromium)
+BROWSER=webkit npm run test:e2e   # dieselben Tests in der Safari-Engine
 ```
 
-Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/workflows/ci.yml`).
+Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/workflows/ci.yml`), und zwar in Chromium **und** WebKit (Safari-Engine, wie auf dem iPhone).
 
 ### Architektur in Kürze
 

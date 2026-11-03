@@ -1,12 +1,12 @@
 {
   "name": "anprobe",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Anprobe – Outfit-Planer (statische Web-App)",
   "type": "module",
   "scripts": {
     "test": "node --test tests/unit/*.test.mjs",
-    "test:e2e": "node tests/e2e/add-flow.mjs && node tests/e2e/theme-undo.mjs && node tests/e2e/image-link.mjs && node tests/e2e/outfit-fit.mjs && node tests/e2e/double-tap.mjs",
+    "test:e2e": "node tests/e2e/run.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

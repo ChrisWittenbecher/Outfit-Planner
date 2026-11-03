@@ -23,6 +23,7 @@
  *   ui          eigene Dialoge und Hinweise (statt alert, confirm, prompt)
  *   theme       Design (Hell, Dunkel, Automatisch) und Bühne des Boards
  *   history     Rückgängig und Wiederholen
+ *   update      Versionsanzeige und Update-Hinweis (version.js, version.json)
  */
 import { $ } from './core.js';
 import { load, setReady } from './storage.js';
@@ -37,6 +38,7 @@ import './outfits.js';
 import './fitter.js';
 import './ui.js';
 import './theme.js';
+import './update.js';
 import { startHistory } from './history.js';
 
 load().then(ok => {

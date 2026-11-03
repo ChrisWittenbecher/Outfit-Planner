@@ -14,8 +14,11 @@ import { $, state } from './core.js';
    - Der Winkel zwischen den Fingern dreht es, die Mitte zwischen den Fingern verschiebt es
    - Registriert in der Capture-Phase, damit die Einzel-Finger-Bedienung unberührt bleibt
    ========================================================================== */
-export const touches = new Map();    // pointerId -> {x, y} (nur Touch)
+export const touches = new Map();    // pointerId -> {x, y, t} (nur Touch; t = Zeit der letzten Bewegung in ms)
 export let pinch = null, noDrag = false;
+let pinches = 0;                     // zählt begonnene Zwei-Finger-Gesten (damit das Ende einer Geste nie als Tipp zählt)
+export const pinchCount = () => pinches;
+const STALE = 600;                   // so lange ohne Lebenszeichen gilt ein Finger als verwaist (ms)
 const pair = () => { const [a, b] = [...touches.values()]; return {a, b, dist:Math.hypot(a.x - b.x, a.y - b.y), mid:{x:(a.x + b.x) / 2, y:(a.y + b.y) / 2}, ang:Geo.angleFromCenter(a.x, a.y, b.x, b.y)}; };
 function startPinch(){
   const p = selPiece(); if(!p){ pinch = null; return; }
@@ -36,11 +39,20 @@ function endTouch(e){
   if(touches.size < 2 && pinch){ pinch = null; renderGrid(); persist(); }
   if(touches.size === 0) noDrag = false;
 }
+/** Vergisst alle Finger. Geht ein Ende-Ereignis verloren (iOS, App im Hintergrund), bliebe sonst ein Geisterfinger zurück und Einzeltipps würden als Geste verschluckt. */
+function reset(){ touches.clear(); pinch = null; noDrag = false; }
 $('board').addEventListener('pointerdown', e => {
   if(e.pointerType !== 'touch') return;
-  touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
-  if(touches.size === 2){ noDrag = true; startPinch(); }
+  const now = performance.now();
+  // Der erste Finger ist per Definition allein auf dem Bildschirm; was dann noch gemerkt und lange still ist, ist ein Geisterfinger.
+  if(e.isPrimary && [...touches.values()].every(t => now - t.t > STALE)) reset();
+  touches.set(e.pointerId, {x:e.clientX, y:e.clientY, t:now});
+  if(touches.size === 2){ noDrag = true; pinches++; startPinch(); }
 }, true);
-$('board').addEventListener('pointermove', e => { const t = touches.get(e.pointerId); if(!t) return; t.x = e.clientX; t.y = e.clientY; if(pinch) movePinch(); }, true);
+// Sicherheitsnetz: sobald kein Finger mehr den Bildschirm berührt, ist die Liste leer – auch wenn pointerup ausblieb.
+['touchend', 'touchcancel'].forEach(t => addEventListener(t, e => { if(!e.touches.length) reset(); }, {passive:true, capture:true}));
+addEventListener('pagehide', reset);
+document.addEventListener('visibilitychange', () => { if(document.hidden) reset(); });
+$('board').addEventListener('pointermove', e => { const t = touches.get(e.pointerId); if(!t) return; t.x = e.clientX; t.y = e.clientY; t.t = performance.now(); if(pinch) movePinch(); }, true);
 ['pointerup', 'pointercancel'].forEach(t => $('board').addEventListener(t, endTouch, true));
 $('board').addEventListener('gesturestart', e => e.preventDefault());

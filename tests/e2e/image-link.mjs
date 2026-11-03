@@ -1,12 +1,12 @@
 // End-to-End-Test: Bild per Link laden und Shop-Link speichern (Netzwerk wird gemockt).
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
-import { chromium, devices } from 'playwright';
-import { checker, PNG, startServer } from './helpers.mjs';
+import { devices } from 'playwright';
+import { checker, PNG, startServer, launch } from './helpers.mjs';
 
 const PORT = 8733, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
-const browser = await chromium.launch();
+const browser = await launch();
 const SHOP = 'https://www.zalando.de/blaues-shirt';
 const statusText = p => p.textContent('#status');
 const waitStatus = (p, re) => p.waitForFunction(r => new RegExp(r).test(document.getElementById('status').textContent), re.source);

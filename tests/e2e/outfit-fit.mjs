@@ -1,12 +1,12 @@
 // End-to-End-Test: Outfit-Fitter (Teile passen direkt zueinander).
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
-import { chromium, devices } from 'playwright';
-import { addItem, checker, startServer } from './helpers.mjs';
+import { devices } from 'playwright';
+import { addItem, checker, startServer, launch } from './helpers.mjs';
 
 const PORT = 8734, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
-const browser = await chromium.launch();
+const browser = await launch();
 
 /** Erzeugt im Browser freigestellte Test-Bilder mit bekannten Umrissen und gibt sie als PNG-Puffer zurück. */
 const shapes = p => p.evaluate(() => {

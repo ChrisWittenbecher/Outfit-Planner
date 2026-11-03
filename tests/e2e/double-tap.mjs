@@ -1,12 +1,12 @@
 // End-to-End-Test: Doppeltipp (Touch) und Doppelklick (Maus) nehmen ein Teil vom Board; „Rückgängig“ holt es zurück.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
-import { chromium, devices } from 'playwright';
-import { addItem, checker, startServer } from './helpers.mjs';
+import { devices } from 'playwright';
+import { addItem, checker, startServer, launch } from './helpers.mjs';
 
 const PORT = 8735, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
-const browser = await chromium.launch();
+const browser = await launch();
 const count = p => p.locator('#board img.p').count();
 
 try {
@@ -57,6 +57,17 @@ try {
     await p.click('#toasts button');
     await wait(300);
     ok(await count(p) === 2, '„Rückgängig“ holt das Teil zurück');
+
+    // 4b. Geisterfinger: ging ein pointerup verloren (iOS), darf das den nächsten Doppeltipp nicht verschlucken
+    if (mobile) {
+      await wait(500);
+      await p.evaluate(() => document.getElementById('board').dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', pointerId: 99, isPrimary: true, clientX: 5, clientY: 5, bubbles: true })));
+      await wait(700);   // länger still als STALE in gestures.js
+      const t2 = await center(1);
+      await tap(t2.x, t2.y); await wait(60); await tap(t2.x, t2.y); await wait(300);
+      ok(await count(p) === 1, 'ein verwaister Finger (verlorenes pointerup) verschluckt den Doppeltipp nicht');
+      await p.click('#toasts button'); await wait(300);
+    }
 
     // 5. Ziehen und gleich danach tippen: kein Doppeltipp (nur Maus; der Test für Touch-Ziehen steckt im Gestentest)
     if (!mobile) {

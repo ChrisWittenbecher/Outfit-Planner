@@ -1,13 +1,13 @@
 // End-to-End-Test: Dunkelmodus (Umschalter, Speicherung, Bühne, PNG), eigene Dialoge, Rückgängig/Wiederholen.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
-import { chromium, devices } from 'playwright';
+import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { addItem, checker, startServer } from './helpers.mjs';
+import { addItem, checker, startServer, launch } from './helpers.mjs';
 
 const PORT = 8732, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
-const browser = await chromium.launch();
+const browser = await launch();
 
 const bg = (p, sel) => p.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
 const attr = p => p.evaluate(() => document.documentElement.dataset.theme ?? null);
