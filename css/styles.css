@@ -179,6 +179,8 @@
   .rot-stem { position: absolute; left: -1px; width: 2px; background: var(--stage-acc); }
   .rot-knob { position: absolute; left: -11px; width: 22px; height: 22px; border-radius: 50%; background: var(--knob); border: 2px solid var(--stage-acc); cursor: grab; pointer-events: auto; touch-action: none; box-shadow: 0 1px 4px var(--shade-sm); }
   .rot-knob:active { cursor: grabbing; }
+  /* Outfit-Fitter: Teile gleiten an ihren Platz (nur beim Anordnen, damit Ziehen nicht nachläuft) */
+  @media (prefers-reduced-motion: no-preference) { #board.snap .p { transition: left .3s ease, top .3s ease, width .3s ease, transform .3s ease; } }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; justify-content: center; }
   .sub { color: var(--mute); font-size: 13px; margin-top: 8px; text-align: center; }
 

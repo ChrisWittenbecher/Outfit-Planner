@@ -41,7 +41,7 @@ const enc = encodeURIComponent;
  * - board: Teile auf dem Board (Reihenfolge = Ebenen)
  * - filter, statusFilter, draft, sel, editing, K: Oberfläche (Kategorie-Filter, Dialog-Entwurf, Auswahl, bearbeitetes Teil, Board-Skalierung)
  */
-export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', statusFilter:'Alle', fresh:null, draft:null, sel:null, editing:null, K:1};
+export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', statusFilter:'Alle', fresh:null, fitted:false, draft:null, sel:null, editing:null, K:1};
 export const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 export const item = id => state.data.items.find(i => i.id === id);
 export const imgOf = id => item(id)?.img;

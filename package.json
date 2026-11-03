@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/unit/*.test.mjs",
-    "test:e2e": "node tests/e2e/add-flow.mjs && node tests/e2e/theme-undo.mjs && node tests/e2e/image-link.mjs",
+    "test:e2e": "node tests/e2e/add-flow.mjs && node tests/e2e/theme-undo.mjs && node tests/e2e/image-link.mjs && node tests/e2e/outfit-fit.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

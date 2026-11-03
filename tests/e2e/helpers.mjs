@@ -32,10 +32,10 @@ export async function startServer(port) {
 }
 
 /** Fügt über den Dialog ein Teil hinzu (Bild, Name, Kategorie) und wartet, bis die Karte da ist. */
-export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberteil', price = '' }) {
+export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberteil', price = '', png = PNG }) {
   const before = await p.locator('#grid .card').count();
   await p.click(trigger);
-  await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: PNG });
+  await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: png });
   await p.waitForSelector('#res img', { timeout: 15000 });
   await p.fill('#name', name);
   await p.selectOption('#cat', cat);

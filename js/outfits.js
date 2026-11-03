@@ -57,7 +57,7 @@ export function renderOuts(){
     d.querySelector('b').textContent = o.name; { const t = totals(o.pieces); d.querySelector('small').textContent = t.txt + (t.buyCount ? ' · noch zu kaufen: ' + (t.buy || '–') : ''); }
     o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1, transform:`rotate(${p.r || 0}deg)`}); d.querySelector('.mini>div').append(im); });
     const [ld, rm] = d.querySelectorAll('button');
-    ld.onclick = () => { step(); state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; renderAll(); };
+    ld.onclick = () => { step(); state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; state.fitted = false; renderAll(); };
     rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}}); };
     return d;
   }));
