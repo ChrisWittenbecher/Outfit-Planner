@@ -118,6 +118,43 @@ try {
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
 
+    // Wunschliste und Preisverlauf: Preis senken + als Wunsch vormerken, filtern, Summe „noch zu kaufen“, als gekauft markieren
+    const card1 = () => p.locator('#grid .card').first();
+    const openEdit = async () => {
+      await card1().scrollIntoViewIfNeeded();
+      if (mobile) { await card1().locator('.more').click(); await p.click('#menuEdit'); }
+      else { await card1().hover(); await card1().locator('.acts button[aria-label="Bearbeiten"]').click(); }
+      await p.waitForFunction(() => document.getElementById('dlg').open);
+    };
+    await openEdit();
+    ok(await p.inputValue('#itemState') === 'own', 'Status eines normalen Teils ist „Besitze ich“');
+    ok(await p.locator('#priceHistory').isHidden(), 'Preisverlauf erst ab zwei Einträgen sichtbar');
+    await p.fill('#price', '29,90');
+    await p.selectOption('#itemState', 'wish');
+    await p.click('#ok');
+    ok(await card1().locator('.badge').innerText() === 'Wunsch', 'Karte zeigt „Wunsch“-Marke');
+    ok(/25 %/.test(await card1().locator('.pc--down').innerText()), 'Preissenkung von 39,90 auf 29,90 wird als ↓ 25 % gezeigt');
+    const sc = label => p.locator('#statusChips button', { hasText: label });
+    await sc('Besitze ich').click();
+    ok(await p.locator('#grid .card').count() === 0 && /Nichts in dieser Auswahl/.test(await p.textContent('#grid')), 'Filter „Besitze ich“ blendet den Wunsch aus');
+    await sc('Wunschliste').click();
+    ok(await p.locator('#grid .card').count() === 1, 'Filter „Wunschliste“ zeigt den Wunsch');
+    await sc('Alle').click();
+    if (await p.locator('#board img.p').count() === 0) await card1().locator('img').first().click();
+    ok(/29,90/.test(await p.textContent('#sum .t--buy')) && /Noch zu kaufen/.test(await p.textContent('#sum .t--buy')), '„Noch zu kaufen“-Summe im Outfit');
+    await openEdit();
+    ok(await p.inputValue('#itemState') === 'wish', 'Status bleibt gespeichert');
+    ok(await p.locator('#priceHistory').isVisible() && await p.locator('#priceList li').count() === 2 && /29,90/.test(await p.locator('#priceList li').first().innerText()), 'Preisverlauf mit zwei Einträgen, neuester zuerst');
+    await p.click('#cancel');
+    if (mobile) { await card1().locator('.more').click(); ok(await p.locator('#menuBought').isVisible(), 'Menü bietet „Als gekauft markieren“ bei Wunschteilen'); await p.click('#menuBought'); }
+    else { await card1().hover(); await card1().locator('.acts button[aria-label="Als gekauft markieren"]').click(); }
+    ok(await card1().locator('.badge').count() === 0 && await p.locator('#sum .t--buy').count() === 0, 'Als gekauft markiert: keine Marke, keine „Noch zu kaufen“-Summe');
+    await p.waitForTimeout(400);
+    await p.reload();
+    await p.waitForSelector('html[data-ready]', { state: 'attached' });
+    await p.waitForSelector('#grid .card');
+    ok(await card1().locator('.badge').count() === 0 && await card1().locator('.pc--down').count() === 1, 'Status und Preisverlauf bleiben nach Neuladen erhalten');
+
     // Aktionen an der Karte: Drei-Punkte-Menü (Smartphone) bzw. runde Schnellaktionen (Desktop)
     const first = p.locator('#grid .card').first();
     await first.scrollIntoViewIfNeeded();

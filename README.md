@@ -28,6 +28,7 @@ Der typische Ablauf:
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
+| **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. |
@@ -72,6 +73,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── render.js           alles neu zeichnen
 │   ├── geometry.js         Drehen und Positionieren (reine Funktionen, getestet)
 │   ├── scraper.js          Eingabeprüfung und Bereinigung (getestet)
+│   ├── prices.js           Preisverlauf, Preisänderung, Summen (reine Funktionen, getestet)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons
@@ -111,11 +113,15 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 ### Architektur in Kürze
 
 - **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js` und `scraper.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js` und `prices.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
-- **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js` und `scraper.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
+- **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js` und `prices.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
 
 ## Roadmap
 
 Link-Import und Barcode-Scanner wurden entfernt, weil sie ohne eigenen Server nicht zuverlässig funktionieren: Browser dürfen fremde Shop-Seiten nicht direkt lesen, und öffentliche Abruf-Dienste werden von vielen Shops blockiert. Für Kleidung gibt es außerdem keine verlässliche freie Barcode-Datenbank. Der letzte Stand mit beiden Funktionen ist im Git-Verlauf unter dem Commit `95d3816` abrufbar (`git checkout 95d3816`).
+
+### Automatische Preisverfolgung
+
+Der Preisverlauf wird heute nur bei Änderungen geführt, die du selbst einträgst. Ein **automatischer Abruf aktueller Shop-Preise** ist ohne eigenen Server nicht zuverlässig möglich: Browser dürfen fremde Shop-Seiten nicht lesen, und im Hintergrund prüfen kann eine reine Webseite nur, solange sie geöffnet ist. Dafür wäre ein kleiner Backend-Dienst nötig (regelmäßiger Abruf der Produktseiten, Benachrichtigung bei Preissenkung). Das Datenmodell ist darauf vorbereitet: Der Dienst müsste nur neue Einträge in `priceHistory` ergänzen. Ob das den Aufwand eines Servers (Betrieb, Datenschutz, Kosten) wert ist, entscheidet sich nach dem Praxistest der manuellen Variante.
