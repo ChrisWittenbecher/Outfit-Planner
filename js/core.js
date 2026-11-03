@@ -30,18 +30,16 @@ import * as Scraper from './scraper.js';
 export const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
 // Standardposition: x, y, Breite, Ebene
 export const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
-/** Standardplätze, wenn der Strichmensch sichtbar ist: Teile landen passend zu Schultern, Hüfte und Füßen. */
-export const DEF_FIG = {'Oberteil':[105,92,190,2],'Jacke':[95,88,210,4],'Hose/Rock':[120,235,160,1],'Schuhe':[125,478,150,2],'Accessoire':[290,250,80,5]};
 export const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
 /**
  * Gemeinsamer, veränderlicher Zustand. ES-Module dürfen importierte Variablen nicht neu zuweisen,
  * deshalb liegt alles in einem Objekt.
- * - data: Bestand (items, outfits, figure), wird gespeichert
+ * - data: Bestand (items, outfits), wird gespeichert
  * - board: Teile auf dem Board (Reihenfolge = Ebenen)
  * - filter, draft, sel, editing, K: Oberfläche (Kategorie-Filter, Dialog-Entwurf, Auswahl, bearbeitetes Teil, Board-Skalierung)
  */
-export const state = {data:{items:[], outfits:[], figure:false}, board:[], filter:'Alle', draft:null, sel:null, editing:null, K:1};
+export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', draft:null, sel:null, editing:null, K:1};
 export const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 export const item = id => state.data.items.find(i => i.id === id);
 export const imgOf = id => item(id)?.img;

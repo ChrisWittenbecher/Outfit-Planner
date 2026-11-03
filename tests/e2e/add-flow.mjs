@@ -107,22 +107,16 @@ try {
       ok(await p.locator('#board img.p').count() === 1, 'Teil bleibt nach der Geste auf dem Board');
     }
 
-    // Strichmensch
-    ok(await p.locator('#figure').isHidden(), 'Strichmensch ist standardmäßig aus');
-    await p.locator('#figBtn').scrollIntoViewIfNeeded();
-    await p.click('#figBtn');
-    ok(await p.locator('#figure').isVisible() && await p.getAttribute('#figBtn', 'aria-pressed') === 'true', 'Strichmensch lässt sich einblenden');
-    ok(await p.evaluate(() => getComputedStyle(document.getElementById('figure')).pointerEvents === 'none'), 'Strichmensch blockiert keine Eingaben');
+    // PNG-Export
     const dl = p.waitForEvent('download');
     await p.locator('#png').scrollIntoViewIfNeeded();
     await p.click('#png');
-    ok((await dl).suggestedFilename() === 'outfit.png', 'PNG-Export mit Strichmensch funktioniert');
+    ok((await dl).suggestedFilename() === 'outfit.png', 'PNG-Export funktioniert');
     await p.waitForTimeout(400);
     await p.reload();
     await p.waitForSelector('html[data-ready]', { state: 'attached' });
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
-    ok(await p.locator('#figure').isVisible(), 'Strichmensch bleibt nach Neuladen eingeblendet');
 
     // Aktionen an der Karte: Drei-Punkte-Menü (Smartphone) bzw. runde Schnellaktionen (Desktop)
     const first = p.locator('#grid .card').first();

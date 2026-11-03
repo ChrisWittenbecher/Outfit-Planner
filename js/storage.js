@@ -17,7 +17,7 @@ export async function load(){
     try{
       const d = await idb;
       const v = await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get('s'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
-      if(v){ state.data = {items:v.items || [], outfits:v.outfits || [], figure:!!v.figure}; state.board = fixOrder(cleanPieces(v.board)); state.data.outfits = state.data.outfits.filter(o => o && typeof o.name === 'string'); state.data.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); }
+      if(v){ state.data = {items:v.items || [], outfits:v.outfits || []}; state.board = fixOrder(cleanPieces(v.board)); state.data.outfits = state.data.outfits.filter(o => o && typeof o.name === 'string'); state.data.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); }
       navigator.storage?.persist?.(); return true;
     }catch(e){ await new Promise(r => setTimeout(r, 250)); }
   }

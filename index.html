@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4f1ec">
   <title>Anprobe – Outfit-Planer</title>
-  <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Strichmensch, Preise und Links an einem Ort.">
+  <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light">
   <!-- Datenschutz: beim Laden von Produktbildern wird nicht verraten, von welcher Seite die Anfrage kommt. -->
   <meta name="referrer" content="no-referrer">
@@ -56,16 +56,6 @@
       <div class="panel-head panel-head--full"><h2 id="outfitTitle">Outfit</h2><span id="saveState" class="meta" role="status"></span></div>
       <div id="wrap">
         <div id="board" role="group" aria-label="Anprobe-Board">
-          <!-- Proportionshilfe: Strichmensch hinter den Kleidungsstücken (Größe ca. 7,5 Kopflängen) -->
-          <svg id="figure" width="400" height="600" viewBox="0 0 400 600" aria-hidden="true" focusable="false" hidden>
-            <g fill="none" stroke="#9aa1b8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="200" cy="52" r="28"/>
-              <path d="M200 80V98M150 100H250M200 98V290M178 290H222"/>
-              <path d="M150 100L128 200L120 290M250 100L272 200L280 290"/>
-              <path d="M178 290L172 420L168 540L148 552M222 290L228 420L232 540L252 552"/>
-              <circle cx="120" cy="297" r="6"/><circle cx="280" cy="297" r="6"/>
-            </g>
-          </svg>
           <div class="hint" id="hint">Tippe im Kleiderschrank auf ein Teil, um es hier anzuprobieren.</div>
         </div>
       </div>
@@ -75,7 +65,6 @@
         <button type="button" id="smaller" title="Ausgewähltes Teil kleiner" aria-label="Kleiner">−</button>
         <button type="button" id="front" title="Ausgewähltes Teil vor die anderen legen">Nach vorn</button>
         <button type="button" id="back" title="Ausgewähltes Teil hinter die anderen legen">Nach hinten</button>
-        <button type="button" id="figBtn" aria-pressed="false" title="Strichmensch als Proportionshilfe ein- oder ausblenden">Strichmensch</button>
         <button type="button" id="shuffle">Zufällig kombinieren</button>
         <button type="button" id="clear">Leeren</button>
         <button type="button" id="png">Als Bild laden</button>
