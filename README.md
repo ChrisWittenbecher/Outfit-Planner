@@ -25,7 +25,7 @@ Der typische Ablauf:
 
 | Bereich | Beschreibung |
 |---|---|
-| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
+| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop, Einfügen aus der Zwischenablage oder **direktem Bildlink**. Preis und **Link zum Shop** werden immer am Teil gespeichert (fehlt „https://“, wird es ergänzt). Landet ein Seitenlink im Bildfeld, übernimmt die App ihn als Shop-Link, sofern dieses Feld leer ist. Das Laden per Bildlink klappt nur, wenn der Server des Shops es erlaubt; sonst hilft ein Screenshot. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
@@ -85,7 +85,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   └── icons/              App-Icons
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -101,7 +101,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 
 ### Externe Dienste
 
-Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Dabei werden keine deiner Daten gesendet. Alles andere läuft ohne Netzwerkzugriff.
+Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Dabei werden keine deiner Daten gesendet. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
 
 ## Entwicklung
 

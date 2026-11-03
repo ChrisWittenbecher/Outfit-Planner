@@ -98,6 +98,34 @@ export function isPrivateHost(host) {
 /** @typedef {{ ok: true, url: string } | { ok: false, error: string }} UrlResult */
 
 /**
+ * Macht aus einer Eingabe wie „www.shop.de/hemd“ einen vollständigen Link („https://www.shop.de/hemd“).
+ * Alles, was nicht wie ein Domainname aussieht (z. B. „javascript:…“), bleibt unverändert und fällt danach in validateUrl durch.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function normalizeLinkInput(raw) {
+  if (typeof raw !== 'string') return '';
+  const text = raw.trim();
+  return /^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#]|$)/i.test(text) ? 'https://' + text : text;
+}
+
+/**
+ * Sieht der Link nach einer Bilddatei aus (Endung wie .jpg oder Format-Parameter wie ?format=webp)?
+ * Dient nur dazu, bei einem Fehlschlag zu raten, ob jemand eine Shop-Seite statt eines Bildlinks eingefügt hat.
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function looksLikeImageUrl(url) {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (/\.(?:jpe?g|png|webp|gif|avif|bmp)$/i.test(u.pathname)) return true;
+  for (const key of ['format', 'fmt', 'fm', 'ext', 'f']) {
+    if (/^(?:jpe?g|png|webp|gif|avif)$/i.test(u.searchParams.get(key) || '')) return true;
+  }
+  return false;
+}
+
+/**
  * Prüft einen eingegebenen Link. Erlaubt sind nur http(s)-Adressen ohne Zugangsdaten,
  * ohne lokale oder interne Ziele und mit üblichen Ports.
  * @param {unknown} raw

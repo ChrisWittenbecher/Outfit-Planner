@@ -182,7 +182,12 @@
   <!-- ===== Dialog: Teil hinzufügen / bearbeiten ===== -->
   <dialog id="dlg" aria-labelledby="dlgTitle">
     <h2 id="dlgTitle">Neues Teil</h2>
-    <label for="url">Link zum Angebot (optional, wird beim Teil gespeichert)</label>
+    <label for="imgUrl">Bild per Link laden (optional, direkter Link zum Bild)</label>
+    <div class="row">
+      <input id="imgUrl" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/bilder/hemd.jpg">
+      <button type="button" id="imgLoad">Laden</button>
+    </div>
+    <label for="url">Link zum Shop (wird immer beim Teil gespeichert)</label>
     <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/produkt">
     <div id="status" role="status"></div>
     <div id="panes">
