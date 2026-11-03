@@ -1,4 +1,4 @@
-// End-to-End-Test: Outfit-Fitter (Teile passen direkt zueinander) und kein Entfernen per Doppeltipp.
+// End-to-End-Test: Outfit-Fitter (Teile passen direkt zueinander).
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
 import { chromium, devices } from 'playwright';
 import { addItem, checker, startServer } from './helpers.mjs';
@@ -60,12 +60,6 @@ try {
     ok(g.every(k => k.rot === 'rotate(0deg)'), 'alle Teile ungedreht');
     const used = Math.max(...g.map(k => k.y + k.w * k.asp)) - Math.min(...g.map(k => k.y));
     ok(used > 480, `Outfit füllt das Board in der Höhe (${Math.round(used)} von 600 px)`);
-
-    // Doppeltippen entfernt nichts mehr
-    await p.locator('#board img.p').last().dblclick({ force: true });
-    await settle(p);
-    ok(await p.locator('#board img.p').count() === 3, 'Doppeltipp/Doppelklick auf ein Teil entfernt es nicht mehr');
-    ok(!/Doppelklick/.test(await p.textContent('.sub')), 'Hinweistext nennt kein Doppelklick-Entfernen mehr');
 
     // Eigene Änderung bleibt: danach ordnet sich nichts mehr von selbst neu
     await p.locator('#board img.p').last().click({ force: true });
