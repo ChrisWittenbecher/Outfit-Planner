@@ -25,7 +25,7 @@ Der typische Ablauf:
 
 | Bereich | Beschreibung |
 |---|---|
-| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. |
+| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Strichmensch** | Blendet eine Figur als Proportionshilfe hinter die Kleidung ein. Neue Teile landen passend an Schultern, Hüfte und Füßen. Wird beim PNG-Export mitgezeichnet. |
@@ -59,10 +59,22 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 ├── css/
 │   └── styles.css          Styles in Cascade Layers
 ├── js/
-│   ├── main.js             lädt die ES-Module, stellt window.Anprobe bereit
-│   ├── app.js              Oberfläche und Anwendungslogik
-│   ├── geometry.js         Drehen und Positionieren (reine Funktionen)
-│   └── scraper.js          Eingabeprüfung und Bereinigung (Texte, Preise, Links, Backups)
+│   ├── main.js             Einstieg: lädt die Module, startet die App
+│   ├── core.js             gemeinsamer Zustand, Konstanten, Helfer
+│   ├── storage.js          Speicher (IndexedDB)
+│   ├── image.js            Bildverarbeitung: Freistellen, Zuschnitt, Schuhpaare
+│   ├── dialog.js           Dialog „Teil hinzufügen / bearbeiten“
+│   ├── wardrobe.js         Kleiderschrank: Filter, Karten, Drei-Punkte-Menü
+│   ├── board.js            Board: auflegen, verschieben, skalieren, Ebenen
+│   ├── rotation.js         Drehen und Positionieren (Griff, Regler)
+│   ├── gestures.js         Zwei-Finger-Geste (Touch)
+│   ├── figure.js           Strichmensch
+│   ├── exchange.js         PNG-Export, Backup, Wiederherstellen
+│   ├── outfits.js          Preise, Ebenenliste, gespeicherte Outfits
+│   ├── render.js           alles neu zeichnen
+│   ├── geometry.js         Drehen und Positionieren (reine Funktionen, getestet)
+│   ├── scraper.js          Eingabeprüfung und Bereinigung (getestet)
+│   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
@@ -100,9 +112,10 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 
 ### Architektur in Kürze
 
+- **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
 - **Reine Logik getrennt von der Oberfläche:** `geometry.js` und `scraper.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
-- **Typsicherheit ohne TypeScript-Quellcode:** JSDoc-Annotationen werden mit `tsc --strict --checkJs` geprüft.
+- **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js` und `scraper.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
 
 ## Roadmap
