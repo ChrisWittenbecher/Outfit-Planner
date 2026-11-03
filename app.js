@@ -201,8 +201,7 @@ let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process
 
 /* ---------- Hinzufügen/Bearbeiten-Dialog ---------- */
 CATS.forEach(c => $('cat').add(new Option(c, c)));
-const CATRX = [[/schuh|sneaker|stiefel|boot|shoe|loafer|sandale|sandal|pumps|trainer|slipper/i, 'Schuhe'], [/jacke|mantel|coat|jacket|blazer|parka|weste|anorak|trench|bomber/i, 'Jacke'], [/hose|jeans|pants|trouser|chino|shorts?\b|rock\b|skirt|jogger|leggings/i, 'Hose/Rock'], [/shirt|pullover|hoodie|sweat|top\b|bluse|hemd|polo|strick|cardigan|longsleeve|tank|kleid|dress/i, 'Oberteil'], [/tasche|bag\b|mütze|cap\b|beanie|gürtel|belt|schal|scarf|uhr\b|watch|brille|hut\b|hat\b|rucksack|handschuh/i, 'Accessoire']];
-function guessCat(t){ const m = CATRX.find(([r]) => r.test(String(t || ''))); return m ? m[1] : ''; }
+const guessCat = t => Scraper.guessCategory(t);
 function autoCat(t){ const c = guessCat(t); if(c){ $('cat').value = c; syncMirror(); } }
 /** Kündigt eine Änderung für Bildschirmleser an (aria-live). */
 function announce(t){ const a = $('announcer'); a.textContent = ''; setTimeout(() => { a.textContent = t; }, 30); }
@@ -279,10 +278,11 @@ async function fetchBody(url, kind, max, ms = 15000){
   } finally { clearTimeout(t); }
 }
 async function getText(u){
-  if(LOCAL){ try{ return await fetchBody('/api/raw?url=' + enc(u), 'text', Scraper.LIMITS.html); }catch(e){} }
+  let blocked = false; // Seite kam an, ist aber keine Produktseite (Bot-Schutz, Cookie-Wand, Captcha)
+  if(LOCAL){ try{ const t = await fetchBody('/api/raw?url=' + enc(u), 'text', Scraper.LIMITS.html); if(Scraper.looksLikeProductHtml(t)) return t; blocked = true; }catch(e){} }
   if(!consent()) throw new Error('Abgebrochen.');
-  for(const p of PROXIES){ try{ const t = await fetchBody(p + enc(u), 'text', Scraper.LIMITS.html); if(t.length > 200) return t; }catch(e){} }
-  throw new Error('Die Seite konnte nicht abgerufen werden.');
+  for(const p of PROXIES){ try{ const t = await fetchBody(p + enc(u), 'text', Scraper.LIMITS.html); if(t.length > 200){ if(Scraper.looksLikeProductHtml(t)) return t; blocked = true; } }catch(e){} }
+  throw new Error(blocked ? 'Der Shop liefert keine lesbaren Produktdaten (Bot-Schutz?). Nutze einen Screenshot oder trage Name und Preis selbst ein.' : 'Die Seite konnte nicht abgerufen werden.');
 }
 async function getImg(u){ // liefert eine Bildquelle, die sich in ein Canvas zeichnen lässt
   const safe = Scraper.sanitizeImageUrl(u, location.href, {allowLocal:LOCAL});

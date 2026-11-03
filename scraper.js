@@ -64,6 +64,49 @@ export function sanitizePrice(n) {
   return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= LIMITS.price ? Math.round(n * 100) / 100 : null;
 }
 
+/** Regeln in fester Reihenfolge, der erste Treffer gewinnt. Deutsche Zusammensetzungen („Zopfpullover“) brauchen Teilwort-Treffer. */
+const CATEGORY_RULES = /** @type {[RegExp, string][]} */ ([
+  [/schuh|sneaker|stiefel|\bboots?\b|loafer|sandale|\bsandals?\b|\bslides?\b|slipper|\bpumps\b|\btrainers?\b|ballerina|\bmules?\b|\bclogs?\b|espadrille|\bshoes?\b|\bheels?\b/i, 'Schuhe'],
+  [/jacke|jacket|mantel\b|mäntel|\bcoat\b|blazer|sakko|parka|anorak|\bweste\b|westen\b|\bvests?\b|gilet|bomber|windbreaker|\bpuffer\b|\btrench\b|\bcape\b|poncho|overshirt|outerwear/i, 'Jacke'],
+  [/hose\b|hosen\b|jeans|denim|\bpants\b|\btrousers?\b|\bchinos?\b|\bjoggers?\b|shorts?\b|\bjorts?\b|\bcargos?\b|leggings?|\btights\b|rock\b|röcke|\bskirts?\b|trackpants|bermuda|culotte|jumpsuit|overall/i, 'Hose/Rock'],
+  [/shirt|\btees?\b|\btops?\b|\btank\b|tanktop|polo|pullover|sweater|sweatshirt|hoodie|jersey|longsleeve|long sleeve|langarm|flannel|\bknit(?!\s*(beanie|cap|hat|scarf|gloves?))|strick(?!muster)|cardigan|blouse|bluse|hemd|oberteil|\bbody(suit)?\b|\bsweat\b|jumper|crew ?neck|rollkragen|turtleneck|henley|kleid|\bdress\b/i, 'Oberteil'],
+  [/\bcaps?\b|\bhats?\b|beanie|mütze|muetze|\bschal\b|scarf|handschuh|\bgloves?\b|gürtel|\bbelt\b|sunglasses|sonnenbrille|brille|\bshades\b|\bwatch\b|\buhr\b|schmuck|jewell?ery|\bring\b|necklace|\bkette\b|bracelet|armband|ohrring|earring|\bsocks?\b|socken|strumpf|krawatte|\bties?\b|wallet|geldbörse|rucksack|backpack|\bbags?\b|tasche|\bpouch\b|\bkeychain\b/i, 'Accessoire'],
+]);
+
+/**
+ * Rät die Kategorie aus dem Produktnamen. Gibt leeren Text zurück, wenn nichts passt
+ * (dann soll die Person die Kategorie selbst wählen).
+ * @param {unknown} text
+ * @returns {string} „Oberteil“, „Jacke“, „Hose/Rock“, „Schuhe“, „Accessoire“ oder ''
+ */
+export function guessCategory(text) {
+  const t = typeof text === 'string' ? text : '';
+  for (const [re, cat] of CATEGORY_RULES) if (re.test(t)) return cat;
+  return '';
+}
+
+const GENDER = /^(men|man|women|woman|herren|damen|kinder|kids|boys?|girls?|unisex|baby)$/i;
+
+/**
+ * Macht aus Seitentiteln einen kurzen Produktnamen:
+ * „Zopfpullover … - Dunkelgrün - Men | H&M DE“ → „Zopfpullover … - Dunkelgrün“,
+ * „Blank Slub Tee – LIVE FAST DIE YOUNG“ → „Blank Slub Tee“.
+ * @param {unknown} title
+ * @param {unknown} [siteName] Name des Shops (og:site_name), wenn bekannt
+ * @returns {string}
+ */
+export function cleanTitle(title, siteName = '') {
+  const full = sanitizeText(title, 300);
+  const site = sanitizeText(siteName, 60).toLowerCase();
+  const first = full.split(' | ')[0];                          // „Name | Shop“
+  const segs = first.split(/\s+[-–—]\s+/);
+  while (segs.length > 1) {
+    const last = /** @type {string} */ (segs[segs.length - 1]);
+    if (GENDER.test(last) || (site && last.toLowerCase().includes(site))) segs.pop(); else break;
+  }
+  return (segs.join(' - ').trim() || full).slice(0, LIMITS.title);
+}
+
 /**
  * @param {unknown} v
  * @param {string} [fallback]
@@ -180,11 +223,76 @@ export function sanitizeItem(raw, cats) {
   return item;
 }
 
-/** @typedef {{ title: string, image: string, price: number | null, cur: string }} ProductInfo */
+/** @typedef {{ title: string, image: string, price: number | null, cur: string, priceSource: '' | 'meta' | 'json-ld' | 'itemprop' | 'text' }} ProductInfo */
+
+/** Wörter in Bildbeschreibungen, die auf ein Foto mit Person hindeuten. */
+const MODEL_ALT = /\bmodel\b|getragen|\bträgt\b|wird von|\bworn\b|wearing|wears|\bwoman\b|\bman\b|\bfrau\b|\bmann\b/i;
+
+/**
+ * Wählt das beste Produktbild. Normal gilt das Open-Graph-Bild. Zeigt dessen Galerie-Eintrag aber
+ * laut Bildbeschreibung eine Person („wird vom Model getragen“), nehme ich das erste Galeriebild
+ * desselben Servers ohne Person (z. B. das Produkt allein). So wird nur das Kleidungsstück freigestellt.
+ * @param {Document} doc
+ * @param {string} og Adresse aus og:image
+ * @param {string} baseUrl
+ * @param {{ allowLocal?: boolean }} opts
+ * @returns {string}
+ */
+function chooseImage(doc, og, baseUrl, opts) {
+  const best = sanitizeImageUrl(og, baseUrl, opts);
+  if (!best) return '';
+  /** @type {URL} */
+  let ogUrl;
+  try { ogUrl = new URL(best); } catch { return best; }
+  const gallery = [...doc.querySelectorAll('img[alt]')].slice(0, 80).map(el => {
+    const raw = el.getAttribute('src') || (el.getAttribute('srcset') || '').trim().split(/\s+/)[0] || '';
+    return { alt: el.getAttribute('alt') || '', src: sanitizeImageUrl(raw, baseUrl, opts) };
+  }).filter(g => g.src);
+  const same = (/** @type {string} */ u) => { try { const x = new URL(u); return x.host === ogUrl.host; } catch { return false; } };
+  const main = gallery.find(g => { try { return new URL(g.src).pathname === ogUrl.pathname; } catch { return false; } });
+  if (!main || !MODEL_ALT.test(main.alt)) return best;
+  const flat = gallery.find(g => g.src !== main.src && same(g.src) && g.alt.trim().length > 15 && !MODEL_ALT.test(g.alt));
+  return flat ? flat.src : best;
+}
+
+/**
+ * Letzter Ausweg, wenn die Seite keinen Preis in Meta-Tags oder Produktdaten hat (z. B. H&M):
+ * der erste Preis im Text direkt hinter der Hauptüberschrift („Preis: 39,99 €“).
+ * @param {Document} doc
+ * @returns {{ price: number, cur: string } | null}
+ */
+function priceFromText(doc) {
+  const h1 = doc.querySelector('h1');
+  if (!h1 || !doc.body) return null;
+  const walker = doc.createTreeWalker(doc.body, 4 /* NodeFilter.SHOW_TEXT */);
+  walker.currentNode = h1;
+  let text = '';
+  for (let n = walker.nextNode(); n && text.length < 500; n = walker.nextNode()) {
+    const tag = n.parentElement ? n.parentElement.tagName : '';
+    if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(tag)) continue;
+    text += ' ' + (n.nodeValue || '');
+  }
+  const m = text.match(/(€|EUR|£|GBP|\$|USD|CHF)\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(€|EUR|£|GBP|\$|USD|CHF)/i);
+  if (!m) return null;
+  const sym = (m[1] || m[4] || '').toUpperCase();
+  const price = parsePrice(m[2] || m[3]);
+  if (price == null) return null;
+  return { price, cur: { '€': 'EUR', '£': 'GBP', '$': 'USD' }[sym] || sym };
+}
+
+/**
+ * Schneller Check auf rohem HTML: Enthält die Antwort überhaupt Produktdaten?
+ * Block- und Fehlerseiten („Access Denied“, Captcha) haben das nicht.
+ * @param {unknown} html
+ * @returns {boolean}
+ */
+export function looksLikeProductHtml(html) {
+  return typeof html === 'string' && /property=["']og:(title|image)["']|application\/ld\+json|itemprop=["']price["']/i.test(html);
+}
 
 /**
  * Liest Name, Bild, Preis und Währung aus einem bereits geparsten Dokument
- * (Open Graph, JSON-LD „Product“, itemprop). Alles wird bereinigt.
+ * (Open Graph, JSON-LD „Product“, itemprop, zuletzt Preis aus dem Text). Alles wird bereinigt.
  * @param {Document} doc
  * @param {string} baseUrl Adresse der Seite (für relative Bild-Adressen)
  * @param {{ allowLocal?: boolean }} [opts]
@@ -194,9 +302,11 @@ export function extractProduct(doc, baseUrl, opts = {}) {
   /** @param {string} k */
   const meta = k => doc.querySelector(`meta[property="${k}"],meta[name="${k}"]`)?.getAttribute('content')?.trim() || '';
   let title = meta('og:title'); // Reihenfolge: Open Graph → Name aus den Produktdaten → Seitentitel (oft nur „Shop“)
-  let image = meta('og:image') || meta('twitter:image');
+  let image = meta('og:image:secure_url') || meta('og:image') || meta('twitter:image');
   let price = parsePrice(meta('product:price:amount') || meta('og:price:amount'));
   let cur = meta('product:price:currency') || meta('og:price:currency');
+  /** @type {ProductInfo['priceSource']} */
+  let priceSource = price != null ? 'meta' : '';
 
   /** @type {any[]} */
   const products = [];
@@ -220,20 +330,28 @@ export function extractProduct(doc, baseUrl, opts = {}) {
       const offers = /** @type {any[]} */ ([]).concat(p.offers || []).flatMap(o => (o && o.offers ? /** @type {any[]} */ ([]).concat(o.offers) : [o]));
       for (const o of offers) {
         const v = parsePrice(o?.price ?? o?.lowPrice ?? o?.priceSpecification?.price);
-        if (v != null) { price = v; cur = cur || o.priceCurrency || o.priceSpecification?.priceCurrency || ''; break; }
+        if (v != null) { price = v; priceSource = 'json-ld'; cur = cur || o.priceCurrency || o.priceSpecification?.priceCurrency || ''; break; }
       }
     }
   }
   if (!title) title = doc.title || '';
   if (price == null) {
     const e = doc.querySelector('[itemprop=price]');
-    if (e) price = parsePrice(e.getAttribute('content') || e.textContent);
+    if (e) { price = parsePrice(e.getAttribute('content') || e.textContent); if (price != null) priceSource = 'itemprop'; }
   }
+  if (price == null) {
+    const t = priceFromText(doc);
+    if (t) { price = t.price; cur = cur || t.cur; priceSource = 'text'; }
+  }
+  // Bild-Adressen mit http auf einer https-Seite würden blockiert: auf https anheben
+  if (/^http:\/\//i.test(image) && /^https:/i.test(baseUrl) && !opts.allowLocal) image = image.replace(/^http:/i, 'https:');
+  const finalPrice = sanitizePrice(price);
   return {
-    title: sanitizeText(title),
-    image: sanitizeImageUrl(image, baseUrl, opts),
-    price: sanitizePrice(price),
+    title: cleanTitle(title, meta('og:site_name')),
+    image: chooseImage(doc, image, baseUrl, opts),
+    price: finalPrice,
     cur: normalizeCurrency(cur),
+    priceSource: finalPrice == null ? '' : priceSource,
   };
 }
 
