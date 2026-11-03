@@ -59,14 +59,6 @@ test('normalizeCurrency: nur bekannte Codes', () => {
   assert.equal(s.normalizeCurrency(5, 'CHF'), 'CHF');
 });
 
-test('sanitizeImageUrl: löst relative Adressen auf, blockiert Gefährliches', () => {
-  assert.equal(s.sanitizeImageUrl('/img/a.jpg', 'https://shop.de/p/1'), 'https://shop.de/img/a.jpg');
-  assert.equal(s.sanitizeImageUrl('//cdn.shop.de/a.jpg', 'https://shop.de/p'), 'https://cdn.shop.de/a.jpg');
-  for (const bad of ['javascript:alert(1)', 'data:image/svg+xml,<svg onload=alert(1)>', 'file:///etc/passwd', 'http://127.0.0.1/a.png', 'https://u:p@x.de/a.png', '', null, 5, 'x'.repeat(3000)]) {
-    assert.equal(s.sanitizeImageUrl(bad, 'https://shop.de/'), '', String(bad).slice(0, 40));
-  }
-});
-
 test('sanitizeImageSrc: nur data:image (Raster) oder https', () => {
   assert.ok(s.sanitizeImageSrc('data:image/png;base64,AAAA'));
   assert.ok(s.sanitizeImageSrc('https://cdn.de/a.png'));
@@ -80,38 +72,4 @@ test('sanitizeItem: bereinigt Backup-Einträge', () => {
   const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'https://a.de/p.png', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
   assert.equal(odd.cat, 'Oberteil'); assert.equal(odd.link, ''); assert.equal(odd.price, null); assert.equal(odd.name, 'Ohne Namen'); assert.equal('ean' in odd, false);
   for (const bad of [null, 1, 'x', {}, { id: '', img: 'https://a.de/a.png' }, { id: 'a' }, { id: 'a', img: 'javascript:alert(1)' }, { id: 'x'.repeat(65), img: 'https://a.de/a.png' }]) assert.equal(s.sanitizeItem(bad, cats), null);
-});
-
-test('guessCategory: echte Produktnamen (H&M, LFDY) und typische Fälle', () => {
-  const cases = {
-    'Blank Slub Tee': 'Oberteil', 'Zopfpullover mit Zipper in Relaxed Fit - Dunkelgrün': 'Oberteil', 'Oversized Fit T-Shirt': 'Oberteil',
-    'Hoodie mit Kängurutasche': 'Oberteil', 'Fleece Pullover': 'Oberteil', 'Strickjacke aus Wolle': 'Jacke', 'Basic Sweatshirt': 'Oberteil',
-    'Live Fast Puffer Jacket': 'Jacke', 'Split Hooded Jacket': 'Jacke', 'Denim Jacket': 'Jacke', 'Jeansjacke Oversized': 'Jacke', 'Wollmantel': 'Jacke',
-    'LFDY Split Jogger': 'Hose/Rock', 'Cargo Pants': 'Hose/Rock', 'Sweat Shorts': 'Hose/Rock', 'Jogginghose in Relaxed Fit': 'Hose/Rock', 'Baggy Jeans': 'Hose/Rock', 'Faltenrock': 'Hose/Rock',
-    'Chunky Sneaker': 'Schuhe', 'Chelsea Boots': 'Schuhe', 'Lederstiefel': 'Schuhe', 'Hausschuhe': 'Schuhe',
-    'Rib Knit Beanie': 'Accessoire', 'New Era Cap': 'Accessoire', 'Ledertasche': 'Accessoire', 'Gürtel aus Leder': 'Accessoire', 'Mütze mit Strickmuster': 'Accessoire', 'Sonnenbrille': 'Accessoire', 'Socken 3er-Pack': 'Accessoire',
-    'Live Fast Trust No One Fragrance': '', 'Gutschein': '', 'Trockner': '', '': '',
-  };
-  for (const [title, cat] of Object.entries(cases)) assert.equal(s.guessCategory(title), cat, title);
-  for (const bad of [null, undefined, 5, {}]) assert.equal(s.guessCategory(bad), '');
-});
-
-test('cleanTitle: Shop-Namen, Farbe/Geschlecht-Anhängsel', () => {
-  assert.equal(s.cleanTitle('Zopfpullover mit Zipper in Relaxed Fit - Dunkelgrün - Men | H&M DE', 'H&M'), 'Zopfpullover mit Zipper in Relaxed Fit - Dunkelgrün');
-  assert.equal(s.cleanTitle('Blank Slub Tee – LIVE FAST DIE YOUNG', 'LIVE FAST DIE YOUNG'), 'Blank Slub Tee');
-  assert.equal(s.cleanTitle('Blank Slub Tee', 'LIVE FAST DIE YOUNG'), 'Blank Slub Tee');
-  assert.equal(s.cleanTitle('Oversized Tee - Women'), 'Oversized Tee');
-  assert.equal(s.cleanTitle('Hose - Schwarz'), 'Hose - Schwarz');               // Farbe bleibt
-  assert.equal(s.cleanTitle('Only - Men'), 'Only');
-  assert.equal(s.cleanTitle('<b>Shirt</b>\u202e | Shop'), 'Shirt');
-  assert.equal(s.cleanTitle('x'.repeat(500)).length, 120);
-  for (const v of [null, undefined, {}]) assert.equal(s.cleanTitle(v), '');
-});
-
-test('looksLikeProductHtml: erkennt Produktseiten, nicht Blockseiten', () => {
-  assert.equal(s.looksLikeProductHtml('<meta property="og:title" content="x">'), true);
-  assert.equal(s.looksLikeProductHtml("<meta property='og:image' content='x'>"), true);
-  assert.equal(s.looksLikeProductHtml('<script type="application/ld+json">{}</script>'), true);
-  assert.equal(s.looksLikeProductHtml('<span itemprop="price">5</span>'), true);
-  for (const bad of ['<html><title>Access Denied</title><body>You don\'t have permission</body></html>', '', null, undefined, 5]) assert.equal(s.looksLikeProductHtml(bad), false);
 });

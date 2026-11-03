@@ -2,7 +2,7 @@
 
 # Anprobe
 
-**Der Outfit-Planer für das Web.** Sammle Kleidungsstücke per Link, Barcode oder Screenshot, kombiniere sie zu Outfits und behalte Preise und Angebote im Blick.
+**Der Outfit-Planer für das Web.** Sammle Kleidungsstücke aus Screenshots und Bildern, kombiniere sie zu Outfits und behalte Preise und Angebote im Blick.
 
 [**Live-Demo**](https://chriswittenbecher.github.io/Outfit-Planner/) · [Funktionen](#funktionen) · [Schnellstart](#schnellstart) · [Datenschutz](#datenschutz-und-sicherheit) · [Entwicklung](#entwicklung)
 
@@ -16,7 +16,7 @@ Anprobe ist eine statische Web-App ohne Build-Schritt, ohne Konto und ohne Track
 
 Der typische Ablauf:
 
-1. **Hinzufügen:** Über **„+ Kleidungsstück hinzufügen“** wählst du Link, Barcode oder Bild.
+1. **Hinzufügen:** Über **„+ Kleidungsstück hinzufügen“** fügst du einen Screenshot oder ein Foto hinzu und ergänzt Name, Kategorie, Preis und optional den Link zum Angebot.
 2. **Freistellen:** Der Hintergrund wird automatisch entfernt, das Bild auf das Teil zugeschnitten.
 3. **Kombinieren:** Teile auf dem Anprobe-Board verschieben, skalieren, drehen und stapeln.
 4. **Vergleichen:** Preise, Gesamtsumme und der Link zum Angebot stehen direkt am Outfit.
@@ -25,9 +25,7 @@ Der typische Ablauf:
 
 | Bereich | Beschreibung |
 |---|---|
-| **Link-Import** | Läuft komplett im Browser ohne eigenen Server. Liest Name, Produktbild und Preis aus Shop-Links (Open Graph, JSON-LD, Produktdaten). Bereinigt Titel, erkennt die Kategorie und zieht bei Modellfotos das Produktbild vor. Eindeutige Treffer landen direkt im Kleiderschrank, mit **Rückgängig**. |
-| **Barcode-Scanner** | Liest EAN-8, UPC-A, EAN-13 und GTIN-14 per Kamera (inklusive Prüfziffer). Ohne Kamera oder Berechtigung gibst du die Nummer von Hand ein. |
-| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. |
+| **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile** (Griff, Regler, Tastatur), Ebenen per Schaltfläche oder Liste. |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
@@ -63,9 +61,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── main.js             lädt die ES-Module, stellt window.Anprobe bereit
 │   ├── app.js              Oberfläche und Anwendungslogik
 │   ├── geometry.js         Drehen und Positionieren (reine Funktionen)
-│   ├── scraper.js          Link-Prüfung, Produktdaten lesen und bereinigen
-│   ├── barcode.js          GTIN-Prüfziffern und Normalisierung
-│   └── scanner.js          Kamera und Erkennung (BarcodeDetector, ZXing)
+│   └── scraper.js          Eingabeprüfung und Bereinigung (Texte, Preise, Links, Backups)
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
@@ -80,42 +76,34 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 
 - **Lokale Datenhaltung:** Alles liegt in IndexedDB deines Browsers. Es gibt keinen Server und kein Konto. Jedes Gerät hat einen eigenen Kleiderschrank, zum Umziehen dienen Backup und Wiederherstellen.
 - **Strikte Content-Security-Policy:** kein `unsafe-inline`, feste Liste erlaubter Verbindungen.
-- **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen, Port-Allowlist). Importierte Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
-- **Kein eigener Server:** Es gibt kein Backend, das angegriffen werden könnte. Der Link-Import läuft vollständig im Browser.
+- **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
+- **Kein Backend:** Es gibt keinen Server, der angegriffen werden könnte.
 
-### Externe Dienste (nur bei Bedarf)
+### Externe Dienste
 
-| Wann | Dienst | Übermittelt |
-|---|---|---|
-| Link-Import | allorigins.win, codetabs.com, corsproxy.io (Seite, parallel abgefragt), wsrv.nl (Bild, nur falls nötig) | die Link-Adresse, nach einmaliger Zustimmung |
-| KI-Freistellen | jsDelivr, staticimgly.com | nichts, nur Download des Modells (ca. 40 MB) |
-| Barcode ohne eingebaute Erkennung | jsDelivr (ZXing, feste Version) | nichts, nur Download der Bibliothek |
-| Barcode-Produktsuche | Open Products / Beauty / Food Facts | die Barcode-Nummer |
-
-## Bekannte Grenzen
-
-- Manche Shops blockieren automatische Abrufe (Bot-Schutz). Die App meldet das und empfiehlt einen Screenshot.
-- Preise sind nur so zuverlässig wie die Produktdaten der Seite und sollten vor dem Kauf geprüft werden.
-- Für Kleidung gibt es keine verlässliche freie Barcode-Datenbank. Ohne Treffer ergänzt du Bild und Namen im Dialog, die Nummer bleibt am Teil gespeichert.
-- Der Kamerazugriff erfordert `https` oder `localhost`.
+Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Dabei werden keine deiner Daten gesendet. Alles andere läuft ohne Netzwerkzugriff.
 
 ## Entwicklung
 
-Voraussetzungen: Node.js 20 oder neuer und Python 3.
+Voraussetzung: Node.js 20 oder neuer.
 
 ```bash
 npm install                 # TypeScript und Playwright
 npm run typecheck           # strikte Typprüfung (JSDoc)
 npm test                    # Unit-Tests
 npx playwright install chromium
-npm run test:e2e            # End-to-End-Tests, mobil und Desktop
+npm run test:e2e            # End-to-End-Test, mobil und Desktop
 ```
 
 Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/workflows/ci.yml`).
 
 ### Architektur in Kürze
 
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js` und `barcode.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js` und `scraper.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
 - **Typsicherheit ohne TypeScript-Quellcode:** JSDoc-Annotationen werden mit `tsc --strict --checkJs` geprüft.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
+
+## Roadmap
+
+Link-Import und Barcode-Scanner wurden entfernt, weil sie ohne eigenen Server nicht zuverlässig funktionieren: Browser dürfen fremde Shop-Seiten nicht direkt lesen, und öffentliche Abruf-Dienste werden von vielen Shops blockiert. Für Kleidung gibt es außerdem keine verlässliche freie Barcode-Datenbank. Der letzte Stand mit beiden Funktionen ist unter dem Tag `archive/link-barcode-import` abrufbar.
