@@ -27,6 +27,7 @@ Der typische Ablauf:
 |---|---|
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop, Einfügen aus der Zwischenablage oder **direktem Bildlink**. Preis und **Link zum Shop** werden immer am Teil gespeichert (fehlt „https://“, wird es ergänzt). Landet ein Seitenlink im Bildfeld, übernimmt die App ihn als Shop-Link, sofern dieses Feld leer ist. Das Laden per Bildlink klappt nur, wenn der Server des Shops es erlaubt; sonst hilft ein Screenshot. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
+| **Outfit-Fitter** | Teile ordnen sich beim Auflegen **direkt passend zueinander** an, ohne dass du Größe und Lage anpassen musst: Die App misst an den freigestellten Bildern, wie breit der Saum des Oberteils und der Bund der Hose sind, und skaliert die Hose so, dass beides zusammenpasst. Die Schuhe richten sich nach dem Hosensaum, die Jacke ist etwas weiter als das Oberteil, Accessoires stehen daneben. Das Ganze wird auf das Board gestreckt. Verstellst du etwas von Hand, bleibt dein Layout; **„Passend anordnen“** stellt die Passform jederzeit wieder her. Bei Bildern ohne Freistellung nimmt die App übliche Proportionen an. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
@@ -80,12 +81,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── geometry.js         Drehen und Positionieren (reine Funktionen, getestet)
 │   ├── scraper.js          Eingabeprüfung und Bereinigung (getestet)
 │   ├── prices.js           Preisverlauf, Preisänderung, Summen (reine Funktionen, getestet)
+│   ├── fit.js              Outfit-Fitter: Rechnung der Passform (reine Funktionen, getestet)
+│   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -120,9 +123,9 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 ### Architektur in Kürze
 
 - **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js` und `prices.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
-- **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js` und `prices.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
+- **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
 - **Design-Tokens:** Jede Farbe steht genau einmal in `@layer tokens` als `light-dark(hell, dunkel)`. Das Dunkle folgt `color-scheme` (System) oder `data-theme` (Umschalter). Ältere Browser ohne `light-dark()` bekommen die hellen Werte; der Test `contrast.test.mjs` stellt sicher, dass beides übereinstimmt, dass nirgends sonst Farben stehen und dass die Kontraste halten.
 - **Rückgängig ohne Sonderlogik:** `history.js` vergleicht nach jedem Sichern den Bestand mit dem letzten Stand und fasst schnelle Änderungen (z. B. Ziehen) zu einem Schritt zusammen. Bilder werden zwischen den Ständen geteilt, nicht kopiert. Bewusste Aktionen (Löschen, Einlesen) rufen `step()` für eine eigene Schrittgrenze.

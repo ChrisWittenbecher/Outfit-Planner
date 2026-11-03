@@ -6,7 +6,17 @@
     "strict": true,
     "target": "es2022",
     "module": "es2022",
-    "lib": ["es2022", "dom", "dom.iterable"]
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ]
   },
-  "include": ["js/main.js", "js/geometry.js", "js/scraper.js", "js/prices.js"]
+  "include": [
+    "js/main.js",
+    "js/geometry.js",
+    "js/scraper.js",
+    "js/prices.js",
+    "js/fit.js"
+  ]
 }

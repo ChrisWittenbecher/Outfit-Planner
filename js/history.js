@@ -38,6 +38,7 @@ export function startHistory() { present = snap(); past = []; future = []; lastT
 function apply() {
   applying = true;
   state.data.items = present.items.map(i => ({ ...i })); state.data.outfits = clone(present.outfits); state.board = clone(present.board);
+  state.fitted = false;
   if (state.sel && !state.board.some(p => p.id === state.sel)) state.sel = null;
   renderAll(); flush(); applying = false; lastT = 0; buttons();
 }

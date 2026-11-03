@@ -18,6 +18,8 @@
  *   geometry    reine Mathematik (getestet)
  *   scraper     Eingabeprüfung und Bereinigung (getestet)
  *   prices      Preisverlauf und Summen (getestet)
+ *   fit         Outfit-Fitter: Rechnung (rein, getestet)
+ *   fitter      Outfit-Fitter: Messung am Bild, Anwenden aufs Board
  *   ui          eigene Dialoge und Hinweise (statt alert, confirm, prompt)
  *   theme       Design (Hell, Dunkel, Automatisch) und Bühne des Boards
  *   history     Rückgängig und Wiederholen
@@ -32,6 +34,7 @@ import './rotation.js';
 import './gestures.js';
 import './exchange.js';
 import './outfits.js';
+import './fitter.js';
 import './ui.js';
 import './theme.js';
 import { startHistory } from './history.js';
