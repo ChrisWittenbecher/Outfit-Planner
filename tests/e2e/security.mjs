@@ -16,7 +16,7 @@ try {
   p.on('pageerror', e => errors.push(e.message));
   p.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
   let phase = 'Start';
-  p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) violations.push(phase + ': ' + m.text().slice(0, 160)); });
+  p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) { const l = m.location(); violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + (l.url || '').replace(/^.*\//, '') + ':' + l.lineNumber); } });
   // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
   await ctx.route(url => !['localhost', '127.0.0.1'].includes(url.hostname), r => { foreign.push(r.request().url()); return r.abort(); });
   const wait = ms => p.waitForTimeout(ms);
