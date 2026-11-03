@@ -15,14 +15,15 @@ try {
   const errors = [], violations = [], foreign = [], dialogs = [];
   p.on('pageerror', e => errors.push(e.message));
   p.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
-  p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) violations.push(m.text()); });
+  let phase = 'Start';
+  p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) violations.push(phase + ': ' + m.text().slice(0, 160)); });
   // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
   await ctx.route(url => !['localhost', '127.0.0.1'].includes(url.hostname), r => { foreign.push(r.request().url()); return r.abort(); });
   const wait = ms => p.waitForTimeout(ms);
   const open = async () => { await p.goto(BASE); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
   await open();
 
-  console.log('--- Sicherheitsrichtlinie im Browser');
+  console.log('--- Sicherheitsrichtlinie im Browser'); phase = 'Sicherheitsrichtlinie im Browser';
   const csp = await p.getAttribute('meta[http-equiv="Content-Security-Policy"]', 'content');
   ok(/default-src 'none'/.test(csp) && !/'unsafe-inline'|'unsafe-eval'/.test(csp), 'CSP sperrt alles außer dem Erlaubten');
   // Angriffe simulieren: Der Browser muss sie blocken (und meldet dabei absichtlich Verstöße).
@@ -38,8 +39,11 @@ try {
   await addItem(p, { trigger: '#fab', name: 'Shirt', cat: 'Oberteil', price: '19,99' });
   await p.locator('#grid .card').first().locator('img').first().click(); await wait(500);
   ok(violations.length === 0, 'normale Nutzung löst keinen CSP-Verstoß aus ' + violations.join(' | '));
+  // Safari wertet style.cssText als Inline-Stil: die Hülle des Boards muss ihre Größe trotz CSP bekommen.
+  const sizes = await p.evaluate(() => { const w = document.getElementById('wrap').getBoundingClientRect(), b = document.getElementById('board').getBoundingClientRect(); return [w.width, w.height, b.width, b.height]; });
+  ok(Math.abs(sizes[0] - sizes[2]) < 1.5 && Math.abs(sizes[1] - sizes[3]) < 1.5, 'Hülle des Boards hat die Größe des Boards (' + sizes.map(Math.round).join(' × ') + ')');
 
-  console.log('--- Feindliche Backup-Datei');
+  console.log('--- Feindliche Backup-Datei'); phase = 'Feindliche Backup-Datei';
   const attack = {
     items: [
       { id: 'ok1', name: '<img src=x onerror=alert(1)>Hemd‮', cat: 'Oberteil', img: PX, link: 'javascript:alert(document.domain)', price: '1e999' },
@@ -72,7 +76,7 @@ try {
   ok(foreign.length === 0, 'kein Abruf von fremden Servern (' + foreign.join(', ') + ')');
   ok(dialogs.length === 0, 'keine nativen Dialoge, kein Skript aus den Daten ausgeführt');
 
-  console.log('--- Zu große oder kaputte Dateien');
+  console.log('--- Zu große oder kaputte Dateien'); phase = 'Zu große oder kaputte Dateien';
   await send(Buffer.from('{"items": [ unsinn')); await wait(400);
   ok(/kein gültiges/.test(await p.textContent('#toasts')), 'kaputtes JSON: Fehlerhinweis, nichts geändert');
   const tooMany = JSON.stringify({ items: Array.from({ length: 2001 }, (_, i) => ({ id: 'i' + i, name: 'x', cat: 'Oberteil', img: PX })) });
@@ -80,7 +84,7 @@ try {
   ok(/zu viele/.test(await p.textContent('#toasts')), 'zu viele Teile: abgelehnt');
   ok(await p.locator('#grid .card').count() === 2, 'abgelehnte Dateien lassen den Bestand unverändert');
 
-  console.log('--- Zu großes Bild');
+  console.log('--- Zu großes Bild'); phase = 'Zu großes Bild';
   await p.click('#fab');
   await p.setInputFiles('#file', { name: 'riesig.png', mimeType: 'image/png', buffer: Buffer.alloc(26_000_000) });
   await p.waitForFunction(() => /zu groß/.test(document.getElementById('status').textContent), null, { timeout: 8000 });
@@ -88,7 +92,7 @@ try {
   ok(await p.locator('#res img').count() === 0, 'es wird nichts verarbeitet');
   await p.click('#cancel');
 
-  console.log('--- KI-Freistellen nur mit Zustimmung');
+  console.log('--- KI-Freistellen nur mit Zustimmung'); phase = 'KI-Freistellen nur mit Zustimmung';
   await p.click('#fab');
   await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: PNG });
   await p.waitForSelector('#res img', { timeout: 15000 });
@@ -99,7 +103,7 @@ try {
   ok(foreign.length === 0, 'ohne Zustimmung wird nichts von außen geladen');
   await p.click('#cancel');
 
-  console.log('--- Clickjacking');
+  console.log('--- Clickjacking'); phase = 'Clickjacking';
   const host = await ctx.newPage();
   await host.route('**/frame-host', r => r.fulfill({ status: 200, contentType: 'text/html', body: `<iframe id="f" src="${BASE}" width="400" height="600"></iframe>` }));
   await host.goto(`http://localhost:${PORT}/frame-host`);
@@ -110,7 +114,7 @@ try {
   await host.close();
   ok(await p.evaluate(() => document.documentElement.style.display) !== 'none', 'als eigene Seite ist sie sichtbar');
 
-  console.log('--- Update-Code holt nur eigene Dateien');
+  console.log('--- Update-Code holt nur eigene Dateien'); phase = 'Update-Code holt nur eigene Dateien';
   const requested = [];
   p.on('request', r => requested.push(r.url()));
   await p.route('**/index.html', route => {
