@@ -3,7 +3,7 @@
  * Anprobe – Outfit-Board: Teile auflegen, auswählen, verschieben, skalieren, Ebenen, Tastatur.
  */
 import * as Geo from './geometry.js';
-import { $, DEF, DEF_FIG, announce, imgOf, item, mb, state } from './core.js';
+import { $, DEF, announce, imgOf, item, mb, state } from './core.js';
 import { renderAll } from './render.js';
 import { drawKnob, placeKnob, syncBench } from './rotation.js';
 import { renderSum } from './outfits.js';
@@ -22,7 +22,7 @@ export function toggle(i){
 }
 const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; // Standard-Reihenfolge von hinten nach vorn
 const rank = id => RANK[item(id)?.cat] ?? 2;
-function addPiece(i){ const d = (state.data.figure ? DEF_FIG : DEF)[i.cat]; let k = state.board.length; while(k > 0 && rank(state.board[k-1].id) > RANK[i.cat]) k--; state.board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
+function addPiece(i){ const d = DEF[i.cat]; let k = state.board.length; while(k > 0 && rank(state.board[k-1].id) > RANK[i.cat]) k--; state.board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
 /** Bereinigt Teile aus unsicherer Quelle (Speicher, Backup) und entfernt Teile ohne Kleiderschrank-Eintrag. */
 export const cleanPieces = list => Geo.sanitizePieces(list).filter(p => imgOf(p.id));
 export function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
@@ -84,7 +84,7 @@ export function renderBoard(){
   });
   drawKnob(); syncBench(); renderSum(); persist();
 }
-$('board').addEventListener('pointerdown', e => { if(touches.size > 1) return; if((e.target === $('board') || e.target === $('figure')) && state.sel){ state.sel = null; renderBoard(); } });
+$('board').addEventListener('pointerdown', e => { if(touches.size > 1) return; if((e.target === $('board')) && state.sel){ state.sel = null; renderBoard(); } });
 /** Skaliert um den Mittelpunkt, damit Drehung und Position stabil bleiben. */
 function resize(p, f){ const c = centerOf(p); p.w = Geo.clamp(p.w * f, Geo.LIMITS.minW, Geo.LIMITS.maxW); const h = heightOf(p); p.x = c.x - p.w / 2; p.y = c.y - h / 2; renderBoard(); }
 $('bigger').onclick = () => { const p = state.board.find(k => k.id === state.sel); if(p) resize(p, 1.1); };

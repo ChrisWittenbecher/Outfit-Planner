@@ -28,7 +28,6 @@ Der typische Ablauf:
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
 | **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
-| **Strichmensch** | Blendet eine Figur als Proportionshilfe hinter die Kleidung ein. Neue Teile landen passend an Schultern, Hüfte und Füßen. Wird beim PNG-Export mitgezeichnet. |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. |
@@ -68,7 +67,6 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── board.js            Board: auflegen, verschieben, skalieren, Ebenen
 │   ├── rotation.js         Drehen und Positionieren (Griff, Regler)
 │   ├── gestures.js         Zwei-Finger-Geste (Touch)
-│   ├── figure.js           Strichmensch
 │   ├── exchange.js         PNG-Export, Backup, Wiederherstellen
 │   ├── outfits.js          Preise, Ebenenliste, gespeicherte Outfits
 │   ├── render.js           alles neu zeichnen

@@ -12,7 +12,6 @@
  *   board       Outfit-Board (auflegen, verschieben, skalieren, Ebenen)
  *   rotation    Drehen und Positionieren
  *   gestures    Zwei-Finger-Geste (Touch)
- *   figure      Strichmensch
  *   exchange    PNG-Export, Backup
  *   outfits     Preise, Ebenenliste, gespeicherte Outfits
  *   render      alles neu zeichnen
@@ -27,7 +26,6 @@ import './wardrobe.js';
 import './board.js';
 import './rotation.js';
 import './gestures.js';
-import './figure.js';
 import './exchange.js';
 import './outfits.js';
 
