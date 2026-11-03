@@ -103,6 +103,6 @@ $('ok').onclick = () => {
   // Preisverlauf: jede Änderung festhalten. Wechselt die Währung, beginnt der Verlauf neu (Beträge wären nicht vergleichbar).
   const prev = ed && ed.cur === cur ? baseHistory(ed.priceHistory || [], ed.price) : [];
   const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price)};
-  if(state.editing) Object.assign(state.editing, f); else state.data.items.unshift({id:newId(), ...f});
-  renderAll(); flush(); $('dlg').close();
+  if(state.editing) Object.assign(state.editing, f); else { const n = {id:newId(), ...f}; state.data.items.unshift(n); state.fresh = n.id; }
+  renderAll(); state.fresh = null; flush(); $('dlg').close();
 };

@@ -17,6 +17,10 @@
  *   render      alles neu zeichnen
  *   geometry    reine Mathematik (getestet)
  *   scraper     Eingabeprüfung und Bereinigung (getestet)
+ *   prices      Preisverlauf und Summen (getestet)
+ *   ui          eigene Dialoge und Hinweise (statt alert, confirm, prompt)
+ *   theme       Design (Hell, Dunkel, Automatisch) und Bühne des Boards
+ *   history     Rückgängig und Wiederholen
  */
 import { $ } from './core.js';
 import { load, setReady } from './storage.js';
@@ -28,10 +32,14 @@ import './rotation.js';
 import './gestures.js';
 import './exchange.js';
 import './outfits.js';
+import './ui.js';
+import './theme.js';
+import { startHistory } from './history.js';
 
 load().then(ok => {
   setReady(ok);
   if (!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.';
   renderAll();
+  startHistory();
   document.documentElement.dataset.ready = '1'; // Signal für Tests und die Fallback-Meldung
 });

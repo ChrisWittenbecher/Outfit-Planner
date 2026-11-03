@@ -31,8 +31,10 @@ Der typische Ablauf:
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
-| **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. |
-| **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. |
+| **Dunkelmodus** | Hell, Dunkel oder **Automatisch** (folgt dem System), umschaltbar oben rechts und gespeichert. Kachel und Board bleiben eine helle **Bühne**, damit dunkle Kleidungsstücke sichtbar bleiben; die Bühne des Boards lässt sich auf Hell, Mittel oder Dunkel stellen und wird auch im PNG-Export verwendet. Kontraste sind per Test abgesichert (Text mindestens 4,5:1, Feldränder mindestens 3:1). |
+| **Rückgängig und Wiederholen** | Bis zu 50 Schritte für Kleiderschrank, Board und Outfits (Strg/Cmd + Z, Strg/Cmd + Umschalt + Z oder die Pfeile oben). Löschen und Backup-Einlesen fragen nicht mehr nach, sondern bieten stattdessen **„Rückgängig“** an. |
+| **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. |
+| **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. Bewegung wird bei „Bewegung reduzieren“ des Systems abgeschaltet. |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
 
 ## Schnellstart
@@ -57,7 +59,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 .
 ├── index.html              Seitengerüst und Content-Security-Policy
 ├── css/
-│   └── styles.css          Styles in Cascade Layers
+│   └── styles.css          Styles in Cascade Layers, alle Farben als Design-Tokens
 ├── js/
 │   ├── main.js             Einstieg: lädt die Module, startet die App
 │   ├── core.js             gemeinsamer Zustand, Konstanten, Helfer
@@ -71,6 +73,10 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── exchange.js         PNG-Export, Backup, Wiederherstellen
 │   ├── outfits.js          Preise, Ebenenliste, gespeicherte Outfits
 │   ├── render.js           alles neu zeichnen
+│   ├── ui.js               eigene Dialoge und Hinweise statt alert, confirm, prompt
+│   ├── theme.js            Design (Hell, Dunkel, Automatisch) und Bühne des Boards
+│   ├── theme-init.js       setzt das gespeicherte Design vor dem ersten Zeichnen (kein Aufblitzen)
+│   ├── history.js          Rückgängig und Wiederholen
 │   ├── geometry.js         Drehen und Positionieren (reine Funktionen, getestet)
 │   ├── scraper.js          Eingabeprüfung und Bereinigung (getestet)
 │   ├── prices.js           Preisverlauf, Preisänderung, Summen (reine Funktionen, getestet)
@@ -78,8 +84,8 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
-│   ├── unit/               Unit-Tests (node:test)
-│   └── e2e/                End-to-End-Tests (Playwright)
+│   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -89,6 +95,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 
 - **Lokale Datenhaltung:** Alles liegt in IndexedDB deines Browsers. Es gibt keinen Server und kein Konto. Jedes Gerät hat einen eigenen Kleiderschrank, zum Umziehen dienen Backup und Wiederherstellen.
 - **Strikte Content-Security-Policy:** kein `unsafe-inline`, feste Liste erlaubter Verbindungen.
+- **Nur zwei Einstellungen in `localStorage`:** die Wahl von Design und Bühne (damit sie vor dem ersten Zeichnen bereitsteht). Alles andere liegt in IndexedDB.
 - **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
 - **Kein Backend:** Es gibt keinen Server, der angegriffen werden könnte.
 
@@ -117,8 +124,20 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
 - **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js` und `prices.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
+- **Design-Tokens:** Jede Farbe steht genau einmal in `@layer tokens` als `light-dark(hell, dunkel)`. Das Dunkle folgt `color-scheme` (System) oder `data-theme` (Umschalter). Ältere Browser ohne `light-dark()` bekommen die hellen Werte; der Test `contrast.test.mjs` stellt sicher, dass beides übereinstimmt, dass nirgends sonst Farben stehen und dass die Kontraste halten.
+- **Rückgängig ohne Sonderlogik:** `history.js` vergleicht nach jedem Sichern den Bestand mit dem letzten Stand und fasst schnelle Änderungen (z. B. Ziehen) zu einem Schritt zusammen. Bilder werden zwischen den Ständen geteilt, nicht kopiert. Bewusste Aktionen (Löschen, Einlesen) rufen `step()` für eine eigene Schrittgrenze.
 
 ## Roadmap
+
+Der Plan folgt einem Konzept aus Bestandsaufnahme, Dunkelmodus und Funktionsideen. Alles, was ohne eigenen Server geht, kommt zuerst.
+
+| Phase | Inhalt | Stand |
+|---|---|---|
+| **1 – Dunkelmodus und Feinschliff** | Dunkelmodus mit Bühne, Kontrast-Test, eigene Dialoge statt Browser-Dialogen, Rückgängig/Wiederholen, Bewegung, schnelleres Laden | fertig |
+| **2 – Kernfunktionen** | Anprobe-Modus am Smartphone, Kalender mit Tragen-Protokoll und Kosten pro Tragen, Suche, Tags und Farberkennung, Mehrfach-Upload, Installierbarkeit (PWA) mit Teilen-Ziel, Datenmodell 2.0 mit Vorschaubildern | geplant |
+| **3 – Erweiterungen** | Regel-Stylist mit Wetter, Kapselgarderobe und Packliste, Schrankhüter und Verkaufsentwurf, Kategorisierung per KI im Browser | geplant |
+
+Was einen Server bräuchte (automatische Preisverfolgung, Abstimmung mit anderen, Konto-Sync), steht weiter unten.
 
 Link-Import und Barcode-Scanner wurden entfernt, weil sie ohne eigenen Server nicht zuverlässig funktionieren: Browser dürfen fremde Shop-Seiten nicht direkt lesen, und öffentliche Abruf-Dienste werden von vielen Shops blockiert. Für Kleidung gibt es außerdem keine verlässliche freie Barcode-Datenbank. Der letzte Stand mit beiden Funktionen ist im Git-Verlauf unter dem Commit `95d3816` abrufbar (`git checkout 95d3816`).
 

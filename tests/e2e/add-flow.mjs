@@ -1,31 +1,11 @@
 // End-to-End-Test: Kleidungsstück per Bild hinzufügen, auf Smartphone und Desktop.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
 import { chromium, devices } from 'playwright';
-import http from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+import { checker, PNG, startServer } from './helpers.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAASwAAAGQCAIAAACbF8osAAAEiUlEQVR4Xu3VwQ2DQAwAwRClGYpIYamAwigi5RjRAp8VYuZ/su+x8jIzL6Dz7kYDJxFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIsU88/5L1+7v0jkf479u9/ukSQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECLFlZuIV4NlcQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCF2ALDyDBuQmjTmAAAAAElFTkSuQmCC', 'base64');
-
-let fails = 0;
-const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
-
-// Minimaler statischer Dateiserver (nur für den Test, die App selbst braucht keinen Server)
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
-const server = http.createServer(async (req, res) => {
-  try {
-    const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '') || 'index.html';
-    const file = path.join(root, rel);
-    if (!file.startsWith(root)) throw new Error('außerhalb');
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
-    res.end(body);
-  } catch { res.writeHead(404); res.end(); }
-});
-await new Promise(r => server.listen(PORT, r));
+const { ok, state: result } = checker();
+const server = await startServer(PORT);
 
 const browser = await chromium.launch();
 try {
@@ -35,7 +15,8 @@ try {
     const p = await ctx.newPage();
     const errors = [];
     p.on('pageerror', e => errors.push(e.message));
-    p.on('dialog', d => d.accept());
+    const native = [];
+    p.on('dialog', d => { native.push(d.type() + ': ' + d.message()); d.dismiss(); });   // die App nutzt keine nativen Dialoge mehr
     await p.goto(BASE);
     await p.waitForSelector('html[data-ready]', { state: 'attached' });
     console.log('--- ' + name);
@@ -170,7 +151,10 @@ try {
       await p.click('#cancel');
       await first.locator('.more').click();
       await p.click('#menuDelete');
-      ok(await p.locator('#grid .card').count() === 0, 'Menü → Löschen entfernt das Teil');
+      ok(await p.locator('#grid .card').count() === 0, 'Menü → Löschen entfernt das Teil ohne Rückfrage-Dialog');
+      ok(/gelöscht/.test(await p.textContent('#toasts')) && await p.locator('#toasts button', { hasText: 'Rückgängig' }).isVisible(), 'Hinweis „gelöscht“ mit „Rückgängig“');
+      await p.click('#toasts button');
+      ok(await p.locator('#grid .card').count() === 1, '„Rückgängig“ holt das gelöschte Teil zurück');
     } else {
       ok(!(await first.locator('.more').isVisible()), 'Desktop: kein Drei-Punkte-Button');
       await first.hover();
@@ -178,6 +162,7 @@ try {
       ok(bs.length >= 2 && bs.every(Boolean), 'Desktop: Schnellaktionen sind rund');
     }
     ok(await noOverflow(), 'weiterhin kein horizontaler Überlauf');
+    ok(native.length === 0, 'keine nativen alert/confirm/prompt-Dialoge ' + native.join(' | '));
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();
   }
@@ -185,5 +170,5 @@ try {
   await browser.close();
   server.close();
 }
-console.log(fails ? fails + ' FEHLER' : 'ALLES OK');
-process.exit(fails ? 1 : 0);
+console.log(result.fails ? result.fails + ' FEHLER' : 'ALLES OK');
+process.exit(result.fails ? 1 : 0);

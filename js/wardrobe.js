@@ -8,6 +8,8 @@ import { renderAll } from './render.js';
 import { openDlg } from './dialog.js';
 import { toggle } from './board.js';
 import { flush } from './storage.js';
+import { toast } from './ui.js';
+import { step, undo } from './history.js';
 
 /* ---------- Kleiderschrank ---------- */
 const STATUS = [['Alle', 'Alle'], ['own', 'Besitze ich'], ['wish', 'Wunschliste']];
@@ -23,9 +25,9 @@ export function renderGrid(){
   $('count').textContent = state.data.items.length + ' Teile' + (wishes ? ' · ' + wishes + ' auf der Wunschliste' : '');
   if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (state.data.items.length ? 'Nichts in dieser Auswahl.' : 'Noch leer. Füge deinen ersten Screenshot hinzu.') + '</div>'; return; }
   $('grid').replaceChildren(...list.map(i => {
-    const d = document.createElement('div'); d.className = 'card' + (state.board.some(p => p.id === i.id) ? ' used' : '');
+    const d = document.createElement('div'); d.className = 'card' + (state.board.some(p => p.id === i.id) ? ' used' : '') + (i.id === state.fresh ? ' enter' : '');
     d.innerHTML = '<img alt=""><div class="n"><span></span><small></small></div><div class="x"></div>';
-    const im = d.querySelector('img'); im.src = i.img; if(!i.cut) im.classList.add('mb');
+    const im = d.querySelector('img'); im.src = i.img; im.loading = 'lazy'; im.decoding = 'async'; if(!i.cut) im.classList.add('mb');
     d.querySelector('span').textContent = i.name;
     const sm = d.querySelector('small'); sm.textContent = i.cat + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
     const ch = priceChange(i.priceHistory || []);
@@ -50,12 +52,13 @@ export function renderGrid(){
 function markBought(i){ i.status = 'own'; renderAll(); flush(); announce('„' + i.name + '“ ist jetzt in deinem Besitz.'); }
 function openOffer(i){ if(/^https?:/.test(i.link || '')) open(i.link, '_blank', 'noopener'); }
 function deleteItem(i){
-  if(!confirm('„' + i.name + '“ löschen?')) return;
+  step();
   state.data.items = state.data.items.filter(k => k.id !== i.id);
   state.board = state.board.filter(p => p.id !== i.id);
   if(state.sel === i.id) state.sel = null;
   state.data.outfits.forEach(o => { o.pieces = o.pieces.filter(p => p.id !== i.id); });
   renderAll(); flush();
+  toast('„' + i.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}});
 }
 /** Aktionsmenü (Bottom-Sheet am Smartphone): Bearbeiten, Angebot öffnen, Löschen. */
 let menuItem = null;

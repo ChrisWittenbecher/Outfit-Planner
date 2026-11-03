@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f1ec">
+  <meta name="theme-color" id="metaLight" media="(prefers-color-scheme: light)" content="#e8eaee">
+  <meta name="theme-color" id="metaDark" media="(prefers-color-scheme: dark)" content="#0f0f12">
   <title>Anprobe – Outfit-Planer</title>
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <!-- Datenschutz: beim Laden von Produktbildern wird nicht verraten, von welcher Seite die Anfrage kommt. -->
   <meta name="referrer" content="no-referrer">
   <!--
@@ -23,6 +24,27 @@
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/icon128.png">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Setzt das gespeicherte Design vor dem ersten Zeichnen (kein Aufblitzen); eigene Datei, damit die CSP ohne Inline-Skript auskommt -->
+  <script src="js/theme-init.js"></script>
+  <!-- Alle Module sofort vorladen, damit sie nicht nacheinander (Import-Kaskade) geladen werden -->
+  <link rel="modulepreload" href="js/main.js">
+  <link rel="modulepreload" href="js/core.js">
+  <link rel="modulepreload" href="js/storage.js">
+  <link rel="modulepreload" href="js/history.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/theme.js">
+  <link rel="modulepreload" href="js/image.js">
+  <link rel="modulepreload" href="js/dialog.js">
+  <link rel="modulepreload" href="js/wardrobe.js">
+  <link rel="modulepreload" href="js/board.js">
+  <link rel="modulepreload" href="js/rotation.js">
+  <link rel="modulepreload" href="js/gestures.js">
+  <link rel="modulepreload" href="js/exchange.js">
+  <link rel="modulepreload" href="js/outfits.js">
+  <link rel="modulepreload" href="js/render.js">
+  <link rel="modulepreload" href="js/geometry.js">
+  <link rel="modulepreload" href="js/scraper.js">
+  <link rel="modulepreload" href="js/prices.js">
   <script type="module" src="js/main.js"></script>
   <script src="js/fallback.js" defer></script>
 </head>
@@ -32,10 +54,18 @@
   <header class="topbar">
     <h1>Anprobe</h1>
     <div class="actions" role="toolbar" aria-label="Hauptaktionen">
+      <button type="button" class="ibtn" id="undo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+      <button type="button" class="ibtn" id="redo" title="Wiederholen (Strg+Umschalt+Z)" aria-label="Wiederholen" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+      <button type="button" class="ibtn" id="theme" title="Design wechseln" aria-label="Design wechseln">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="auto"><circle cx="12" cy="12" r="9"/><path class="solid" d="M12 3a9 9 0 0 1 0 18z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="light" hidden><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="dark" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
       <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
       <input type="file" id="impf" accept="application/json" hidden>
       <button type="button" class="pri" id="addBtn" aria-haspopup="dialog">+ Kleidungsstück hinzufügen</button>
+      <button type="button" class="ibtn more-btn" id="more" aria-haspopup="dialog" aria-label="Mehr" title="Mehr">⋯</button>
     </div>
   </header>
 
@@ -68,6 +98,7 @@
         <button type="button" id="back" title="Ausgewähltes Teil hinter die anderen legen">Nach hinten</button>
         <button type="button" id="shuffle">Zufällig kombinieren</button>
         <button type="button" id="clear">Leeren</button>
+        <button type="button" id="stageBtn" class="wide" title="Hintergrund des Boards: Automatisch, Hell, Mittel oder Dunkel">Bühne: Auto</button>
         <button type="button" id="png">Als Bild laden</button>
         <button type="button" class="pri" id="save">Outfit speichern</button>
       </div>
@@ -122,6 +153,28 @@
       <button type="button" id="menuClose">Abbrechen</button>
     </div>
   </dialog>
+
+  <!-- Mehr (Smartphone): Backup und Wiederherstellen -->
+  <dialog id="moreDlg" aria-labelledby="moreTitle">
+    <h2 id="moreTitle" class="menu-title">Mehr</h2>
+    <div class="menu-list">
+      <button type="button" id="mExp">Backup speichern</button>
+      <button type="button" id="mImp">Backup einlesen</button>
+      <button type="button" id="mClose">Schließen</button>
+    </div>
+  </dialog>
+
+  <!-- Eigener Dialog für Rückfragen und Namenseingabe (ersetzt confirm und prompt des Browsers) -->
+  <dialog id="uiDlg" aria-labelledby="uiTitle">
+    <h2 id="uiTitle" class="menu-title"></h2>
+    <p id="uiText" hidden></p>
+    <label for="uiInput" id="uiLabel" hidden></label>
+    <input id="uiInput" maxlength="80" autocomplete="off" hidden>
+    <div class="foot"><button type="button" id="uiCancel">Abbrechen</button><button type="button" class="pri" id="uiOk">OK</button></div>
+  </dialog>
+
+  <!-- Hinweise mit „Rückgängig“ (ersetzen alert) -->
+  <div id="toasts" role="status" aria-live="polite"></div>
 
   <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>

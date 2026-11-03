@@ -7,6 +7,8 @@ import { cleanPieces, fixOrder, moveLayer, renderBoard } from './board.js';
 import { sumPrices } from './prices.js';
 import { flush } from './storage.js';
 import { renderAll } from './render.js';
+import { askText, toast } from './ui.js';
+import { step, undo } from './history.js';
 
 const moneyBy = by => Object.entries(by).map(([c, v]) => money(v, c)).join(' + ');
 /** Summen eines Outfits: gesamt und „noch zu kaufen“ (nur Teile der Wunschliste). */
@@ -39,10 +41,10 @@ export function renderSum(){
   }
   if(t.miss){ const m = document.createElement('div'); m.className = 'm'; m.textContent = 'Bei ' + t.miss + (t.miss === 1 ? ' Teil fehlt' : ' Teilen fehlt') + ' der Preis.'; box.append(m); }
 }
-$('save').onclick = () => {
+$('save').onclick = async () => {
   if(!state.board.length) return;
-  const name = prompt('Name des Outfits:', 'Outfit ' + (state.data.outfits.length + 1)); if(name === null) return;
-  state.data.outfits.unshift({id:'o'+Date.now(), name:name.trim() || 'Outfit', pieces:JSON.parse(JSON.stringify(state.board))});
+  const name = await askText({title:'Outfit speichern', label:'Name des Outfits', value:'Outfit ' + (state.data.outfits.length + 1), ok:'Speichern'}); if(name === null) return;
+  state.data.outfits.unshift({id:'o'+Date.now(), name:name || 'Outfit', pieces:JSON.parse(JSON.stringify(state.board))});
   renderOuts(); flush(); // bewusste Aktion: sofort sichern, nicht erst nach dem Timer
 };
 
@@ -55,8 +57,8 @@ export function renderOuts(){
     d.querySelector('b').textContent = o.name; { const t = totals(o.pieces); d.querySelector('small').textContent = t.txt + (t.buyCount ? ' · noch zu kaufen: ' + (t.buy || '–') : ''); }
     o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1, transform:`rotate(${p.r || 0}deg)`}); d.querySelector('.mini>div').append(im); });
     const [ld, rm] = d.querySelectorAll('button');
-    ld.onclick = () => { state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; renderAll(); };
-    rm.onclick = () => { if(confirm('Outfit „' + o.name + '“ löschen?')){ state.data.outfits = state.data.outfits.filter(k => k !== o); renderOuts(); flush(); } };
+    ld.onclick = () => { step(); state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; renderAll(); };
+    rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}}); };
     return d;
   }));
 }
