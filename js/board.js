@@ -4,6 +4,8 @@
  */
 import * as Geo from './geometry.js';
 import { $, DEF, announce, imgOf, item, mb, state } from './core.js';
+import { toast } from './ui.js';
+import { step } from './history.js';
 import { renderAll } from './render.js';
 import { drawKnob, placeKnob, syncBench } from './rotation.js';
 import { renderSum } from './outfits.js';
@@ -91,7 +93,7 @@ $('bigger').onclick = () => { const p = state.board.find(k => k.id === state.sel
 $('smaller').onclick = () => { const p = state.board.find(k => k.id === state.sel); if(p) resize(p, .9); };
 $('front').onclick = () => { if(state.sel) moveLayer(state.sel, state.board.length); };
 $('back').onclick = () => { if(state.sel) moveLayer(state.sel, 0); };
-$('clear').onclick = () => { state.board = []; state.sel = null; renderAll(); };
+$('clear').onclick = () => { step(); state.board = []; state.sel = null; renderAll(); };
 document.addEventListener('keydown', e => {
   if($('dlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.key === 'Delete' && state.sel){ state.board = state.board.filter(p => p.id !== state.sel); state.sel = null; renderAll(); }
@@ -104,9 +106,9 @@ document.addEventListener('keydown', e => {
 });
 $('shuffle').onclick = () => {
   const pick = c => { const l = state.data.items.filter(i => i.cat === c); return l[Math.floor(Math.random()*l.length)]; };
-  state.board = []; state.sel = null;
+  step(); state.board = []; state.sel = null;
   ['Oberteil','Hose/Rock','Schuhe'].concat(Math.random() < .5 ? ['Jacke'] : [], Math.random() < .35 ? ['Accessoire'] : []).forEach(c => { const i = pick(c); if(i) addPiece(i); });
-  if(!state.board.length) alert('Füge zuerst Teile zum Kleiderschrank hinzu.');
+  if(!state.board.length) toast('Füge zuerst Teile zum Kleiderschrank hinzu.');
   renderAll();
 };
 export function fit(){ state.K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * state.K}px;height:${600 * state.K}px`; $('board').style.transform = `scale(${state.K})`; }
