@@ -37,7 +37,7 @@ try {
     p.on('pageerror', e => errors.push(e.message));
     p.on('dialog', d => d.accept());
     await p.goto(BASE);
-    await p.waitForFunction(() => window.Anprobe);
+    await p.waitForSelector('html[data-ready]', { state: 'attached' });
     console.log('--- ' + name);
 
     const trigger = mobile ? '#fab' : '#addBtn';
@@ -119,7 +119,7 @@ try {
     ok((await dl).suggestedFilename() === 'outfit.png', 'PNG-Export mit Strichmensch funktioniert');
     await p.waitForTimeout(400);
     await p.reload();
-    await p.waitForFunction(() => window.Anprobe);
+    await p.waitForSelector('html[data-ready]', { state: 'attached' });
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
     ok(await p.locator('#figure').isVisible(), 'Strichmensch bleibt nach Neuladen eingeblendet');
