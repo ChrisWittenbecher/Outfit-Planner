@@ -61,7 +61,8 @@ export function openDlg(it){
   state.editing = it || null;
   state.draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
   $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
-  $('url').value = it ? it.link || '' : ''; $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
+  $('imgUrl').value = ''; $('imgUrl').removeAttribute('aria-invalid'); $('imgLoad').disabled = false; linkTok++;
+  $('url').value = it ? it.link || '' : ''; $('url').removeAttribute('aria-invalid'); $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
   // Neues Teil: auf der Wunschliste-Ansicht gleich als Wunsch vormerken
   $('itemState').value = it ? (it.status === 'wish' ? 'wish' : 'own') : (state.statusFilter === 'wish' ? 'wish' : 'own');
@@ -71,10 +72,45 @@ export function openDlg(it){
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
   if(!$('dlg').open) $('dlg').showModal();
 }
-async function setSource(src){
+/** Übernimmt ein bereits verkleinertes Original als Bildquelle des Dialogs. */
+async function adopt(n){
   if(!state.draft) state.draft = blank();
-  const n = await norm(src); state.draft.orig = n.url; state.draft.alpha = n.alpha; state.draft.crop = null; state.draft.ai = false; showOrig(); syncOpts(); await process();
+  state.draft.orig = n.url; state.draft.alpha = n.alpha; state.draft.crop = null; state.draft.ai = false; showOrig(); syncOpts(); await process();
 }
+const setSource = async src => adopt(await norm(src));
+
+/* ---------- Bild per Link ---------- */
+let linkTok = 0;
+const LINK_WAIT = 20000;   // ms, danach gilt das Laden als gescheitert
+/**
+ * Lädt ein Bild direkt vom Link. Das klappt nur, wenn der fremde Server es dem Browser erlaubt (CORS).
+ * Gelingt es nicht, bleibt alles andere erhalten, vor allem der Shop-Link; die Meldung sagt, was stattdessen geht.
+ * Gespeichert wird nur eine lokale Kopie, nie der Bildlink.
+ */
+async function loadFromLink(){
+  const raw = $('imgUrl').value.trim();
+  if(!raw){ status('Bitte einen Bildlink einfügen.', true); return; }
+  const v = Scraper.validateUrl(Scraper.normalizeLinkInput(raw));
+  if(!v.ok){ status('Der Bildlink ist ungültig: ' + v.error, true); $('imgUrl').setAttribute('aria-invalid', 'true'); return; }
+  $('imgUrl').removeAttribute('aria-invalid');
+  const my = ++linkTok; $('imgLoad').disabled = true; status('Bild wird geladen …');
+  try{
+    const n = await Promise.race([norm(v.url), new Promise((_, rej) => setTimeout(() => rej(new Error('Zeit')), LINK_WAIT))]);
+    if(my !== linkTok) return;
+    await adopt(n); if(my === linkTok) status('');
+  }catch(e){
+    if(my !== linkTok) return;
+    const page = !Scraper.looksLikeImageUrl(v.url);
+    if(page && !$('url').value.trim()){
+      $('url').value = v.url; $('url').removeAttribute('aria-invalid');
+      status('Das ist ein Link zu einer Seite, nicht zu einem Bild. Er wurde als Shop-Link übernommen. Das Bild bitte als Screenshot oder Datei hinzufügen.', true);
+    } else if(page) status('Das ist ein Link zu einer Seite, nicht zu einem Bild. Dein Shop-Link bleibt unverändert. Bitte den Bildlink verwenden oder das Bild als Screenshot hinzufügen.', true);
+    else status('Dieses Bild lässt sich nicht direkt laden, der Server erlaubt es nicht. Speichere das Bild oder mache einen Screenshot und füge ihn hinzu. Der Shop-Link bleibt erhalten.', true);
+  }finally{ if(my === linkTok) $('imgLoad').disabled = false; }
+}
+$('imgLoad').onclick = loadFromLink;
+$('imgUrl').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadFromLink(); } };
+$('imgUrl').oninput = () => $('imgUrl').removeAttribute('aria-invalid');
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
@@ -97,7 +133,7 @@ $('rcrop').onclick = () => { if(!state.draft) return; state.draft.crop = null; c
 $('ok').onclick = () => {
   if(!state.draft || !state.draft.img){ status('Bitte zuerst ein Bild hinzufügen.', true); return; }
   if(state.draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
-  const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(raw) : null;
+  const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(Scraper.normalizeLinkInput(raw)) : null;
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
   const price = Scraper.sanitizePrice(parsePrice($('price').value)), cur = Scraper.normalizeCurrency($('cur').value, 'EUR'), ed = state.editing;
   // Preisverlauf: jede Änderung festhalten. Wechselt die Währung, beginnt der Verlauf neu (Beträge wären nicht vergleichbar).

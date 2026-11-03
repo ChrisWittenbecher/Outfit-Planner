@@ -83,3 +83,31 @@ test('sanitizeItem: Status und Preisverlauf', () => {
   const it = s.sanitizeItem({ ...base, priceHistory: [{ t: 2, v: 10 }, { t: 1, v: 20 }, { t: 'x', v: 1 }, null] }, ['Oberteil']);
   assert.deepEqual(it.priceHistory, [{ t: 1, v: 20 }, { t: 2, v: 10 }]);
 });
+
+test('normalizeLinkInput: ergänzt https:// bei Domain-Eingaben, lässt alles andere unverändert', () => {
+  assert.equal(s.normalizeLinkInput('www.zalando.de/herren/hemd'), 'https://www.zalando.de/herren/hemd');
+  assert.equal(s.normalizeLinkInput('  shop.de  '), 'https://shop.de');
+  assert.equal(s.normalizeLinkInput('shop.de:8080/p?x=1'), 'https://shop.de:8080/p?x=1');
+  assert.equal(s.normalizeLinkInput('https://shop.de/p'), 'https://shop.de/p');
+  assert.equal(s.normalizeLinkInput('http://shop.de/p'), 'http://shop.de/p');
+  for (const keep of ['javascript:alert(1)', 'data:text/html,x', 'localhost:8080', '192.168.1.1/x', 'kein link', 'evil.com:foo', 'file:///etc/passwd', '']) {
+    assert.equal(s.normalizeLinkInput(keep), keep, keep);
+  }
+  assert.equal(s.normalizeLinkInput(null), '');
+  assert.equal(s.normalizeLinkInput(42), '');
+});
+
+test('normalizeLinkInput + validateUrl: unsichere Eingaben werden auch nach der Ergänzung abgelehnt', () => {
+  const good = s.validateUrl(s.normalizeLinkInput('www.shop.de/hemd'));
+  assert.deepEqual(good, { ok: true, url: 'https://www.shop.de/hemd' });
+  for (const bad of ['javascript:alert(1)', 'localhost/x', 'intranet.local/x', '127.0.0.1/a', 'user:pw@shop.de/x']) {
+    assert.equal(s.validateUrl(s.normalizeLinkInput(bad)).ok, false, bad);
+  }
+});
+
+test('looksLikeImageUrl: erkennt Bildendungen und Format-Parameter, sonst nein', () => {
+  for (const yes of ['https://cdn.shop.de/img/hemd.jpg', 'https://cdn.shop.de/a/b.JPEG?w=400', 'https://x.de/p.webp', 'https://x.de/p.avif', 'https://x.de/img?id=3&format=webp', 'https://x.de/i?fm=png'])
+    assert.equal(s.looksLikeImageUrl(yes), true, yes);
+  for (const no of ['https://www.zalando.de/herren/hemd', 'https://shop.de/produkt/123?color=blue', 'https://x.de/a.html', 'https://x.de/i?format=html', 'kein link', ''])
+    assert.equal(s.looksLikeImageUrl(no), false, no);
+});
