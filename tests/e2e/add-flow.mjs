@@ -1,7 +1,8 @@
 // End-to-End-Test: "Kleidungsstück hinzufügen" (Link, Barcode, Bild) auf Smartphone und Desktop.
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt)
+// Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
 import { chromium, devices } from 'playwright';
-import { spawn } from 'node:child_process';
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -14,8 +15,19 @@ const CORS = { 'access-control-allow-origin': '*' };
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
 
-const server = spawn('python3', [path.join(root, 'server/server.py'), String(PORT)], { stdio: 'ignore' });
-await new Promise(r => setTimeout(r, 1200));
+// Minimaler statischer Dateiserver (nur für den Test, die App selbst braucht keinen Server)
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
+const server = http.createServer(async (req, res) => {
+  try {
+    const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '') || 'index.html';
+    const file = path.join(root, rel);
+    if (!file.startsWith(root)) throw new Error('außerhalb');
+    const body = await readFile(file);
+    res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
+    res.end(body);
+  } catch { res.writeHead(404); res.end(); }
+});
+await new Promise(r => server.listen(PORT, r));
 
 const browser = await chromium.launch();
 try {
@@ -24,8 +36,10 @@ try {
     const ctx = await browser.newContext(opts);
     const p = await ctx.newPage();
     p.on('dialog', d => d.accept());
-    // Netzwerk mocken: lokaler Abruf-Dienst und öffentliche Proxys liefern die Shop-Seite
-    await p.route('**/api/raw**', r => r.fulfill({ status: 200, headers: { 'content-type': 'text/html' }, body: SHOP + ' '.repeat(300) }));
+    // Netzwerk mocken: ein Proxy liefert die Shop-Seite, die anderen scheitern (Parallelabruf)
+    await p.route('https://api.allorigins.win/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/html' }, body: SHOP + ' '.repeat(300) }));
+    await p.route('https://api.codetabs.com/**', r => r.abort());
+    await p.route('https://corsproxy.io/**', r => r.fulfill({ status: 403, headers: CORS, body: 'Forbidden' }));
     await p.route('https://livefastdieyoung.com/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG }));
     await p.route('https://world.open*facts.org/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify({ status: 0 }) }));
     await p.goto(BASE);
@@ -53,6 +67,16 @@ try {
     ok(await p.locator('#grid .card').count() === 1, 'Karte im Kleiderschrank');
     await p.click('#toastActions button:has-text("Rückgängig")');
     ok(await p.locator('#grid .card').count() === 0, 'Rückgängig entfernt das Teil');
+
+    // Bot-Schutz: Proxys liefern eine Sperrseite -> klare Meldung, nichts wird hinzugefügt
+    await p.unroute('https://api.allorigins.win/**');
+    await p.route('https://api.allorigins.win/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/html' }, body: '<html><body>Access Denied ' + 'x'.repeat(300) + '</body></html>' }));
+    await p.click(trigger);
+    await p.fill('#linkInput', 'https://www2.hm.com/de_de/productpage.1361416001.html');
+    await p.click('#linkGo');
+    await p.waitForFunction(() => /Bot-Schutz/.test(document.getElementById('linkStatus').textContent), null, { timeout: 20000 });
+    ok(await p.locator('#addDlg').evaluate(d => d.open) && await p.locator('#grid .card').count() === 0, 'Bot-Schutz: klare Meldung, nichts hinzugefügt');
+    await p.click('#addClose');
 
     // Barcode: manuelle Eingabe, kein Treffer -> Dialog mit Nummer
     await p.click(trigger);
@@ -88,7 +112,7 @@ try {
   }
 } finally {
   await browser.close();
-  server.kill();
+  server.close();
 }
 console.log(fails ? fails + ' FEHLER' : 'ALLES OK');
 process.exit(fails ? 1 : 0);
