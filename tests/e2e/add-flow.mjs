@@ -123,6 +123,29 @@ try {
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
     ok(await p.locator('#figure').isVisible(), 'Strichmensch bleibt nach Neuladen eingeblendet');
+
+    // Aktionen an der Karte: Drei-Punkte-Menü (Smartphone) bzw. runde Schnellaktionen (Desktop)
+    const first = p.locator('#grid .card').first();
+    await first.scrollIntoViewIfNeeded();
+    if (mobile) {
+      ok(await first.locator('.more').isVisible() && !(await first.locator('.acts').isVisible()), 'Smartphone: Drei-Punkte-Menü statt Rundbuttons');
+      const sz = await first.locator('.more').boundingBox();
+      ok(Math.abs(sz.width - sz.height) < 1 && sz.width >= 32, 'Drei-Punkte-Button ist rund und nicht gequetscht (' + sz.width + '×' + sz.height + ')');
+      await first.locator('.more').click();
+      ok(await p.locator('#menuDlg').evaluate(d => d.open) && /Blaues Shirt/.test(await p.textContent('#menuTitle')), 'Menü öffnet mit Namen des Teils');
+      ok(await p.locator('#menuOffer').isVisible(), 'Menü bietet „Zum Angebot“ bei vorhandenem Link');
+      await p.click('#menuEdit');
+      ok(await p.locator('#dlg').evaluate(d => d.open) && await p.inputValue('#name') === 'Blaues Shirt', 'Menü → Bearbeiten öffnet den Dialog');
+      await p.click('#cancel');
+      await first.locator('.more').click();
+      await p.click('#menuDelete');
+      ok(await p.locator('#grid .card').count() === 0, 'Menü → Löschen entfernt das Teil');
+    } else {
+      ok(!(await first.locator('.more').isVisible()), 'Desktop: kein Drei-Punkte-Button');
+      await first.hover();
+      const bs = await first.locator('.acts button').evaluateAll(bs => bs.map(b => { const r = b.getBoundingClientRect(); return Math.abs(r.width - r.height) < 1; }));
+      ok(bs.length >= 2 && bs.every(Boolean), 'Desktop: Schnellaktionen sind rund');
+    }
     ok(await noOverflow(), 'weiterhin kein horizontaler Überlauf');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();

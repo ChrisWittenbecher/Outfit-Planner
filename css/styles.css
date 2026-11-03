@@ -189,6 +189,24 @@
 /* ---------- 6b. Smartphone-Optimierung ---------- */
 @layer modules {
   .fab { display: none; }
+
+  /* Karten im Kleiderschrank: Schnellaktionen (Desktop) bzw. Drei-Punkte-Menü (Touch, Smartphone) */
+  .card .x { align-items: center; }
+  .card .x .acts { display: flex; gap: 4px; }
+  .card .x .more { display: none; }
+  .x button { min-height: 0; }
+  .card .x .more { width: 36px; height: 36px; font-size: 22px; padding-bottom: 6px; box-shadow: 0 1px 4px #0003; border-color: var(--line); }
+  @media (hover: none), (max-width: 560px) {
+    .card .x { display: flex; top: 4px; right: 4px; }
+    .card .x .acts { display: none; }
+    .card .x .more { display: grid; }
+  }
+  .menu-title { font-size: 18px; margin-bottom: 12px; overflow-wrap: anywhere; }
+  .menu-list { display: grid; gap: 8px; }
+  .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
+  .menu-list .danger { color: var(--danger); border-color: var(--danger); }
+  .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+  @media (min-width: 561px) { #menuDlg { width: min(360px, 94vw); } }
   #figure { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
   #figBtn[aria-pressed="true"] { background: var(--ink); color: #fff; }
 

@@ -121,6 +121,17 @@
     </section>
   </main>
 
+  <!-- Aktionsmenü für ein Teil im Kleiderschrank (Drei-Punkte-Menü) -->
+  <dialog id="menuDlg" aria-labelledby="menuTitle">
+    <h2 id="menuTitle" class="menu-title"></h2>
+    <div class="menu-list">
+      <button type="button" id="menuEdit">Bearbeiten</button>
+      <button type="button" id="menuOffer">Zum Angebot öffnen ↗</button>
+      <button type="button" id="menuDelete" class="danger">Löschen</button>
+      <button type="button" id="menuClose">Abbrechen</button>
+    </div>
+  </dialog>
+
   <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
 
