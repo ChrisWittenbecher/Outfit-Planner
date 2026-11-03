@@ -59,17 +59,16 @@ test('normalizeCurrency: nur bekannte Codes', () => {
   assert.equal(s.normalizeCurrency(5, 'CHF'), 'CHF');
 });
 
-test('sanitizeImageSrc: nur data:image (Raster) oder https', () => {
+test('sanitizeImageSrc: nur eingebettete Raster-Bilder (data:image), keine entfernten Adressen', () => {
   assert.ok(s.sanitizeImageSrc('data:image/png;base64,AAAA'));
-  assert.ok(s.sanitizeImageSrc('https://cdn.de/a.png'));
-  for (const bad of ['data:image/svg+xml;base64,AAAA', 'data:text/html;base64,AAAA', 'javascript:alert(1)', 'http://a.de/a.png', '', null, 3]) assert.equal(s.sanitizeImageSrc(bad), '');
+  for (const bad of ['https://cdn.de/a.png', 'data:image/svg+xml;base64,AAAA', 'data:text/html;base64,AAAA', 'javascript:alert(1)', 'http://a.de/a.png', '', null, 3]) assert.equal(s.sanitizeImageSrc(bad), '');
 });
 
 test('sanitizeItem: bereinigt Backup-Einträge', () => {
   const cats = ['Oberteil', 'Jacke', 'Hose/Rock', 'Schuhe', 'Accessoire'];
   const ok = s.sanitizeItem({ id: 'i1', name: '<b>Shirt</b>', cat: 'Jacke', img: 'data:image/png;base64,AAAA', link: 'https://a.de/x#h', price: 19.999, cur: 'usd', ean: '4006381333931', evil: 'x', cut: 1 }, cats);
   assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', status: 'own', priceHistory: [], ean: '4006381333931' });
-  const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'https://a.de/p.png', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
+  const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'data:image/png;base64,AAAA', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
   assert.equal(odd.cat, 'Oberteil'); assert.equal(odd.link, ''); assert.equal(odd.price, null); assert.equal(odd.name, 'Ohne Namen'); assert.equal('ean' in odd, false);
   for (const bad of [null, 1, 'x', {}, { id: '', img: 'https://a.de/a.png' }, { id: 'a' }, { id: 'a', img: 'javascript:alert(1)' }, { id: 'x'.repeat(65), img: 'https://a.de/a.png' }]) assert.equal(s.sanitizeItem(bad, cats), null);
 });
@@ -110,4 +109,87 @@ test('looksLikeImageUrl: erkennt Bildendungen und Format-Parameter, sonst nein',
     assert.equal(s.looksLikeImageUrl(yes), true, yes);
   for (const no of ['https://www.zalando.de/herren/hemd', 'https://shop.de/produkt/123?color=blue', 'https://x.de/a.html', 'https://x.de/i?format=html', 'kein link', ''])
     assert.equal(s.looksLikeImageUrl(no), false, no);
+});
+
+/* ---------- Backup-Datei: alles von außen gilt als unsicher ---------- */
+const CATS = ['Oberteil', 'Hose/Rock', 'Schuhe', 'Jacke', 'Accessoire'];
+const PNG1 = 'data:image/png;base64,iVBORw0KGgo=';
+const good = (id, extra = {}) => ({ id, name: 'Shirt', cat: 'Oberteil', img: PNG1, ...extra });
+
+test('sanitizeImageSrc: nur eingebettete Bilder, keine entfernten Adressen', () => {
+  assert.equal(s.sanitizeImageSrc(PNG1), PNG1);
+  assert.equal(s.sanitizeImageSrc('https://tracker.example/pixel.png'), '');
+  assert.equal(s.sanitizeImageSrc('http://x.example/a.png'), '');
+  assert.equal(s.sanitizeImageSrc('data:image/svg+xml;base64,PHN2Zz4='), '');
+  assert.equal(s.sanitizeImageSrc('data:text/html;base64,PGgxPg=='), '');
+  assert.equal(s.sanitizeImageSrc('javascript:alert(1)'), '');
+  assert.equal(s.sanitizeImageSrc('x'.repeat(14_000_001)), '');
+  assert.equal(s.sanitizeImageSrc(null), '');
+});
+
+test('parseBackup: gültiges Backup wird bereinigt übernommen', () => {
+  const r = s.parseBackup(JSON.stringify({ items: [good('a', { name: '<b>Hemd</b>‮', link: 'https://shop.example/x#frag' })], outfits: [{ id: 'o1', name: 'Büro <i>', pieces: [{ id: 'a', x: 1, y: 2, w: 100, r: 0 }], evil: 1 }], board: [{ id: 'a', x: 5, y: 5, w: 90, r: 0 }] }), CATS);
+  assert.equal(r.ok, true);
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].name, 'Hemd');
+  assert.equal(r.items[0].link, 'https://shop.example/x');
+  assert.deepEqual(Object.keys(r.outfits[0]).sort(), ['id', 'name', 'pieces']);
+  assert.equal(r.outfits[0].name, 'Büro');
+  assert.equal(r.board.length, 1);
+  assert.equal(r.skipped, 0);
+});
+
+test('parseBackup: gefährliche Teile werden übersprungen und gezählt', () => {
+  const items = [
+    good('ok'),
+    good('remote', { img: 'https://tracker.example/p.png' }),
+    good('svg', { img: 'data:image/svg+xml;base64,PHN2Zz4=' }),
+    good('ok', { name: 'doppelt' }),
+    { name: 'ohne id', cat: 'Oberteil', img: PNG1 },
+    'kein Objekt', null, 42,
+  ];
+  const r = s.parseBackup(JSON.stringify({ items }), CATS);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.items.map(i => i.id), ['ok']);
+  assert.equal(r.skipped, 7);
+});
+
+test('parseBackup: gefährliche Links werden geleert, Felder auf Whitelist beschränkt', () => {
+  const r = s.parseBackup(JSON.stringify({ items: [good('a', { link: 'javascript:alert(1)', price: '1e999', cur: 'XXX', status: 'evil', __extra: '<script>' })] }), CATS);
+  assert.equal(r.ok, true);
+  const it = r.items[0];
+  assert.equal(it.link, '');
+  assert.equal(it.status, 'own');
+  assert.equal('__extra' in it, false);
+  assert.ok(Number.isFinite(it.price) || it.price === null);
+});
+
+test('parseBackup: __proto__-Schlüssel verändern keine Objekte', () => {
+  const text = '{"items":[{"id":"a","name":"x","cat":"Oberteil","img":"' + PNG1 + '","__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}}}],"__proto__":{"polluted":true}}';
+  const r = s.parseBackup(text, CATS);
+  assert.equal(r.ok, true);
+  assert.equal(({}).polluted, undefined);
+  assert.equal(r.items[0].polluted, undefined);
+});
+
+test('parseBackup: Größen- und Mengengrenzen, kaputte Daten', () => {
+  assert.equal(s.parseBackup('{kaputt', CATS).ok, false);
+  assert.equal(s.parseBackup('[]', CATS).ok, false);
+  assert.equal(s.parseBackup('null', CATS).ok, false);
+  assert.equal(s.parseBackup('{"items":"x"}', CATS).ok, false);
+  assert.equal(s.parseBackup(JSON.stringify({ items: Array.from({ length: s.BACKUP_LIMITS.items + 1 }, (_, i) => good('i' + i)) }), CATS).ok, false);
+  assert.equal(s.parseBackup('x'.repeat(s.BACKUP_LIMITS.bytes + 1), CATS).ok, false);
+  const many = s.parseBackup(JSON.stringify({ items: [], outfits: Array.from({ length: s.BACKUP_LIMITS.outfits + 50 }, (_, i) => ({ name: 'o' + i, pieces: [] })), board: Array.from({ length: 999 }, (_, i) => ({ id: 'p' + i, x: 0, y: 0, w: 100, r: 0 })) }), CATS);
+  assert.equal(many.ok, true);
+  assert.equal(many.outfits.length, s.BACKUP_LIMITS.outfits);
+  assert.ok(many.board.length <= s.BACKUP_LIMITS.pieces);
+});
+
+test('sanitizeOutfit: Name als Text, feste Felder', () => {
+  assert.equal(s.sanitizeOutfit(null), null);
+  assert.equal(s.sanitizeOutfit('x'), null);
+  const o = s.sanitizeOutfit({ id: 'x'.repeat(100), name: '<img src=x onerror=alert(1)>Look', pieces: 'kaputt', extra: 1 });
+  assert.equal(o.name, 'Look');
+  assert.deepEqual(o.pieces, []);
+  assert.ok(o.id.length <= 64);
 });

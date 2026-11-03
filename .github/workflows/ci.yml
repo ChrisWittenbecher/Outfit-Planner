@@ -5,9 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+# Mindestrechte: Die Tests lesen nur den Code. Kein Schreibzugriff, keine Geheimnisse.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -15,12 +24,31 @@ jobs:
     env:
       BROWSER: ${{ matrix.browser }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Actions sind auf einen festen Commit gepinnt (nicht auf ein verschiebbares Tag). Dependabot schlägt Updates vor.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run test:e2e
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Bekannte Schwachstellen in den Entwicklungswerkzeugen (die App selbst lädt keine Pakete).
+      - run: npm audit --audit-level=high

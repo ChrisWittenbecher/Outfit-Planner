@@ -5,7 +5,7 @@
  * und bietet ein Update an. „Aktualisieren“ lädt alle Dateien am Zwischenspeicher vorbei neu und startet dann die Seite neu.
  */
 import { $ } from './core.js';
-import { VERSION } from './version.js';
+import { VERSION, isVersion, refreshTargets } from './version.js';
 import { toast } from './ui.js';
 
 const CHECK_GAP = 60000;   // höchstens einmal pro Minute prüfen
@@ -16,8 +16,10 @@ export async function newerVersion(){
   try{
     const r = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
     if(!r.ok) return null;
-    const j = await r.json();
-    return j && typeof j.version === 'string' && j.version !== VERSION ? j.version : null;
+    const text = await r.text();
+    if(text.length > 1000) return null;   // eine echte version.json ist winzig
+    const j = JSON.parse(text);
+    return j && isVersion(j.version) && j.version !== VERSION ? j.version : null;   // nur das Format „1.2.0“ wird akzeptiert
   }catch(e){ return null; }
 }
 
@@ -27,10 +29,8 @@ export async function refresh(){
   try{
     const res = await fetch(location.pathname, {cache:'reload'});
     const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-    const urls = new Set([...doc.querySelectorAll('link[href], script[src]')]
-      .map(n => new URL(n.getAttribute('href') || n.getAttribute('src'), location.href))
-      .filter(u => u.origin === location.origin).map(u => u.href));
-    await Promise.all([...urls].map(u => fetch(u, {cache:'reload'}).catch(() => {})));
+    const urls = refreshTargets([...doc.querySelectorAll('link[href], script[src]')].map(n => n.getAttribute('href') || n.getAttribute('src')), location.href);   // nur eigene Dateien der App
+    await Promise.all(urls.map(u => fetch(u, {cache:'reload', credentials:'omit'}).catch(() => {})));
   }catch(e){ /* dann eben nur neu laden */ }
   location.reload();
 }
