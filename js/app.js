@@ -14,7 +14,7 @@
 const Anprobe = /** @type {any} */ (window).Anprobe;
 const Geo = Anprobe?.geometry, Scraper = Anprobe?.scraper, Barcode = Anprobe?.barcode, Scanner = Anprobe?.scanner;
 if(!(Geo && Scraper && Barcode && Scanner)){
-  document.getElementById('saveState').textContent = 'Module konnten nicht geladen werden. Bitte über GitHub Pages oder „python3 server.py“ öffnen (nicht per Doppelklick).';
+  document.getElementById('saveState').textContent = 'Module konnten nicht geladen werden. Bitte über GitHub Pages oder einen Webserver öffnen (nicht per Doppelklick).';
   throw new Error('Anprobe: js/main.js (ES-Module) wurde nicht geladen');
 }
 
@@ -47,7 +47,6 @@ const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230
 const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
 let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, dlgEan = '', K = 1;
-const LOCAL = ['localhost','127.0.0.1'].includes(location.hostname) || /^(192\.168|10)\./.test(location.hostname);
 const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 const item = id => S.items.find(i => i.id === id);
 const imgOf = id => item(id)?.img;
@@ -266,10 +265,11 @@ $('rcrop').onclick = () => { if(!draft) return; draft.crop = null; const b = $('
 /* ---------- Link-Import (Bild, Name, Preis) ---------- */
 function consent(){
   try{ if(localStorage.getItem('anprobe_proxy') === '1') return true; }catch(e){}
-  if(!confirm('Hier läuft kein eigener Server. Für Produktlinks wird deshalb ein öffentlicher Abruf-Dienst genutzt (allorigins.win für Seiten, wsrv.nl für Bilder). Die Link-Adresse wird dabei an diese Dienste gesendet. Fortfahren?')) return false;
+  if(!confirm('Browser dürfen fremde Shop-Seiten nicht direkt lesen. Für Produktlinks nutzt Anprobe deshalb öffentliche Abruf-Dienste (allorigins.win, codetabs.com, corsproxy.io für Seiten, wsrv.nl für Bilder). Die Link-Adresse wird dabei an diese Dienste gesendet. Fortfahren?')) return false;
   try{ localStorage.setItem('anprobe_proxy', '1'); }catch(e){} return true;
 }
-const PROXIES = ['https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
+/** Öffentliche Abruf-Dienste (CORS-Proxys). Sie werden parallel gefragt, die erste brauchbare Antwort gewinnt. */
+const PROXIES = [u => 'https://api.allorigins.win/raw?url=' + enc(u), u => 'https://api.codetabs.com/v1/proxy?quest=' + enc(u), u => 'https://corsproxy.io/?url=' + enc(u)];
 /** Lädt Text oder Bild mit Zeitlimit und Größenbegrenzung, ohne Cookies und ohne Referrer. Wirft bei Fehlern. */
 async function fetchBody(url, kind, max, ms = 15000){
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
@@ -283,16 +283,20 @@ async function fetchBody(url, kind, max, ms = 15000){
   } finally { clearTimeout(t); }
 }
 async function getText(u){
-  let blocked = false; // Seite kam an, ist aber keine Produktseite (Bot-Schutz, Cookie-Wand, Captcha)
-  if(LOCAL){ try{ const t = await fetchBody('/api/raw?url=' + enc(u), 'text', Scraper.LIMITS.html); if(Scraper.looksLikeProductHtml(t)) return t; blocked = true; }catch(e){} }
   if(!consent()) throw new Error('Abgebrochen.');
-  for(const p of PROXIES){ try{ const t = await fetchBody(p + enc(u), 'text', Scraper.LIMITS.html); if(t.length > 200){ if(Scraper.looksLikeProductHtml(t)) return t; blocked = true; } }catch(e){} }
-  throw new Error(blocked ? 'Der Shop liefert keine lesbaren Produktdaten (Bot-Schutz?). Nutze einen Screenshot oder trage Name und Preis selbst ein.' : 'Die Seite konnte nicht abgerufen werden.');
+  let blocked = false; // Seite kam an, ist aber keine Produktseite (Bot-Schutz, Cookie-Wand, Captcha)
+  const tries = PROXIES.map(async p => {
+    const t = await fetchBody(p(u), 'text', Scraper.LIMITS.html, 14000);
+    if(t.length <= 200) throw new Error('leer');
+    if(!Scraper.looksLikeProductHtml(t)){ blocked = true; throw new Error('keine Produktseite'); }
+    return t;
+  });
+  try{ return await Promise.any(tries); }
+  catch(e){ throw new Error(blocked ? 'Der Shop liefert keine lesbaren Produktdaten (Bot-Schutz?). Nutze einen Screenshot oder trage Name und Preis selbst ein.' : 'Die Seite konnte nicht abgerufen werden. Prüfe den Link oder nutze einen Screenshot.'); }
 }
 async function getImg(u){ // liefert eine Bildquelle, die sich in ein Canvas zeichnen lässt
-  const safe = Scraper.sanitizeImageUrl(u, location.href, {allowLocal:LOCAL});
+  const safe = Scraper.sanitizeImageUrl(u, location.href, {});
   if(!safe) throw new Error('Diese Bild-Adresse ist nicht erlaubt.');
-  if(LOCAL){ try{ const b = await fetchBody('/api/raw?url=' + enc(safe), 'blob', 15e6); if(b.type.startsWith('image/') && b.type !== 'image/svg+xml') return await readFile(b); }catch(e){} }
   try{ await loadImg(safe, true); return safe; }catch(e){}
   if(!consent()) throw new Error('Abgebrochen.');
   const p = 'https://wsrv.nl/?url=' + enc(safe) + '&w=1000&output=png';
@@ -309,7 +313,7 @@ async function fetchProduct(url){
     try{ return {info:{title:'', image:url, price:null, cur:''}, src:await getImg(url), error:''}; }
     catch(e){ return {info:{title:'', image:url, price:null, cur:''}, src:'', error:e.message}; }
   }
-  const info = Scraper.parseProductHtml(await getText(url), url, {allowLocal:LOCAL});
+  const info = Scraper.parseProductHtml(await getText(url), url, {});
   if(!info.image) return {info, src:'', error:'Auf der Seite wurde kein Produktbild gefunden.'};
   try{ return {info, src:await getImg(info.image), error:''}; }catch(e){ return {info, src:'', error:e.message}; }
 }
@@ -319,7 +323,7 @@ function fillFromInfo(info){
   if(info.price != null){ $('price').value = info.price.toFixed(2).replace('.', ','); if(info.cur) $('cur').value = info.cur; }
 }
 $('load').onclick = async () => {
-  const v = Scraper.validateUrl($('url').value, {allowLocal:LOCAL});
+  const v = Scraper.validateUrl($('url').value, {});
   $('url').setAttribute('aria-invalid', String(!v.ok));
   if(!v.ok){ status(v.error, true); return; }
   status('Lade …'); $('load').disabled = true;
@@ -335,7 +339,7 @@ $('load').onclick = async () => {
 $('ok').onclick = () => {
   if(!draft || !draft.img){ status('Bitte zuerst ein Bild hinzufügen.', true); return; }
   if(draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
-  const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(raw, {allowLocal:true}) : null;
+  const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(raw) : null;
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
   const f = {img:draft.img, orig:draft.orig, alpha:draft.alpha, cut:draft.cut, mirror:!!draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price:Scraper.sanitizePrice(parsePrice($('price').value)), cur:Scraper.normalizeCurrency($('cur').value, 'EUR')};
   if(editing) Object.assign(editing, f); else S.items.unshift({id:newId(), ...f, ...(dlgEan ? {ean:dlgEan} : {})});
@@ -631,7 +635,7 @@ $('linkInput').addEventListener('input', () => setLinkStatus(''));
 let importing = false;
 async function importFromLink(raw){
   if(importing) return;
-  const v = Scraper.validateUrl(raw, {allowLocal:LOCAL});
+  const v = Scraper.validateUrl(raw, {});
   if(!v.ok){ setLinkStatus(v.error, true); return; }
   const dup = S.items.find(i => i.link === v.url);
   if(dup){ setLinkStatus('Dieses Produkt ist schon im Kleiderschrank: „' + dup.name + '“.', true); return; }

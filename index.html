@@ -19,7 +19,7 @@
     - worker-src blob: für den KI-Worker, media-src blob: für den Kamera-Stream; jsDelivr liefert auch den Barcode-Rückfall (ZXing)
     - Module: js/main.js und js/geometry.js sind ES-Module (script-src 'self' genügt)
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.allorigins.win https://api.codetabs.com https://staticimgly.com https://cdn.jsdelivr.net https://world.openproductsfacts.org https://world.openbeautyfacts.org https://world.openfoodfacts.org; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.allorigins.win https://api.codetabs.com https://corsproxy.io https://staticimgly.com https://cdn.jsdelivr.net https://world.openproductsfacts.org https://world.openbeautyfacts.org https://world.openfoodfacts.org; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/icon128.png">
   <link rel="stylesheet" href="css/styles.css">

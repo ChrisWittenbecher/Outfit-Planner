@@ -25,7 +25,7 @@ Der typische Ablauf:
 
 | Bereich | Beschreibung |
 |---|---|
-| **Link-Import** | Liest Name, Produktbild und Preis aus Shop-Links (Open Graph, JSON-LD, Produktdaten). Bereinigt Titel, erkennt die Kategorie und zieht bei Modellfotos das Produktbild vor. Eindeutige Treffer landen direkt im Kleiderschrank, mit **Rückgängig**. |
+| **Link-Import** | Läuft komplett im Browser ohne eigenen Server. Liest Name, Produktbild und Preis aus Shop-Links (Open Graph, JSON-LD, Produktdaten). Bereinigt Titel, erkennt die Kategorie und zieht bei Modellfotos das Produktbild vor. Eindeutige Treffer landen direkt im Kleiderschrank, mit **Rückgängig**. |
 | **Barcode-Scanner** | Liest EAN-8, UPC-A, EAN-13 und GTIN-14 per Kamera (inklusive Prüfziffer). Ohne Kamera oder Berechtigung gibst du die Nummer von Hand ein. |
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
@@ -48,16 +48,9 @@ Die App liegt im Repository-Hauptverzeichnis und läuft direkt auf GitHub Pages:
 
 Zeigt die Seite noch eine alte Version, hilft ein harter Reload (`Strg/Cmd + Shift + R`).
 
-### Lokal starten (empfohlen für den Link-Import)
+### Ohne Hosting ausprobieren
 
-Voraussetzung ist Python 3.
-
-```bash
-python3 server/server.py          # öffnet http://localhost:8000
-python3 server/server.py 8080     # anderer Port
-```
-
-Der lokale Server liefert die Seite aus und ruft Produktseiten selbst ab. Dadurch sind keine öffentlichen Abruf-Dienste nötig, und mehr Shops funktionieren. Die Seite bitte über den Server öffnen, nicht per Doppelklick auf `index.html`, weil Browser ES-Module bei `file://` blockieren.
+Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. Für einen schnellen lokalen Test genügt jeder Datei-Server im Projektordner, zum Beispiel `npx serve` oder `python3 -m http.server 8000`. Die Seite bitte über `http://localhost` öffnen und nicht per Doppelklick auf `index.html`, weil Browser ES-Module bei `file://` blockieren.
 
 ## Projektstruktur
 
@@ -75,8 +68,6 @@ Der lokale Server liefert die Seite aus und ruft Produktseiten selbst ab. Dadurc
 │   └── scanner.js          Kamera und Erkennung (BarcodeDetector, ZXing)
 ├── assets/
 │   └── icons/              App-Icons
-├── server/
-│   └── server.py           lokaler Server mit gesichertem Abruf (/api/raw)
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test)
 │   └── e2e/                End-to-End-Tests (Playwright)
@@ -90,20 +81,20 @@ Der lokale Server liefert die Seite aus und ruft Produktseiten selbst ab. Dadurc
 - **Lokale Datenhaltung:** Alles liegt in IndexedDB deines Browsers. Es gibt keinen Server und kein Konto. Jedes Gerät hat einen eigenen Kleiderschrank, zum Umziehen dienen Backup und Wiederherstellen.
 - **Strikte Content-Security-Policy:** kein `unsafe-inline`, feste Liste erlaubter Verbindungen.
 - **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen, Port-Allowlist). Importierte Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
-- **Abgesicherter lokaler Server:** Der Abruf-Endpunkt lauscht nur auf `127.0.0.1`, prüft jede Weiterleitung gegen private Adressen (SSRF-Schutz) und lehnt fremde Ursprünge ab.
+- **Kein eigener Server:** Es gibt kein Backend, das angegriffen werden könnte. Der Link-Import läuft vollständig im Browser.
 
 ### Externe Dienste (nur bei Bedarf)
 
 | Wann | Dienst | Übermittelt |
 |---|---|---|
-| Link-Import auf GitHub Pages | allorigins.win (Seite), wsrv.nl (Bild) | die Link-Adresse, nach einmaliger Zustimmung |
+| Link-Import | allorigins.win, codetabs.com, corsproxy.io (Seite, parallel abgefragt), wsrv.nl (Bild, nur falls nötig) | die Link-Adresse, nach einmaliger Zustimmung |
 | KI-Freistellen | jsDelivr, staticimgly.com | nichts, nur Download des Modells (ca. 40 MB) |
 | Barcode ohne eingebaute Erkennung | jsDelivr (ZXing, feste Version) | nichts, nur Download der Bibliothek |
 | Barcode-Produktsuche | Open Products / Beauty / Food Facts | die Barcode-Nummer |
 
 ## Bekannte Grenzen
 
-- Manche Shops blockieren automatische Abrufe (Bot-Schutz). Die App meldet das und empfiehlt einen Screenshot. Lokal mit `server/server.py` klappt es häufiger.
+- Manche Shops blockieren automatische Abrufe (Bot-Schutz). Die App meldet das und empfiehlt einen Screenshot.
 - Preise sind nur so zuverlässig wie die Produktdaten der Seite und sollten vor dem Kauf geprüft werden.
 - Für Kleidung gibt es keine verlässliche freie Barcode-Datenbank. Ohne Treffer ergänzt du Bild und Namen im Dialog, die Nummer bleibt am Teil gespeichert.
 - Der Kamerazugriff erfordert `https` oder `localhost`.
