@@ -148,7 +148,7 @@ $('shuffle').onclick = () => {
 };
 export function fit(){
   state.K = Math.min(1, ($('stage').clientWidth - 36) / 400);
-  // Einzelne Eigenschaften setzen, nicht style.cssText: Safari (WebKit) wertet cssText als Inline-Stil und blockt es unter unserer strikten CSP.
+  // Einzelne Eigenschaften über das CSSOM setzen statt style.cssText: vorsorglich, weil manche Browser cssText wie einen Inline-Stil behandeln könnten (strikte CSP).
   const wrap = $('wrap').style; wrap.width = 400 * state.K + 'px'; wrap.height = 600 * state.K + 'px';
   $('board').style.transform = `scale(${state.K})`;
 }

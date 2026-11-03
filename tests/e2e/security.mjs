@@ -39,7 +39,7 @@ try {
   await addItem(p, { trigger: '#fab', name: 'Shirt', cat: 'Oberteil', price: '19,99' });
   await p.locator('#grid .card').first().locator('img').first().click(); await wait(500);
   ok(violations.length === 0, 'normale Nutzung löst keinen CSP-Verstoß aus ' + violations.join(' | '));
-  // Safari wertet style.cssText als Inline-Stil: die Hülle des Boards muss ihre Größe trotz CSP bekommen.
+  // Die Hülle des Boards bekommt ihre Größe über das CSSOM und muss sie trotz strikter CSP haben (in jeder Engine).
   const sizes = await p.evaluate(() => { const w = document.getElementById('wrap').getBoundingClientRect(), b = document.getElementById('board').getBoundingClientRect(); return [w.width, w.height, b.width, b.height]; });
   ok(Math.abs(sizes[0] - sizes[2]) < 1.5 && Math.abs(sizes[1] - sizes[3]) < 1.5, 'Hülle des Boards hat die Größe des Boards (' + sizes.map(Math.round).join(' × ') + ')');
 
@@ -120,7 +120,7 @@ try {
   await p.route('**/index.html', route => {
     const r = route.request();
     if (r.resourceType() !== 'fetch') return route.continue();
-    return route.fulfill({ status: 200, contentType: 'text/html', body: `<html><head><link rel="stylesheet" href="css/styles.css"><script src="https://evil.example/x.js"></script><link href="//evil.example/y.css" rel="stylesheet"><script src="/../../etc/passwd.js"></script><script src="../outside.js"></script></head></html>` });
+    return route.fulfill({ status: 200, contentType: 'text/html', body: `<html><head><link rel="stylesheet" href="css/styles.css"><script src="https://evil.example/x.js"></script><link href="//evil.example/y.png" rel="icon"><img src="https://evil.example/pixel.png"><script src="/../../etc/passwd.js"></script><script src="../outside.js"></script></head></html>` });
   });
   await p.route('**/version.json*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"version":"99.0.0"}' }));
   await p.click('#updBtn'); await wait(500);
