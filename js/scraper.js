@@ -1,4 +1,5 @@
 // @ts-check
+import { sanitizeHistory } from './prices.js';
 /**
  * Anprobe – Eingabeprüfung und Bereinigung von Texten, Preisen, Links und gespeicherten Teilen.
  *
@@ -158,6 +159,9 @@ export function sanitizeItem(raw, cats) {
     link: link.ok ? link.url : '',
     price: sanitizePrice(o.price),
     cur: normalizeCurrency(o.cur, 'EUR'),
+    // Status: „own“ = besitze ich (Standard für ältere Daten), „wish“ = Wunschliste
+    status: o.status === 'wish' ? 'wish' : 'own',
+    priceHistory: sanitizeHistory(o.priceHistory, LIMITS.price),
   };
   const orig = sanitizeImageSrc(o.orig);
   if (orig) item.orig = orig;

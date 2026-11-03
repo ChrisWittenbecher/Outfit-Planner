@@ -68,8 +68,18 @@ test('sanitizeImageSrc: nur data:image (Raster) oder https', () => {
 test('sanitizeItem: bereinigt Backup-Einträge', () => {
   const cats = ['Oberteil', 'Jacke', 'Hose/Rock', 'Schuhe', 'Accessoire'];
   const ok = s.sanitizeItem({ id: 'i1', name: '<b>Shirt</b>', cat: 'Jacke', img: 'data:image/png;base64,AAAA', link: 'https://a.de/x#h', price: 19.999, cur: 'usd', ean: '4006381333931', evil: 'x', cut: 1 }, cats);
-  assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', ean: '4006381333931' });
+  assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', status: 'own', priceHistory: [], ean: '4006381333931' });
   const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'https://a.de/p.png', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
   assert.equal(odd.cat, 'Oberteil'); assert.equal(odd.link, ''); assert.equal(odd.price, null); assert.equal(odd.name, 'Ohne Namen'); assert.equal('ean' in odd, false);
   for (const bad of [null, 1, 'x', {}, { id: '', img: 'https://a.de/a.png' }, { id: 'a' }, { id: 'a', img: 'javascript:alert(1)' }, { id: 'x'.repeat(65), img: 'https://a.de/a.png' }]) assert.equal(s.sanitizeItem(bad, cats), null);
+});
+
+test('sanitizeItem: Status und Preisverlauf', () => {
+  const base = { id: 'a', img: 'data:image/png;base64,AAAA', name: 'x', cat: 'Oberteil' };
+  assert.equal(s.sanitizeItem(base, ['Oberteil']).status, 'own');
+  assert.equal(s.sanitizeItem({ ...base, status: 'wish' }, ['Oberteil']).status, 'wish');
+  assert.equal(s.sanitizeItem({ ...base, status: '<script>' }, ['Oberteil']).status, 'own');
+  assert.deepEqual(s.sanitizeItem(base, ['Oberteil']).priceHistory, []);
+  const it = s.sanitizeItem({ ...base, priceHistory: [{ t: 2, v: 10 }, { t: 1, v: 20 }, { t: 'x', v: 1 }, null] }, ['Oberteil']);
+  assert.deepEqual(it.priceHistory, [{ t: 1, v: 20 }, { t: 2, v: 10 }]);
 });

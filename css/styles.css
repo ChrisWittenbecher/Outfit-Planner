@@ -201,6 +201,18 @@
     .card .x .acts { display: none; }
     .card .x .more { display: grid; }
   }
+  /* Wunschliste und Preisverlauf */
+  .card .badge { position: absolute; top: 6px; left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--acc-soft); color: var(--acc-strong); font-size: 11px; font-weight: 600; pointer-events: none; }
+  .card.wish img { opacity: .8; }
+  .pc { display: inline-block; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pc--down { background: #dff3e4; color: #12612a; }
+  .pc--up { background: #fbe3e1; color: var(--danger); }
+  #sum .tag { flex: none; padding: 0 7px; border-radius: 999px; background: var(--acc-soft); color: var(--acc-strong); font-size: 11px; font-weight: 600; }
+  #sum .t--buy { border-top: 1px solid var(--line); color: var(--acc-strong); margin-top: 6px; padding-top: 6px; }
+  #priceHistory { margin-top: 10px; }
+  #priceList { margin: 0; padding: 0; list-style: none; font-size: 13px; max-height: 7.5em; overflow: auto; }
+  #priceList li { padding: 2px 0; border-top: 1px solid var(--line); }
+  #priceList li:first-child { border-top: 0; font-weight: 600; }
   .menu-title { font-size: 18px; margin-bottom: 12px; overflow-wrap: anywhere; }
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }

@@ -47,6 +47,7 @@
     <section class="panel" aria-labelledby="wardrobeTitle">
       <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
 
+      <div class="chips" id="statusChips" role="group" aria-label="Nach Besitz filtern"></div>
       <div class="chips" id="chips" role="group" aria-label="Nach Kategorie filtern"></div>
       <div id="grid"></div>
     </section>
@@ -115,6 +116,7 @@
     <h2 id="menuTitle" class="menu-title"></h2>
     <div class="menu-list">
       <button type="button" id="menuEdit">Bearbeiten</button>
+      <button type="button" id="menuBought">Als gekauft markieren ✓</button>
       <button type="button" id="menuOffer">Zum Angebot öffnen ↗</button>
       <button type="button" id="menuDelete" class="danger">Löschen</button>
       <button type="button" id="menuClose">Abbrechen</button>
@@ -147,10 +149,17 @@
       <div><label for="name">Name</label><input id="name" maxlength="120" placeholder="z. B. Beiger Trenchcoat"></div>
       <div><label for="cat">Kategorie</label><select id="cat"></select></div>
     </div>
+    <label for="itemState">Status</label>
+    <select id="itemState"><option value="own">Besitze ich</option><option value="wish">Wunschliste (noch nicht gekauft)</option></select>
     <label for="price">Preis</label>
     <div class="row">
       <input id="price" inputmode="decimal" maxlength="14" placeholder="z. B. 49,99">
       <select id="cur" aria-label="Währung"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>SEK</option><option>NOK</option><option>DKK</option><option>PLN</option></select>
+    </div>
+    <p class="hint" id="priceNote">Ändert sich der Preis, wird er beim Speichern im Verlauf festgehalten.</p>
+    <div id="priceHistory" hidden>
+      <div class="cap">Preisverlauf</div>
+      <ul id="priceList"></ul>
     </div>
     <div class="foot"><button type="button" id="cancel">Abbrechen</button><button type="button" class="pri" id="ok">Speichern</button></div>
   </dialog>

@@ -3,7 +3,8 @@
  * Anprobe – Dialog „Teil hinzufügen / bearbeiten“: Bildquelle, Zuschnitt, Freistellen, Speichern.
  */
 import * as Scraper from './scraper.js';
-import { $, CATS, DROP, newId, parsePrice, readFile, state } from './core.js';
+import { $, CATS, DROP, money, newId, parsePrice, readFile, state } from './core.js';
+import { baseHistory, LEGACY_T, recordPrice } from './prices.js';
 import { makeImage, norm } from './image.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
@@ -45,12 +46,26 @@ function showOrig(){
   };
 }
 function syncOpts(){ syncMirror(); $('rm').checked = state.draft.rm; $('tol').value = state.draft.tol; $('tol').disabled = !state.draft.rm || state.draft.alpha; $('ai').disabled = !state.draft.rm || state.draft.alpha; }
+/** Zeigt den bisherigen Preisverlauf des bearbeiteten Teils (neueste zuerst); erst ab zwei Einträgen. */
+function showHistory(it){
+  const h = it && it.priceHistory || [], box = $('priceHistory');
+  box.hidden = h.length < 2;
+  $('priceList').replaceChildren(...[...h].reverse().map(pt => {
+    const li = document.createElement('li');
+    const when = pt.t <= LEGACY_T ? 'früher' : new Date(pt.t).toLocaleDateString('de-DE');
+    li.textContent = when + ' · ' + money(pt.v, it.cur);
+    return li;
+  }));
+}
 export function openDlg(it){
   state.editing = it || null;
   state.draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
   $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
   $('url').value = it ? it.link || '' : ''; $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
+  // Neues Teil: auf der Wunschliste-Ansicht gleich als Wunsch vormerken
+  $('itemState').value = it ? (it.status === 'wish' ? 'wish' : 'own') : (state.statusFilter === 'wish' ? 'wish' : 'own');
+  showHistory(it);
   status(''); showOrig(); syncOpts();
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
@@ -84,7 +99,10 @@ $('ok').onclick = () => {
   if(state.draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
   const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(raw) : null;
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
-  const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price:Scraper.sanitizePrice(parsePrice($('price').value)), cur:Scraper.normalizeCurrency($('cur').value, 'EUR')};
+  const price = Scraper.sanitizePrice(parsePrice($('price').value)), cur = Scraper.normalizeCurrency($('cur').value, 'EUR'), ed = state.editing;
+  // Preisverlauf: jede Änderung festhalten. Wechselt die Währung, beginnt der Verlauf neu (Beträge wären nicht vergleichbar).
+  const prev = ed && ed.cur === cur ? baseHistory(ed.priceHistory || [], ed.price) : [];
+  const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price)};
   if(state.editing) Object.assign(state.editing, f); else state.data.items.unshift({id:newId(), ...f});
   renderAll(); flush(); $('dlg').close();
 };

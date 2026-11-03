@@ -17,6 +17,8 @@ import * as Scraper from './scraper.js';
  * @property {string} link      Link zum Angebot (leer oder http/https)
  * @property {number|null} price
  * @property {string} cur       Währungscode, z. B. EUR
+ * @property {'own'|'wish'} [status]  „own“ = besitze ich, „wish“ = Wunschliste (fehlt bei älteren Daten = own)
+ * @property {{t:number, v:number}[]} [priceHistory]  Preisverlauf, jede Änderung wird festgehalten
  * @property {string} [ean]     Barcode aus älteren Backups (wird nur noch mitgeführt)
  */
 /**
@@ -37,9 +39,9 @@ const enc = encodeURIComponent;
  * deshalb liegt alles in einem Objekt.
  * - data: Bestand (items, outfits), wird gespeichert
  * - board: Teile auf dem Board (Reihenfolge = Ebenen)
- * - filter, draft, sel, editing, K: Oberfläche (Kategorie-Filter, Dialog-Entwurf, Auswahl, bearbeitetes Teil, Board-Skalierung)
+ * - filter, statusFilter, draft, sel, editing, K: Oberfläche (Kategorie-Filter, Dialog-Entwurf, Auswahl, bearbeitetes Teil, Board-Skalierung)
  */
-export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', draft:null, sel:null, editing:null, K:1};
+export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', statusFilter:'Alle', draft:null, sel:null, editing:null, K:1};
 export const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 export const item = id => state.data.items.find(i => i.id === id);
 export const imgOf = id => item(id)?.img;
