@@ -15,11 +15,11 @@
     - 'wasm-unsafe-eval': nötig, damit das KI-Modell (WebAssembly) laufen darf
     - style-src 'self': alle Styles liegen in css/styles.css (JS darf Styles per CSSOM setzen)
     - img-src: Produktbilder kommen von beliebigen https-Shops sowie als data:/blob: aus dem Canvas
-    - connect-src: nur eigener Ursprung, die festen Abruf-Dienste für den Link-Import und die offenen Produktdatenbanken (Barcode)
-    - worker-src blob: für den KI-Worker, media-src blob: für den Kamera-Stream; jsDelivr liefert auch den Barcode-Rückfall (ZXing)
+    - connect-src: nur eigener Ursprung und das optionale KI-Modell (jsDelivr, staticimgly.com)
+    - worker-src blob: für den KI-Worker des optionalen Freistellens
     - Module: js/main.js und js/geometry.js sind ES-Module (script-src 'self' genügt)
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.allorigins.win https://api.codetabs.com https://corsproxy.io https://staticimgly.com https://cdn.jsdelivr.net https://world.openproductsfacts.org https://world.openbeautyfacts.org https://world.openfoodfacts.org; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/icon128.png">
   <link rel="stylesheet" href="css/styles.css">
@@ -110,58 +110,14 @@
     </section>
   </main>
 
-  <!-- Meldung mit Aktionen (z. B. „Rückgängig“) -->
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
-    <span id="toastMsg"></span>
-    <span id="toastActions" class="toast-actions"></span>
-    <button type="button" id="toastClose" class="small" aria-label="Meldung schließen">✕</button>
-  </div>
-
   <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
-
-  <!-- ===== Dialog: Kleidungsstück hinzufügen (Link, Barcode oder Bild) ===== -->
-  <dialog id="addDlg" class="sheet" aria-labelledby="addTitle">
-    <div class="dlg-head">
-      <h2 id="addTitle">Kleidungsstück hinzufügen</h2>
-      <button type="button" id="addClose" aria-label="Schließen">✕</button>
-    </div>
-
-    <!-- Modul A: Produkt per Link -->
-    <form id="linkForm" class="quick" novalidate aria-labelledby="linkTitle">
-      <h3 id="linkTitle">Per Link</h3>
-      <label for="linkInput" class="sr-only">Link zum Produkt</label>
-      <div class="field-row">
-        <input id="linkInput" name="link" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="2048" placeholder="https://shop.de/produkt …" aria-describedby="linkHint linkStatus">
-        <button type="submit" class="pri" id="linkGo">Importieren</button>
-      </div>
-      <p id="linkHint" class="hint">Name, Bild und Preis werden automatisch gelesen. Ist alles eindeutig, landet das Teil direkt im Kleiderschrank (mit „Rückgängig“), sonst prüfst du es kurz.</p>
-      <p id="linkStatus" class="status" role="status" aria-live="polite"></p>
-    </form>
-
-    <!-- Modul B: Barcode-Scanner (öffnet den Scanner-Dialog) -->
-    <div class="quick">
-      <h3>Per Barcode</h3>
-      <p class="hint">Scanne den Strichcode am Etikett oder tippe die Nummer ein.</p>
-      <div class="quick-actions"><button type="button" id="scanBtn" aria-haspopup="dialog">Barcode scannen</button></div>
-    </div>
-
-    <!-- Bild / Screenshot -->
-    <div class="quick">
-      <h3>Per Bild oder Screenshot</h3>
-      <p class="hint">Das Teil wird automatisch freigestellt und zugeschnitten.</p>
-      <div class="quick-actions"><button type="button" id="addImage" aria-haspopup="dialog">Bild wählen</button></div>
-    </div>
-  </dialog>
 
   <!-- ===== Dialog: Teil hinzufügen / bearbeiten ===== -->
   <dialog id="dlg" aria-labelledby="dlgTitle">
     <h2 id="dlgTitle">Neues Teil</h2>
-    <label for="url">Link zum Angebot (wird beim Teil gespeichert) oder Bild-URL</label>
-    <div class="row">
-      <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" placeholder="https://…">
-      <button type="button" id="load" title="Bild, Name und Preis von der Seite holen">Daten laden</button>
-    </div>
+    <label for="url">Link zum Angebot (optional, wird beim Teil gespeichert)</label>
+    <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/produkt">
     <div id="status" role="status"></div>
     <div id="panes">
       <div><div class="cap" id="capOrig">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0" role="button" aria-describedby="capOrig"></div></div>
@@ -188,30 +144,5 @@
     <div class="foot"><button type="button" id="cancel">Abbrechen</button><button type="button" class="pri" id="ok">Speichern</button></div>
   </dialog>
 
-  <!-- ===== Dialog: Barcode-Scanner ===== -->
-  <dialog id="scanDlg" aria-labelledby="scanTitle">
-    <div class="dlg-head">
-      <h2 id="scanTitle">Barcode scannen</h2>
-      <button type="button" id="scanClose" aria-label="Scanner schließen">✕</button>
-    </div>
-    <div class="scan-view" id="scanView" hidden>
-      <video id="scanVideo" playsinline muted aria-label="Kamera-Vorschau"></video>
-      <div class="scan-frame" aria-hidden="true"></div>
-    </div>
-    <p id="scanStatus" class="status" role="status" aria-live="polite">Kamera noch nicht gestartet.</p>
-    <div class="quick-actions">
-      <button type="button" class="pri" id="scanStart">Kamera starten</button>
-      <button type="button" id="scanStop" hidden>Kamera stoppen</button>
-    </div>
-    <!-- Fallback für Geräte ohne Kamera oder ohne Erlaubnis: EAN/UPC von Hand eintragen -->
-    <div class="scan-fallback">
-      <label for="eanInput">Oder Nummer unter dem Barcode eingeben (EAN-8, UPC-A 12, EAN-13)</label>
-      <div class="field-row">
-        <input id="eanInput" type="text" inputmode="numeric" autocomplete="off" maxlength="20" aria-describedby="eanHint">
-        <button type="button" id="eanGo">Prüfen</button>
-      </div>
-      <p id="eanHint" class="hint">Nur Ziffern (Leerzeichen sind erlaubt). Die Prüfziffer wird automatisch kontrolliert.</p>
-    </div>
-  </dialog>
 </body>
 </html>

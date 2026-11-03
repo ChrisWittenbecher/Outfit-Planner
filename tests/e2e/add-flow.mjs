@@ -1,4 +1,4 @@
-// End-to-End-Test: "Kleidungsstück hinzufügen" (Link, Barcode, Bild) auf Smartphone und Desktop.
+// End-to-End-Test: Kleidungsstück per Bild hinzufügen, auf Smartphone und Desktop.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
 import { chromium, devices } from 'playwright';
 import http from 'node:http';
@@ -9,8 +9,6 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAASwAAAGQCAIAAACbF8osAAAEiUlEQVR4Xu3VwQ2DQAwAwRClGYpIYamAwigi5RjRAp8VYuZ/su+x8jIzL6Dz7kYDJxFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIsU88/5L1+7v0jkf479u9/ukSQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECDERQkyEEBMhxEQIMRFCTIQQEyHERAgxEUJMhBATIcRECLFlZuIV4NlcQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCF2ALDyDBuQmjTmAAAAAElFTkSuQmCC', 'base64');
-const SHOP = `<html><head><title>Blank Slub Tee – LIVE FAST DIE YOUNG</title><meta property="og:title" content="Blank Slub Tee"><meta property="og:image" content="http://livefastdieyoung.com/cdn/tee.png"><meta property="og:price:amount" content="39.00"><meta property="og:price:currency" content="EUR"></head><body></body></html>`;
-const CORS = { 'access-control-allow-origin': '*' };
 
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
@@ -35,13 +33,9 @@ try {
     const mobile = name !== 'Desktop';
     const ctx = await browser.newContext(opts);
     const p = await ctx.newPage();
+    const errors = [];
+    p.on('pageerror', e => errors.push(e.message));
     p.on('dialog', d => d.accept());
-    // Netzwerk mocken: ein Proxy liefert die Shop-Seite, die anderen scheitern (Parallelabruf)
-    await p.route('https://api.allorigins.win/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/html' }, body: SHOP + ' '.repeat(300) }));
-    await p.route('https://api.codetabs.com/**', r => r.abort());
-    await p.route('https://corsproxy.io/**', r => r.fulfill({ status: 403, headers: CORS, body: 'Forbidden' }));
-    await p.route('https://livefastdieyoung.com/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG }));
-    await p.route('https://world.open*facts.org/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify({ status: 0 }) }));
     await p.goto(BASE);
     await p.waitForFunction(() => window.Anprobe);
     console.log('--- ' + name);
@@ -49,65 +43,49 @@ try {
     const trigger = mobile ? '#fab' : '#addBtn';
     const noOverflow = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
     ok(await noOverflow(), 'kein horizontaler Überlauf');
-    ok(await p.locator('#linkForm').isHidden(), 'Linkformular nicht mehr im Kleiderschrank');
     ok(await p.locator(trigger).isVisible(), 'Hinzufügen-Button sichtbar (' + trigger + ')');
 
     await p.click(trigger);
-    ok(await p.locator('#addDlg').evaluate(d => d.open), 'Hinzufügen-Dialog öffnet');
-    ok(await p.locator('#linkInput').isVisible() && await p.locator('#scanBtn').isVisible() && await p.locator('#addImage').isVisible(), 'Link, Barcode und Bild im Dialog');
-    ok(await p.evaluate(() => { const r = document.getElementById('addDlg').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; }), 'Dialog passt in den Bildschirm');
-
-    // Link-Import mit direktem Hinzufügen und Rückgängig
-    await p.fill('#linkInput', 'https://livefastdieyoung.com/products/blank-slub-tee');
-    await p.click('#linkGo');
-    await p.waitForSelector('#toast:not([hidden])', { timeout: 20000 });
-    const msg = await p.textContent('#toastMsg');
-    ok(/Blank Slub Tee/.test(msg) && /Oberteil/.test(msg) && /39/.test(msg), 'Link-Import: Name, Kategorie, Preis (' + msg + ')');
-    ok(!(await p.locator('#addDlg').evaluate(d => d.open)), 'Dialog schließt nach dem Import');
-    ok(await p.locator('#grid .card').count() === 1, 'Karte im Kleiderschrank');
-    await p.click('#toastActions button:has-text("Rückgängig")');
-    ok(await p.locator('#grid .card').count() === 0, 'Rückgängig entfernt das Teil');
-
-    // Bot-Schutz: Proxys liefern eine Sperrseite -> klare Meldung, nichts wird hinzugefügt
-    await p.unroute('https://api.allorigins.win/**');
-    await p.route('https://api.allorigins.win/**', r => r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/html' }, body: '<html><body>Access Denied ' + 'x'.repeat(300) + '</body></html>' }));
-    await p.click(trigger);
-    await p.fill('#linkInput', 'https://www2.hm.com/de_de/productpage.1361416001.html');
-    await p.click('#linkGo');
-    await p.waitForFunction(() => /Bot-Schutz/.test(document.getElementById('linkStatus').textContent), null, { timeout: 20000 });
-    ok(await p.locator('#addDlg').evaluate(d => d.open) && await p.locator('#grid .card').count() === 0, 'Bot-Schutz: klare Meldung, nichts hinzugefügt');
-    await p.click('#addClose');
-
-    // Barcode: manuelle Eingabe, kein Treffer -> Dialog mit Nummer
-    await p.click(trigger);
-    await p.click('#scanBtn');
-    ok(await p.locator('#scanDlg').evaluate(d => d.open) && !(await p.locator('#addDlg').evaluate(d => d.open)), 'Scanner öffnet, Auswahl schließt');
-    await p.fill('#eanInput', '4006381333931');
-    await p.click('#eanGo');
-    await p.waitForSelector('#dlg[open]', { timeout: 15000 });
-    ok(/4006381333931/.test(await p.textContent('#status')), 'Barcode ohne Treffer: Dialog mit Nummer');
-    await p.click('#cancel');
-
-    // Scanner schließen -> zurück zur Auswahl
-    await p.click(trigger);
-    await p.click('#scanBtn');
-    await p.click('#scanClose');
-    ok(await p.locator('#addDlg').evaluate(d => d.open), 'Scanner schließen führt zurück zur Auswahl');
-
-    // Bild wählen
-    await p.click('#addImage');
-    ok(await p.locator('#dlg').evaluate(d => d.open), 'Bild-Dialog öffnet');
+    ok(await p.locator('#dlg').evaluate(d => d.open), 'Dialog öffnet direkt');
+    ok(await p.locator('#linkInput').count() === 0 && await p.locator('#scanBtn').count() === 0, 'kein Link-Import und kein Barcode-Scanner mehr');
     if (mobile) {
       ok(await p.evaluate(() => document.getElementById('dlg').getBoundingClientRect().width >= innerWidth - 1), 'Dialog als Bottom-Sheet in voller Breite');
-      const small = await p.evaluate(() => [...document.querySelectorAll('#dlg button, #dlg input:not([type=checkbox]):not([type=range]), #dlg select')]
+      const small = await p.evaluate(() => [...document.querySelectorAll('#dlg button, #dlg input:not([type=checkbox]):not([type=range]):not([hidden]), #dlg select')]
         .filter(e => e.offsetParent && e.getBoundingClientRect().height < 40).map(e => e.id || e.textContent));
       ok(small.length === 0, 'Touch-Ziele mindestens 40 px ' + small.join(','));
       const zoom = await p.evaluate(() => [...document.querySelectorAll('#dlg input:not([type=checkbox]):not([type=range]), #dlg select')]
         .filter(e => parseFloat(getComputedStyle(e).fontSize) < 16).length);
       ok(zoom === 0, 'Eingabefelder mindestens 16 px (kein iOS-Zoom)');
     }
-    await p.click('#cancel');
+
+    // Bild hinzufügen, Angaben ergänzen, speichern
+    await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: PNG });
+    await p.waitForSelector('#res img', { timeout: 15000 });
+    ok(true, 'Bild wird verarbeitet und freigestellt');
+    await p.fill('#name', 'Blaues Shirt');
+    await p.selectOption('#cat', 'Oberteil');
+    await p.fill('#price', '39,90');
+    await p.fill('#url', 'javascript:alert(1)');
+    await p.click('#ok');
+    ok(await p.locator('#dlg').evaluate(d => d.open) && /ungültig/i.test(await p.textContent('#status')), 'ungültiger Link wird abgelehnt');
+    await p.fill('#url', 'https://shop.example.com/blaues-shirt');
+    await p.click('#ok');
+    ok(!(await p.locator('#dlg').evaluate(d => d.open)), 'Speichern schließt den Dialog');
+    ok(await p.locator('#grid .card').count() === 1, 'Karte im Kleiderschrank');
+    const card = await p.locator('#grid .card').first().innerText();
+    ok(/Blaues Shirt/.test(card) && /39/.test(card), 'Name und Preis an der Karte');
+    ok(await p.locator('#grid .card a[href="https://shop.example.com/blaues-shirt"]').count() === 1, 'Link zum Angebot an der Karte');
+
+    // Auf das Board legen und Datenhaltung nach Neuladen prüfen
+    await p.locator('#grid .card').first().locator('img').first().click();
+    ok(await p.locator('#board img').count() === 1, 'Teil liegt auf dem Board');
+    await p.waitForTimeout(400);
+    await p.reload();
+    await p.waitForFunction(() => window.Anprobe);
+    await p.waitForSelector('#grid .card');
+    ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
     ok(await noOverflow(), 'weiterhin kein horizontaler Überlauf');
+    ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();
   }
 } finally {

@@ -1,19 +1,19 @@
 /* ==========================================================================
    Anprobe – Anwendungslogik
-   Module (js/): geometry.js (Drehen), scraper.js (Link-Import, Bereinigung),
-   barcode.js (Prüfziffer), scanner.js (Kamera), main.js (lädt die Module).
+   Module (js/): geometry.js (Drehen), scraper.js (Eingabeprüfung, Bereinigung),
+   main.js (lädt die Module).
    Aufbau dieser Datei:
      1. Typen und Zustand      4. Bildverarbeitung (Freistellen, Zuschnitt)
-     2. Hilfsfunktionen        5. Dialog, Link-Import, Kleiderschrank
-     3. Speicher (IndexedDB)   6. Board, Drehen, Preise, Outfits, Link- und Barcode-Module
+     2. Hilfsfunktionen        5. Dialog, Kleiderschrank
+     3. Speicher (IndexedDB)   6. Board, Drehen, Preise, Outfits
    ========================================================================== */
 'use strict';
 
 /* Abhängigkeit: js/main.js (ES-Modul) stellt window.Anprobe bereit und lädt vor dieser Datei.
    ES-Module laufen nicht per Doppelklick (file://) – dann hilft ein Hinweis statt einer leeren Seite. */
 const Anprobe = /** @type {any} */ (window).Anprobe;
-const Geo = Anprobe?.geometry, Scraper = Anprobe?.scraper, Barcode = Anprobe?.barcode, Scanner = Anprobe?.scanner;
-if(!(Geo && Scraper && Barcode && Scanner)){
+const Geo = Anprobe?.geometry, Scraper = Anprobe?.scraper;
+if(!(Geo && Scraper)){
   document.getElementById('saveState').textContent = 'Module konnten nicht geladen werden. Bitte über GitHub Pages oder einen Webserver öffnen (nicht per Doppelklick).';
   throw new Error('Anprobe: js/main.js (ES-Module) wurde nicht geladen');
 }
@@ -31,7 +31,7 @@ if(!(Geo && Scraper && Barcode && Scanner)){
  * @property {string} link      Link zum Angebot (leer oder http/https)
  * @property {number|null} price
  * @property {string} cur       Währungscode, z. B. EUR
- * @property {string} [ean]     Barcode (EAN/UPC), wenn das Teil per Scan hinzugefügt wurde
+ * @property {string} [ean]     Barcode aus älteren Backups (wird nur noch mitgeführt)
  */
 /**
  * @typedef {Object} Piece     Ein Teil auf dem Board. Die Reihenfolge im Array = Ebenen (hinten → vorn)
@@ -46,7 +46,7 @@ const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
 const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
 const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
-let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, dlgEan = '', K = 1;
+let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, K = 1;
 const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 const item = id => S.items.find(i => i.id === id);
 const imgOf = id => item(id)?.img;
@@ -162,7 +162,7 @@ function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(d
 let tok = 0;
 /**
  * Erzeugt aus einem Original das fertige Bild: zuschneiden, Hintergrund entfernen, Schuhe ergänzen.
- * Gemeinsam genutzt vom Dialog (process) und vom Direkt-Import (Link, Barcode).
+ * Wird vom Dialog (process) genutzt.
  * `d.mirror` und `d.ai` können hier angepasst werden.
  * @param {{orig:string, crop:?{x:number,y:number,w:number,h:number}, alpha:boolean, rm:boolean, tol:number, ai:boolean, mirror:boolean, mirrorTouched:boolean}} d
  * @param {string} cat Kategorie (steuert die Schuh-Spiegelung)
@@ -200,8 +200,6 @@ let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process
 
 /* ---------- Hinzufügen/Bearbeiten-Dialog ---------- */
 CATS.forEach(c => $('cat').add(new Option(c, c)));
-const guessCat = t => Scraper.guessCategory(t);
-function autoCat(t){ const c = guessCat(t); if(c){ $('cat').value = c; syncMirror(); } }
 /** Kündigt eine Änderung für Bildschirmleser an (aria-live). */
 function announce(t){ const a = $('announcer'); a.textContent = ''; setTimeout(() => { a.textContent = t; }, 30); }
 function status(t, err){ $('status').textContent = t; $('status').className = err ? 'err' : ''; }
@@ -224,7 +222,7 @@ function showOrig(){
 }
 function syncOpts(){ syncMirror(); $('rm').checked = draft.rm; $('tol').value = draft.tol; $('tol').disabled = !draft.rm || draft.alpha; $('ai').disabled = !draft.rm || draft.alpha; }
 function openDlg(it){
-  editing = it || null; dlgEan = it ? it.ean || '' : '';
+  editing = it || null;
   draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
   $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
   $('url').value = it ? it.link || '' : ''; $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
@@ -239,18 +237,13 @@ async function setSource(src){
   const n = await norm(src); draft.orig = n.url; draft.alpha = n.alpha; draft.crop = null; draft.ai = false; showOrig(); syncOpts(); await process();
 }
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
-/** Öffnet die Auswahl „Link / Barcode / Bild“. */
-function openAdd(){ setLinkStatus(''); if(!$('addDlg').open) $('addDlg').showModal(); }
-$('addBtn').onclick = openAdd;
-$('fab').onclick = openAdd;
-$('addClose').onclick = () => $('addDlg').close();
-$('addImage').onclick = () => { $('addDlg').close(); openDlg(); };
+$('addBtn').onclick = () => openDlg();
+$('fab').onclick = () => openDlg();
 $('cancel').onclick = () => $('dlg').close();
 $('drop').onclick = () => { if(!draft || !draft.orig) $('file').click(); };
 $('drop').onkeydown = e => { if(e.key === 'Enter' && (!draft || !draft.orig)) $('file').click(); };
 $('pick').onclick = () => $('file').click();
 $('file').onchange = e => { takeFile(e.target.files[0]); e.target.value = ''; };
-$('url').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); $('load').click(); } };
 ['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
@@ -262,87 +255,13 @@ $('tol').oninput = () => { draft.tol = +$('tol').value; draft.ai = false; proces
 $('ai').onclick = () => { if(!draft.orig) return; draft.ai = true; process(); };
 $('rcrop').onclick = () => { if(!draft) return; draft.crop = null; const b = $('selbox'); if(b) b.style.display = 'none'; process(); };
 
-/* ---------- Link-Import (Bild, Name, Preis) ---------- */
-function consent(){
-  try{ if(localStorage.getItem('anprobe_proxy') === '1') return true; }catch(e){}
-  if(!confirm('Browser dürfen fremde Shop-Seiten nicht direkt lesen. Für Produktlinks nutzt Anprobe deshalb öffentliche Abruf-Dienste (allorigins.win, codetabs.com, corsproxy.io für Seiten, wsrv.nl für Bilder). Die Link-Adresse wird dabei an diese Dienste gesendet. Fortfahren?')) return false;
-  try{ localStorage.setItem('anprobe_proxy', '1'); }catch(e){} return true;
-}
-/** Öffentliche Abruf-Dienste (CORS-Proxys). Sie werden parallel gefragt, die erste brauchbare Antwort gewinnt. */
-const PROXIES = [u => 'https://api.allorigins.win/raw?url=' + enc(u), u => 'https://api.codetabs.com/v1/proxy?quest=' + enc(u), u => 'https://corsproxy.io/?url=' + enc(u)];
-/** Lädt Text oder Bild mit Zeitlimit und Größenbegrenzung, ohne Cookies und ohne Referrer. Wirft bei Fehlern. */
-async function fetchBody(url, kind, max, ms = 15000){
-  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
-  try{
-    const r = await fetch(url, {signal:ac.signal, credentials:'omit', referrerPolicy:'no-referrer'});
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    if((+r.headers.get('content-length') || 0) > max) throw new Error('zu groß');
-    const body = kind === 'text' ? await r.text() : await r.blob();
-    if((kind === 'text' ? body.length : body.size) > max) throw new Error('zu groß');
-    return body;
-  } finally { clearTimeout(t); }
-}
-async function getText(u){
-  if(!consent()) throw new Error('Abgebrochen.');
-  let blocked = false; // Seite kam an, ist aber keine Produktseite (Bot-Schutz, Cookie-Wand, Captcha)
-  const tries = PROXIES.map(async p => {
-    const t = await fetchBody(p(u), 'text', Scraper.LIMITS.html, 14000);
-    if(t.length <= 200) throw new Error('leer');
-    if(!Scraper.looksLikeProductHtml(t)){ blocked = true; throw new Error('keine Produktseite'); }
-    return t;
-  });
-  try{ return await Promise.any(tries); }
-  catch(e){ throw new Error(blocked ? 'Der Shop liefert keine lesbaren Produktdaten (Bot-Schutz?). Nutze einen Screenshot oder trage Name und Preis selbst ein.' : 'Die Seite konnte nicht abgerufen werden. Prüfe den Link oder nutze einen Screenshot.'); }
-}
-async function getImg(u){ // liefert eine Bildquelle, die sich in ein Canvas zeichnen lässt
-  const safe = Scraper.sanitizeImageUrl(u, location.href, {});
-  if(!safe) throw new Error('Diese Bild-Adresse ist nicht erlaubt.');
-  try{ await loadImg(safe, true); return safe; }catch(e){}
-  if(!consent()) throw new Error('Abgebrochen.');
-  const p = 'https://wsrv.nl/?url=' + enc(safe) + '&w=1000&output=png';
-  try{ await loadImg(p, true); return p; }catch(e){ throw new Error('Das Bild konnte nicht geladen werden. Mach stattdessen einen Screenshot.'); }
-}
-/**
- * Holt Produktseite und Bild zu einem GEPRÜFTEN Link (siehe Scraper.validateUrl).
- * Gibt auch bei fehlendem Bild den gefundenen Namen und Preis zurück.
- * @param {string} url
- * @returns {Promise<{info:{title:string, image:string, price:?number, cur:string}, src:string, error:string}>}
- */
-async function fetchProduct(url){
-  if(/\.(png|jpe?g|webp|gif|avif)$/i.test(new URL(url).pathname)){
-    try{ return {info:{title:'', image:url, price:null, cur:''}, src:await getImg(url), error:''}; }
-    catch(e){ return {info:{title:'', image:url, price:null, cur:''}, src:'', error:e.message}; }
-  }
-  const info = Scraper.parseProductHtml(await getText(url), url, {});
-  if(!info.image) return {info, src:'', error:'Auf der Seite wurde kein Produktbild gefunden.'};
-  try{ return {info, src:await getImg(info.image), error:''}; }catch(e){ return {info, src:'', error:e.message}; }
-}
-function fillFromInfo(info){
-  if(info.title && !$('name').value) $('name').value = info.title;
-  if(info.title) autoCat(info.title);
-  if(info.price != null){ $('price').value = info.price.toFixed(2).replace('.', ','); if(info.cur) $('cur').value = info.cur; }
-}
-$('load').onclick = async () => {
-  const v = Scraper.validateUrl($('url').value, {});
-  $('url').setAttribute('aria-invalid', String(!v.ok));
-  if(!v.ok){ status(v.error, true); return; }
-  status('Lade …'); $('load').disabled = true;
-  try{
-    const {info, src, error} = await fetchProduct(v.url);
-    fillFromInfo(info);
-    if(!src){ status((info.title || info.price != null ? 'Name und Preis geladen. ' : '') + error + ' Nutze einen Screenshot.', true); return; }
-    await setSource(src);
-    status(info.price != null ? 'Bild, Name und Preis geladen – bitte kurz prüfen.' : 'Bild geladen. Einen Preis habe ich nicht gefunden – trage ihn ggf. ein.');
-  }catch(e){ status(e.message || 'Konnte nichts laden.', true); }
-  finally{ $('load').disabled = false; }
-};
 $('ok').onclick = () => {
   if(!draft || !draft.img){ status('Bitte zuerst ein Bild hinzufügen.', true); return; }
   if(draft.busy){ status('Einen Moment, das Bild wird noch verarbeitet …', true); return; }
   const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(raw) : null;
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
   const f = {img:draft.img, orig:draft.orig, alpha:draft.alpha, cut:draft.cut, mirror:!!draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price:Scraper.sanitizePrice(parsePrice($('price').value)), cur:Scraper.normalizeCurrency($('cur').value, 'EUR')};
-  if(editing) Object.assign(editing, f); else S.items.unshift({id:newId(), ...f, ...(dlgEan ? {ean:dlgEan} : {})});
+  if(editing) Object.assign(editing, f); else S.items.unshift({id:newId(), ...f});
   renderAll(); flush(); $('dlg').close();
 };
 
@@ -508,7 +427,7 @@ $('front').onclick = () => { if(sel) moveLayer(sel, board.length); };
 $('back').onclick = () => { if(sel) moveLayer(sel, 0); };
 $('clear').onclick = () => { board = []; sel = null; renderAll(); };
 document.addEventListener('keydown', e => {
-  if($('dlg').open || $('scanDlg').open || $('addDlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if($('dlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.key === 'Delete' && sel){ board = board.filter(p => p.id !== sel); sel = null; renderAll(); }
   if(e.key === 'Escape' && sel){ sel = null; renderBoard(); }
   const p = selPiece(); if(!p || document.activeElement !== document.body) return;
@@ -593,124 +512,9 @@ function renderOuts(){
 }
 
 function renderAll(){ fit(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
-/* ==========================================================================
-   Meldungen (Toast) mit Aktionen, z. B. „Rückgängig“
-   ========================================================================== */
-let toastT;
-function hideToast(){ clearTimeout(toastT); $('toast').hidden = true; }
-/** @param {string} msg @param {{label:string, fn:()=>void}[]} [actions] @param {number} [ms] 0 = bleibt stehen */
-function showToast(msg, actions = [], ms = 10000){
-  clearTimeout(toastT); $('toastMsg').textContent = msg;
-  $('toastActions').replaceChildren(...actions.map(a => { const b = document.createElement('button'); b.type = 'button'; b.className = 'small'; b.textContent = a.label; b.onclick = () => { hideToast(); a.fn(); }; return b; }));
-  $('toast').hidden = false; if(ms) toastT = setTimeout(hideToast, ms);
-}
-$('toastClose').onclick = hideToast;
 function removeItem(id){
   S.items = S.items.filter(k => k.id !== id); board = board.filter(p => p.id !== id); if(sel === id) sel = null;
   S.outfits.forEach(o => { o.pieces = o.pieces.filter(p => p.id !== id); }); renderAll(); flush();
 }
-/**
- * Legt ein Teil direkt im Kleiderschrank an (Bild wird freigestellt, Schuhe ggf. ergänzt).
- * @param {{src:string, name:string, cat:string, link?:string, price?:?number, cur?:string, ean?:string}} o
- */
-async function addItemFromImage(o){
-  const n = await norm(o.src), d = {...blank(), orig:n.url, alpha:n.alpha};
-  const r = await makeImage(d, o.cat);
-  const it = {id:newId(), img:r.img, orig:n.url, alpha:n.alpha, cut:r.cut, mirror:r.mirror, name:Scraper.sanitizeText(o.name) || 'Ohne Namen', cat:o.cat, link:o.link || '', price:Scraper.sanitizePrice(o.price), cur:Scraper.normalizeCurrency(o.cur, 'EUR'), ...(o.ean ? {ean:o.ean} : {})};
-  S.items.unshift(it); renderAll(); flush(); return it;
-}
-/** Standard-Meldung nach dem automatischen Hinzufügen. */
-function toastAdded(it){
-  showToast('„' + it.name + '“ wurde als ' + it.cat + ' hinzugefügt' + (it.price != null ? ' (' + money(it.price, it.cur) + ')' : '') + '.', [{label:'Bearbeiten', fn:() => openDlg(it)}, {label:'Rückgängig', fn:() => removeItem(it.id)}]);
-}
-
-/* ==========================================================================
-   Modul A – Produkt per Link (Schritt 3)
-   Eingabe prüfen (js/scraper.js) → Seite laden → Name, Bild, Preis auslesen und bereinigen →
-   bei eindeutigem Ergebnis direkt hinzufügen (mit „Rückgängig“), sonst im Dialog prüfen lassen.
-   ========================================================================== */
-/** @param {string} t Meldung  @param {boolean} [err] Fehlerdarstellung */
-function setLinkStatus(t, err){ const s = $('linkStatus'); s.textContent = t; s.className = 'status' + (err ? ' err' : ''); $('linkInput').setAttribute('aria-invalid', err ? 'true' : 'false'); }
-$('linkInput').addEventListener('input', () => setLinkStatus(''));
-let importing = false;
-async function importFromLink(raw){
-  if(importing) return;
-  const v = Scraper.validateUrl(raw, {});
-  if(!v.ok){ setLinkStatus(v.error, true); return; }
-  const dup = S.items.find(i => i.link === v.url);
-  if(dup){ setLinkStatus('Dieses Produkt ist schon im Kleiderschrank: „' + dup.name + '“.', true); return; }
-  importing = true; $('linkGo').disabled = true; setLinkStatus('Lade Produktseite …');
-  try{
-    const {info, src, error} = await fetchProduct(v.url), cat = guessCat(info.title);
-    $('linkInput').value = ''; setLinkStatus(''); $('addDlg').close();
-    if(src && info.title && cat){ toastAdded(await addItemFromImage({src, name:info.title, cat, link:v.url, price:info.price, cur:info.cur})); return; }
-    // Nicht eindeutig (keine Kategorie, kein Bild …): alles Gefundene im Dialog zur Prüfung zeigen
-    openDlg(); $('url').value = v.url; fillFromInfo(info); if(src) await setSource(src);
-    status(src ? 'Bitte Kategorie und Angaben prüfen und speichern.' : error + ' Füge einen Screenshot hinzu.', !src);
-  }catch(e){ setLinkStatus(e.message || 'Der Link konnte nicht importiert werden.', true); }
-  finally{ importing = false; $('linkGo').disabled = false; }
-}
-$('linkForm').addEventListener('submit', e => { e.preventDefault(); importFromLink($('linkInput').value); });
-
-/* ==========================================================================
-   Modul B – Barcode-Scanner (Schritt 3)
-   Kamera + Erkennung: js/scanner.js. Prüfziffer: js/barcode.js.
-   Produktsuche: offene Datenbanken (Open Products/Beauty/Food Facts). Für Kleidung ist die Trefferquote
-   niedrig – ohne Treffer öffnet sich der Dialog mit dem Barcode, und du ergänzt Bild und Namen.
-   ========================================================================== */
-const OFF_HOSTS = ['world.openproductsfacts.org', 'world.openbeautyfacts.org', 'world.openfoodfacts.org'];
-/** @returns {Promise<?{name:string, image:string}>} */
-async function lookupBarcode(code){
-  const key = Barcode.lookupKey(code);
-  for(const h of OFF_HOSTS){
-    try{
-      const j = JSON.parse(await fetchBody('https://' + h + '/api/v2/product/' + key + '.json?fields=product_name,brands,image_front_url', 'text', 200000, 8000));
-      const p = j && j.status === 1 && j.product; if(!p) continue;
-      const brand = Scraper.sanitizeText(String(p.brands || '').split(',')[0], 40), pn = Scraper.sanitizeText(p.product_name, 100); if(!pn) continue;
-      return {name:brand && !pn.toLowerCase().includes(brand.toLowerCase()) ? brand + ' ' + pn : pn, image:Scraper.sanitizeImageUrl(p.image_front_url, 'https://' + h + '/')};
-    }catch(e){ /* nächste Datenbank */ }
-  }
-  return null;
-}
-/** Verarbeitet einen geprüften Barcode (Scan oder Eingabe). @param {any} g Ergebnis von Barcode.parseGtin */
-async function handleBarcode(g){
-  if(!g || !g.ok){ showToast(g ? g.error : 'Ungültiger Barcode.'); return; }
-  const dup = S.items.find(i => i.ean === g.code);
-  if(dup){ showToast('Der Barcode ' + g.code + ' ist schon im Kleiderschrank: „' + dup.name + '“.'); return; }
-  showToast('Barcode ' + g.code + ' (' + g.kind + ') erkannt – suche Produkt …', [], 0);
-  const p = await lookupBarcode(g.code), cat = p ? guessCat(p.name) : '';
-  if(p && p.image && cat){
-    try{ const it = await addItemFromImage({src:await getImg(p.image), name:p.name, cat, ean:g.code}); toastAdded(it); return; }catch(e){ /* weiter mit Dialog */ }
-  }
-  hideToast(); openDlg(); dlgEan = g.code;
-  if(p){ $('name').value = p.name; if(cat){ $('cat').value = cat; syncMirror(); } if(p.image) getImg(p.image).then(setSource).catch(() => {}); }
-  status(p ? 'Barcode ' + g.code + ': Produkt gefunden, bitte Bild, Kategorie und Preis prüfen.' : 'Barcode ' + g.code + ' erkannt, aber in den offenen Datenbanken nicht gefunden. Füge Bild und Namen hinzu.', !p);
-}
-let scanner = null;
-function scanSay(t, err){ $('scanStatus').textContent = t; $('scanStatus').className = 'status' + (err ? ' err' : ''); }
-function scanUi(on){ $('scanView').hidden = !on; $('scanStart').hidden = on; $('scanStop').hidden = !on; }
-function getScanner(){
-  return scanner ??= new Scanner.BarcodeScanner({video:$('scanVideo'), onCode:code => { $('scanDlg').close(); handleBarcode(Barcode.parseGtin(code)); }, onState:(t, kind) => scanSay(t, kind === 'error'), onStop:() => scanUi(false)});
-}
-async function startScan(){
-  scanSay('Kamera wird gestartet …'); scanUi(true);
-  try{ await getScanner().start(); }
-  catch(e){ scanUi(false); scanSay(e.message, true); $('eanInput').focus(); } // Fallback: Nummer von Hand eingeben
-}
-$('scanBtn').onclick = () => { $('addDlg').close(); $('eanInput').value = ''; $('eanInput').setAttribute('aria-invalid', 'false'); $('scanDlg').showModal(); startScan(); };
-$('scanStart').onclick = startScan;
-$('scanStop').onclick = () => { scanner?.stop(); scanSay('Kamera gestoppt.'); };
-$('scanClose').onclick = () => { $('scanDlg').close(); openAdd(); };
-$('scanDlg').addEventListener('close', () => scanner?.stop());
-document.addEventListener('visibilitychange', () => { if(document.hidden) scanner?.stop(); });
-function submitEan(){
-  const g = Barcode.parseGtin($('eanInput').value);
-  $('eanInput').setAttribute('aria-invalid', String(!g.ok));
-  if(!g.ok){ scanSay(g.error, true); return; }
-  scanner?.stop(); $('scanDlg').close(); handleBarcode(g);
-}
-$('eanGo').onclick = submitEan;
-$('eanInput').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); submitEan(); } };
-$('eanInput').oninput = e => { const t = /** @type {HTMLInputElement} */ (e.target); t.value = t.value.replace(/[^\d\s-]/g, ''); };
 
 load().then(ok => { ready = ok; if(!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.'; renderAll(); });
