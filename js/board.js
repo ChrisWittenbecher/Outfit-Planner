@@ -5,7 +5,7 @@
 import * as Geo from './geometry.js';
 import { $, DEF, announce, imgOf, item, mb, state } from './core.js';
 import { toast } from './ui.js';
-import { step } from './history.js';
+import { step, undo } from './history.js';
 import { fitBoard } from './fitter.js';
 import { renderAll } from './render.js';
 import { drawKnob, placeKnob, syncBench } from './rotation.js';
@@ -67,6 +67,26 @@ export function moveCenter(p, cx, cy){
 }
 export function applyLive(p, lockFlip){ state.fitted = false; const el = pieceEls.get(p.id); if(el) stylePiece(p, el); placeKnob(p, lockFlip); syncBench(); persist(); }
 
+/* ---------- Teil vom Board nehmen: Doppeltipp (Touch) oder Doppelklick (Maus) ---------- */
+// Das Browser-Ereignis „dblclick“ kommt bei Touch nicht an, weil der Tipp als Zeigerereignis abgefangen wird. Darum werden zwei Tipps selbst erkannt.
+const DOUBLE = {ms:350, slop:32};            // Zeit (ms) und Abstand (px) zwischen zwei Tipps
+const TAP_SLOP = {touch:10, mouse:4};        // so weit darf der Finger oder die Maus wandern, ohne dass es als Ziehen gilt
+let lastTap = null;
+/** Nimmt ein Teil vom Board. „Rückgängig“ im Hinweis holt es zurück. */
+function takeOff(p){
+  step();
+  const it = item(p.id);
+  if(it) toggle(it);
+  else { state.board = state.board.filter(k => k !== p); if(state.sel === p.id) state.sel = null; renderAll(); }
+  toast('„' + (it ? it.name : 'Teil') + '“ vom Board genommen', {action:{label:'Rückgängig', fn:undo}});
+}
+/** Meldet einen Tipp auf ein Teil (ohne Ziehen). Der zweite Tipp kurz darauf auf dasselbe Teil nimmt es vom Board. */
+function tapped(p, e){
+  const prev = lastTap; lastTap = {id:p.id, t:e.timeStamp, x:e.clientX, y:e.clientY};
+  if(!prev || prev.id !== p.id || e.timeStamp - prev.t > DOUBLE.ms || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) > DOUBLE.slop) return;
+  lastTap = null; takeOff(p);
+}
+
 export function renderBoard(){
   [...$('board').querySelectorAll('.p')].forEach(n => n.remove()); pieceEls.clear();
   $('hint').style.display = state.board.length ? 'none' : 'grid';
@@ -80,9 +100,18 @@ export function renderBoard(){
       e.preventDefault(); e.stopPropagation();
       if(touches.size > 1) return; // zweiter Finger: Geste übernimmt (siehe unten)
       im.setPointerCapture(e.pointerId); select(p.id);
-      const sx = e.clientX / state.K - p.x, sy = e.clientY / state.K - p.y;
-      im.onpointermove = m => { if(noDrag) return; moveCenter(p, m.clientX / state.K - sx + p.w / 2, m.clientY / state.K - sy + heightOf(p) / 2); };
-      im.onpointerup = () => { im.onpointermove = im.onpointerup = null; renderGrid(); persist(); };
+      const sx = e.clientX / state.K - p.x, sy = e.clientY / state.K - p.y, slop = e.pointerType === 'touch' ? TAP_SLOP.touch : TAP_SLOP.mouse;
+      let moved = false;   // erst ab einer kleinen Strecke zählt es als Ziehen, davor ist es ein Tipp (und das Layout bleibt unberührt)
+      im.onpointermove = m => {
+        if(noDrag) return;
+        if(!moved && Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) <= slop) return;
+        moved = true; moveCenter(p, m.clientX / state.K - sx + p.w / 2, m.clientY / state.K - sy + heightOf(p) / 2);
+      };
+      im.onpointerup = u => {
+        const gesture = noDrag || touches.size > 0;   // Teil einer Zwei-Finger-Geste
+        im.onpointermove = im.onpointerup = null; renderGrid(); persist();
+        if(gesture || moved) lastTap = null; else tapped(p, u);
+      };
     };
     im.onwheel = e => { e.preventDefault(); resize(p, e.deltaY < 0 ? 1.06 : .94); };
     $('board').append(im);
@@ -98,8 +127,8 @@ $('front').onclick = () => { if(state.sel) moveLayer(state.sel, state.board.leng
 $('back').onclick = () => { if(state.sel) moveLayer(state.sel, 0); };
 $('clear').onclick = () => { step(); state.board = []; state.sel = null; renderAll(); };
 document.addEventListener('keydown', e => {
-  if($('dlg').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if(e.key === 'Delete' && state.sel){ state.board = state.board.filter(p => p.id !== state.sel); state.sel = null; renderAll(); }
+  if(document.querySelector('dialog[open]') || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if(e.key === 'Delete' && selPiece()) takeOff(selPiece());
   if(e.key === 'Escape' && state.sel){ state.sel = null; renderBoard(); }
   const p = selPiece(); if(!p || document.activeElement !== document.body) return;
   const st = e.shiftKey ? 15 : 5, mv = e.shiftKey ? 10 : 1;
