@@ -1,12 +1,12 @@
 """Lokaler Server für den Outfit-Planer ("Anprobe").
-Start:  python3 server.py   ->  öffnet http://localhost:8000
-Optional anderer Port:  python3 server.py 8080
+Start:  python3 server/server.py   ->  öffnet http://localhost:8000
+Optional anderer Port:  python3 server/server.py 8080
 Er liefert die Seite aus und ruft Produktseiten und Bilder für den Link-Import ab. Er lauscht nur auf deinem Rechner."""
 import http.server, ipaddress, json, os, re, socket, sys, threading, urllib.parse, urllib.request, webbrowser
 from urllib.parse import urljoin, urlparse
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # Projektwurzel ausliefern
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
       "Accept-Language": "de,en;q=0.8"}
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     try:
         srv = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     except OSError:
-        sys.exit(f"Port {PORT} ist belegt. Starte mit anderem Port: python3 server.py {PORT + 1}")
+        sys.exit(f"Port {PORT} ist belegt. Starte mit anderem Port: python3 server/server.py {PORT + 1}")
     url = f"http://localhost:{PORT}"
     print(f"Anprobe läuft auf {url}  (Beenden: Strg+C)")
     if sys.stdout.isatty():

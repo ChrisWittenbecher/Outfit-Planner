@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * Anprobe – Einstieg für ES-Module.
- * Wird VOR app.js geladen (beide sind „deferred“ und laufen in Dokumentreihenfolge)
+ * Wird VOR js/app.js geladen (beide sind „deferred“ und laufen in Dokumentreihenfolge)
  * und stellt die Module über window.Anprobe bereit.
  */
 import * as geometry from './geometry.js';

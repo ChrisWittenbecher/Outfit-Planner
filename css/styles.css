@@ -208,6 +208,42 @@
   .bench fieldset:disabled { opacity: .55; }
 }
 
+/* ---------- 6b. Hinzufügen-Dialog und Smartphone-Optimierung ---------- */
+@layer modules {
+  #addDlg { width: min(520px, 94vw); }
+  #addDlg .quick:last-child { margin-bottom: 0; }
+  #addClose, #scanClose { min-width: var(--tap); padding-inline: 0; }
+  .fab { display: none; }
+
+  /* Touch-Geräte: keine Hover-Abhängigkeit, größere Ziele */
+  @media (pointer: coarse) {
+    button { min-height: 44px; }
+    .chips button, .out .b button, #opts button, button.small { min-height: 40px; }
+    input, select { min-height: 44px; }
+  }
+
+  @media (max-width: 560px) {
+    /* iOS zoomt bei Eingabefeldern unter 16px */
+    input, select { font-size: 16px; }
+    h1 { font-size: 26px; }
+    .topbar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 10px; }
+    .topbar .actions button:not(.pri) { padding-inline: 10px; font-size: 13px; }
+    #addBtn { display: none; }
+    .fab { display: grid; place-items: center; position: fixed; z-index: 6; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px #0004; }
+    .layout { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+    .panel { padding: 14px; }
+
+    /* Dialoge als Bottom-Sheet */
+    dialog, #addDlg, #scanDlg { width: 100vw; max-width: 100vw; max-height: 94dvh; margin: auto 0 0; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+    .foot { position: sticky; bottom: calc(-18px - env(safe-area-inset-bottom)); background: #fff; padding-block: 10px; }
+    .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+    .field-row { flex-wrap: wrap; }
+    .field-row input { flex-basis: 100%; }
+    .field-row button { flex: 1; }
+    .ctl { grid-template-columns: 6em 1fr 3.2em; }
+  }
+}
+
 /* ---------- 7. Hilfsklassen ---------- */
 @layer utilities {
   [hidden] { display: none !important; }

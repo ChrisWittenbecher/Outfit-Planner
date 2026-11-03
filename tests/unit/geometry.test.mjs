@@ -1,7 +1,7 @@
-// Unit-Tests für geometry.js.  Start:  node --test *.test.mjs
+// Unit-Tests für js/geometry.js.  Start:  node --test tests/unit/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as g from './geometry.js';
+import * as g from '../../js/geometry.js';
 
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps, `${a} ≉ ${b}`);
 
