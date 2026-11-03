@@ -79,11 +79,50 @@ try {
     // Auf das Board legen und Datenhaltung nach Neuladen prüfen
     await p.locator('#grid .card').first().locator('img').first().click();
     ok(await p.locator('#board img').count() === 1, 'Teil liegt auf dem Board');
+
+    // Zwei-Finger-Geste (nur Touch): Größe und Drehung
+    if (mobile) {
+      const cdp = await ctx.newCDPSession(p);
+      const widthOf = () => p.evaluate(() => parseFloat(document.querySelector('#board img.p').style.width));
+      const rotOf = () => p.evaluate(() => { const m = /rotate\(([-\d.]+)deg\)/.exec(document.querySelector('#board img.p').style.transform); return m ? parseFloat(m[1]) : 0; });
+      await p.locator('#board').scrollIntoViewIfNeeded();
+      const box = await p.locator('#board img.p').boundingBox();
+      const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+      const two = (dx, dy) => [{ x: cx - dx, y: cy - dy, id: 1 }, { x: cx + dx, y: cy + dy, id: 2 }];
+      const w0 = await widthOf();
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: two(30, 0) });
+      for (const d of [40, 50, 60]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: two(d, 0) });
+      await p.waitForTimeout(150);
+      const w1 = await widthOf();
+      ok(Math.abs(w1 / w0 - 2) < 0.1, 'Spreizen mit zwei Fingern verdoppelt die Größe (' + w0 + ' → ' + w1 + ')');
+      for (const d of [45, 30]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: two(d, 0) });
+      await p.waitForTimeout(150);
+      const w2 = await widthOf();
+      ok(Math.abs(w2 / w0 - 1) < 0.1, 'Zusammenziehen verkleinert wieder (' + w2 + ')');
+      // Drehen: Fingerlinie von waagerecht nach senkrecht (90° im Uhrzeigersinn)
+      for (const [dx, dy] of [[30, 0], [26, 15], [15, 26], [0, 30]]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: two(dx, dy) });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      const r = await rotOf();
+      ok(Math.abs(r - 90) < 8, 'Zwei-Finger-Drehung dreht um etwa 90° (' + r + '°)');
+      ok(await p.locator('#board img.p').count() === 1, 'Teil bleibt nach der Geste auf dem Board');
+    }
+
+    // Strichmensch
+    ok(await p.locator('#figure').isHidden(), 'Strichmensch ist standardmäßig aus');
+    await p.locator('#figBtn').scrollIntoViewIfNeeded();
+    await p.click('#figBtn');
+    ok(await p.locator('#figure').isVisible() && await p.getAttribute('#figBtn', 'aria-pressed') === 'true', 'Strichmensch lässt sich einblenden');
+    ok(await p.evaluate(() => getComputedStyle(document.getElementById('figure')).pointerEvents === 'none'), 'Strichmensch blockiert keine Eingaben');
+    const dl = p.waitForEvent('download');
+    await p.locator('#png').scrollIntoViewIfNeeded();
+    await p.click('#png');
+    ok((await dl).suggestedFilename() === 'outfit.png', 'PNG-Export mit Strichmensch funktioniert');
     await p.waitForTimeout(400);
     await p.reload();
     await p.waitForFunction(() => window.Anprobe);
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
+    ok(await p.locator('#figure').isVisible(), 'Strichmensch bleibt nach Neuladen eingeblendet');
     ok(await noOverflow(), 'weiterhin kein horizontaler Überlauf');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();

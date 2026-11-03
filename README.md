@@ -27,7 +27,8 @@ Der typische Ablauf:
 |---|---|
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und Link zum Angebot werden am Teil gespeichert. |
 | **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
-| **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile** (Griff, Regler, Tastatur), Ebenen per Schaltfläche oder Liste. |
+| **Anprobe-Board** | Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
+| **Strichmensch** | Blendet eine Figur als Proportionshilfe hinter die Kleidung ein. Neue Teile landen passend an Schultern, Hüfte und Füßen. Wird beim PNG-Export mitgezeichnet. |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. |
@@ -106,4 +107,4 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 
 ## Roadmap
 
-Link-Import und Barcode-Scanner wurden entfernt, weil sie ohne eigenen Server nicht zuverlässig funktionieren: Browser dürfen fremde Shop-Seiten nicht direkt lesen, und öffentliche Abruf-Dienste werden von vielen Shops blockiert. Für Kleidung gibt es außerdem keine verlässliche freie Barcode-Datenbank. Der letzte Stand mit beiden Funktionen ist im Branch `archive-link-barcode` abrufbar.
+Link-Import und Barcode-Scanner wurden entfernt, weil sie ohne eigenen Server nicht zuverlässig funktionieren: Browser dürfen fremde Shop-Seiten nicht direkt lesen, und öffentliche Abruf-Dienste werden von vielen Shops blockiert. Für Kleidung gibt es außerdem keine verlässliche freie Barcode-Datenbank. Der letzte Stand mit beiden Funktionen ist im Git-Verlauf unter dem Commit `95d3816` abrufbar (`git checkout 95d3816`).

@@ -44,9 +44,11 @@ if(!(Geo && Scraper)){
 const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
 // Standardposition: x, y, Breite, Ebene
 const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
+/** Standardplätze, wenn der Strichmensch sichtbar ist: Teile landen passend zu Schultern, Hüfte und Füßen. */
+const DEF_FIG = {'Oberteil':[105,92,190,2],'Jacke':[95,88,210,4],'Hose/Rock':[120,235,160,1],'Schuhe':[125,478,150,2],'Accessoire':[290,250,80,5]};
 const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
-let S = {items:[], outfits:[]}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, K = 1;
+let S = {items:[], outfits:[], figure:false}, board = [], filter = 'Alle', draft = null, sel = null, editing = null, K = 1;
 const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 const item = id => S.items.find(i => i.id === id);
 const imgOf = id => item(id)?.img;
@@ -68,7 +70,7 @@ async function load(){
     try{
       const d = await idb;
       const v = await new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get('s'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
-      if(v){ S = {items:v.items || [], outfits:v.outfits || []}; board = fixOrder(cleanPieces(v.board)); S.outfits = S.outfits.filter(o => o && typeof o.name === 'string'); S.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); }
+      if(v){ S = {items:v.items || [], outfits:v.outfits || [], figure:!!v.figure}; board = fixOrder(cleanPieces(v.board)); S.outfits = S.outfits.filter(o => o && typeof o.name === 'string'); S.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); }
       navigator.storage?.persist?.(); return true;
     }catch(e){ await new Promise(r => setTimeout(r, 250)); }
   }
@@ -304,7 +306,7 @@ function toggle(i){
 }
 const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; // Standard-Reihenfolge von hinten nach vorn
 const rank = id => RANK[item(id)?.cat] ?? 2;
-function addPiece(i){ const d = DEF[i.cat]; let k = board.length; while(k > 0 && rank(board[k-1].id) > RANK[i.cat]) k--; board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
+function addPiece(i){ const d = (S.figure ? DEF_FIG : DEF)[i.cat]; let k = board.length; while(k > 0 && rank(board[k-1].id) > RANK[i.cat]) k--; board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
 /** Bereinigt Teile aus unsicherer Quelle (Speicher, Backup) und entfernt Teile ohne Kleiderschrank-Eintrag. */
 const cleanPieces = list => Geo.sanitizePieces(list).filter(p => imgOf(p.id));
 function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
@@ -407,9 +409,11 @@ function renderBoard(){
     stylePiece(p, im); im.style.zIndex = String(idx + 1); pieceEls.set(p.id, im);
     im.onload = () => { aspects.set(p.id, im.naturalHeight / im.naturalWidth); if(p.id === sel){ placeKnob(p); syncBench(); } };
     im.onpointerdown = e => {
-      e.preventDefault(); e.stopPropagation(); im.setPointerCapture(e.pointerId); select(p.id);
+      e.preventDefault(); e.stopPropagation();
+      if(touches.size > 1) return; // zweiter Finger: Geste übernimmt (siehe unten)
+      im.setPointerCapture(e.pointerId); select(p.id);
       const sx = e.clientX / K - p.x, sy = e.clientY / K - p.y;
-      im.onpointermove = m => { moveCenter(p, m.clientX / K - sx + p.w / 2, m.clientY / K - sy + heightOf(p) / 2); };
+      im.onpointermove = m => { if(noDrag) return; moveCenter(p, m.clientX / K - sx + p.w / 2, m.clientY / K - sy + heightOf(p) / 2); };
       im.onpointerup = () => { im.onpointermove = im.onpointerup = null; renderGrid(); persist(); };
     };
     im.ondblclick = () => { board = board.filter(k => k !== p); if(sel === p.id) sel = null; renderAll(); };
@@ -418,7 +422,53 @@ function renderBoard(){
   });
   drawKnob(); syncBench(); renderSum(); persist();
 }
-$('board').addEventListener('pointerdown', e => { if(e.target === $('board') && sel){ sel = null; renderBoard(); } });
+$('board').addEventListener('pointerdown', e => { if(touches.size > 1) return; if((e.target === $('board') || e.target === $('figure')) && sel){ sel = null; renderBoard(); } });
+
+/* ==========================================================================
+   Zwei-Finger-Geste auf dem Board (Touch): Größe, Drehung und Verschieben
+   - Der Abstand der Finger skaliert das ausgewählte Teil um seine Mitte
+   - Der Winkel zwischen den Fingern dreht es, die Mitte zwischen den Fingern verschiebt es
+   - Registriert in der Capture-Phase, damit die Einzel-Finger-Bedienung unberührt bleibt
+   ========================================================================== */
+const touches = new Map();    // pointerId -> {x, y} (nur Touch)
+let pinch = null, noDrag = false;
+const pair = () => { const [a, b] = [...touches.values()]; return {a, b, dist:Math.hypot(a.x - b.x, a.y - b.y), mid:{x:(a.x + b.x) / 2, y:(a.y + b.y) / 2}, ang:Geo.angleFromCenter(a.x, a.y, b.x, b.y)}; };
+function startPinch(){
+  const p = selPiece(); if(!p){ pinch = null; return; }
+  const g = pair(); if(g.dist < 12){ pinch = null; return; }
+  pinch = {id:p.id, w0:p.w, r0:p.r || 0, d0:g.dist, mid0:g.mid, c0:centerOf(p), last:g.ang, rot:0};
+}
+function movePinch(){
+  const p = pinch && selPiece(); if(!p || p.id !== pinch.id || touches.size < 2) return;
+  const g = pair();
+  if(g.ang !== null && pinch.last !== null){ pinch.rot += Geo.shortestDelta(pinch.last, g.ang); }
+  pinch.last = g.ang ?? pinch.last;
+  p.w = Geo.clamp(pinch.w0 * g.dist / pinch.d0, Geo.LIMITS.minW, Geo.LIMITS.maxW);
+  p.r = Geo.normalizeAngle(pinch.r0 + pinch.rot);
+  moveCenter(p, pinch.c0.x + (g.mid.x - pinch.mid0.x) / K, pinch.c0.y + (g.mid.y - pinch.mid0.y) / K);
+}
+function endTouch(e){
+  if(!touches.delete(e.pointerId)) return;
+  if(touches.size < 2 && pinch){ pinch = null; renderGrid(); persist(); }
+  if(touches.size === 0) noDrag = false;
+}
+$('board').addEventListener('pointerdown', e => {
+  if(e.pointerType !== 'touch') return;
+  touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(touches.size === 2){ noDrag = true; startPinch(); }
+}, true);
+$('board').addEventListener('pointermove', e => { const t = touches.get(e.pointerId); if(!t) return; t.x = e.clientX; t.y = e.clientY; if(pinch) movePinch(); }, true);
+['pointerup', 'pointercancel'].forEach(t => $('board').addEventListener(t, endTouch, true));
+$('board').addEventListener('gesturestart', e => e.preventDefault()); // Safari: kein Seitenzoom beim Spreizen
+
+/* ---------- Strichmensch (Proportionshilfe) ---------- */
+function syncFigure(){ $('figure').toggleAttribute('hidden', !S.figure); $('figBtn').setAttribute('aria-pressed', String(!!S.figure)); }
+$('figBtn').onclick = () => { S.figure = !S.figure; syncFigure(); flush(); announce(S.figure ? 'Strichmensch eingeblendet' : 'Strichmensch ausgeblendet'); };
+/** Der Strichmensch als Bild (für den PNG-Export). */
+function figureImage(){
+  const svg = new XMLSerializer().serializeToString($('figure')).replace(/ hidden=""/, '');
+  return loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+}
 /** Skaliert um den Mittelpunkt, damit Drehung und Position stabil bleiben. */
 function resize(p, f){ const c = centerOf(p); p.w = Geo.clamp(p.w * f, Geo.LIMITS.minW, Geo.LIMITS.maxW); const h = heightOf(p); p.x = c.x - p.w / 2; p.y = c.y - h / 2; renderBoard(); }
 $('bigger').onclick = () => { const p = board.find(k => k.id === sel); if(p) resize(p, 1.1); };
@@ -447,6 +497,7 @@ $('png').onclick = async () => {
   if(!board.length) return;
   const c = document.createElement('canvas'); c.width = 800; c.height = 1200; const x = c.getContext('2d');
   x.fillStyle = '#f3f4f7'; x.fillRect(0, 0, 800, 1200);
+  if(S.figure) x.drawImage(await figureImage(), 0, 0, 800, 1200);
   for(const p of board){
     const im = await loadImg(imgOf(p.id)), w = p.w * 2, h = w * im.height / im.width;
     x.save(); x.globalCompositeOperation = item(p.id)?.cut ? 'source-over' : 'multiply';
@@ -490,7 +541,7 @@ $('imp').onclick = () => $('impf').click();
 $('impf').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   try{ const j = JSON.parse(await f.text()); if(!Array.isArray(j.items)) throw 0; if(!confirm('Aktuelle Daten durch das Backup ersetzen?')) return;
-    S = {items:j.items.map(i => Scraper.sanitizeItem(i, CATS)).filter(Boolean), outfits:(Array.isArray(j.outfits) ? j.outfits : []).filter(o => o && typeof o.name === 'string')}; board = fixOrder(cleanPieces(j.board)); S.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); sel = null; renderAll();
+    S = {figure:!!j.figure, items:j.items.map(i => Scraper.sanitizeItem(i, CATS)).filter(Boolean), outfits:(Array.isArray(j.outfits) ? j.outfits : []).filter(o => o && typeof o.name === 'string')}; board = fixOrder(cleanPieces(j.board)); S.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); sel = null; renderAll();
   }catch(err){ alert('Diese Datei ist kein gültiges Anprobe-Backup.'); }
 };
 function fit(){ K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * K}px;height:${600 * K}px`; $('board').style.transform = `scale(${K})`; }
@@ -511,7 +562,7 @@ function renderOuts(){
   }));
 }
 
-function renderAll(){ fit(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
+function renderAll(){ fit(); syncFigure(); renderChips(); renderGrid(); renderBoard(); renderOuts(); }
 function removeItem(id){
   S.items = S.items.filter(k => k.id !== id); board = board.filter(p => p.id !== id); if(sel === id) sel = null;
   S.outfits.forEach(o => { o.pieces = o.pieces.filter(p => p.id !== id); }); renderAll(); flush();

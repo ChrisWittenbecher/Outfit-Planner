@@ -189,6 +189,8 @@
 /* ---------- 6b. Smartphone-Optimierung ---------- */
 @layer modules {
   .fab { display: none; }
+  #figure { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  #figBtn[aria-pressed="true"] { background: var(--ink); color: #fff; }
 
   /* Touch-Geräte: keine Hover-Abhängigkeit, größere Ziele */
   @media (pointer: coarse) {
