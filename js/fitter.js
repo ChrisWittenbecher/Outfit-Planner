@@ -12,14 +12,18 @@ import { aspects, pieceEls, stylePiece } from './board.js';
 import { drawKnob, syncBench } from './rotation.js';
 import { renderSum } from './outfits.js';
 import { persist } from './storage.js';
+import { step, undo } from './history.js';
+import { toast } from './ui.js';
 
 const measured = new Map();   // Schlüssel aus Id und Bildlänge -> Versprechen mit { aspect, waist, hem }
 const FALLBACK = { aspect: 1.3, waist: Fit.DEFAULTS.waist, hem: Fit.DEFAULTS.hem };
+const MEASURE_MS = 6000;   // so lange wartet das Anordnen höchstens auf ein Bild; danach gelten Standardmaße (ein hängendes Bild blockiert nie alles)
 
 /** Misst Seitenverhältnis und Umriss eines Teils (einmal je Bild, danach aus dem Zwischenspeicher). */
 function measure(it){
   const key = it.id + ':' + it.img.length + ':' + (it.cut ? 1 : 0);
-  if(!measured.has(key)) measured.set(key, (async () => {
+  const forget = () => { measured.delete(key); return FALLBACK; };   // Ersatzmaße nicht merken: beim nächsten Mal wird neu gemessen
+  if(!measured.has(key)) measured.set(key, Promise.race([(async () => {
     try{
       const im = await loadImg(it.img);
       const aspect = im.naturalHeight / im.naturalWidth || FALLBACK.aspect;
@@ -30,20 +34,30 @@ function measure(it){
       const px = x.getImageData(0, 0, W, H).data, alpha = new Uint8Array(W * H);
       for(let i = 0; i < alpha.length; i++) alpha[i] = px[i * 4 + 3];
       return {aspect, ...Fit.bandRatios(alpha, W, H)};
-    }catch(e){ return FALLBACK; }
-  })());
+    }catch(e){ return forget(); }
+  })(), new Promise(res => setTimeout(() => res(forget()), MEASURE_MS))]));
   return measured.get(key);
 }
 
 let tok = 0;
-/** Ordnet alle Teile auf dem Board passend an (Größe, Lage, Drehung 0°). Das zuletzt gestartete Anordnen gewinnt. */
+/**
+ * Ordnet alle Teile auf dem Board passend an (Größe, Lage, Drehung 0°). Das zuletzt gestartete Anordnen gewinnt.
+ * @returns {Promise<boolean|null>} true = angeordnet, false = Fehler, null = von einem neueren Aufruf abgelöst oder nichts zu tun
+ */
 export async function fitBoard(){
   const my = ++tok;
-  const parts = (await Promise.all(state.board.map(async p => {
-    const it = item(p.id); if(!it) return null;
-    return {id:p.id, cat:it.cat, ...await measure(it)};
-  }))).filter(Boolean);
-  if(my !== tok || !parts.length) return;
+  try{
+    const parts = (await Promise.all(state.board.map(async p => {
+      const it = item(p.id); if(!it) return null;
+      return {id:p.id, cat:it.cat, ...await measure(it)};
+    }))).filter(Boolean);
+    if(my !== tok || !parts.length) return null;
+    apply(parts);
+    return true;
+  }catch(e){ console.error('Anordnen fehlgeschlagen', e); return false; }
+}
+
+function apply(parts){
   const slots = Fit.layout(parts);
   for(const s of slots){
     const p = state.board.find(k => k.id === s.id); if(!p) continue;
@@ -57,4 +71,9 @@ export async function fitBoard(){
   drawKnob(); syncBench(); renderSum(); persist();
 }
 
-$('fit').onclick = async () => { await fitBoard(); announce('Teile passend angeordnet'); };
+$('fit').onclick = async () => {
+  step();   // eigener Schritt, damit „Rückgängig“ genau diese Anordnung zurücknimmt
+  const done = await fitBoard();
+  if(done === true){ announce('Teile passend angeordnet'); toast('Teile passend angeordnet', {action:{label:'Rückgängig', fn:undo}}); }   // sichtbare Rückmeldung (auf dem Handy liegt das Board oft außerhalb des Bildschirms)
+  else if(done === false) toast('Anordnen hat nicht geklappt. Bitte versuche es noch einmal.', {kind:'error'});
+};

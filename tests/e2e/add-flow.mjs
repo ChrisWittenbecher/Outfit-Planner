@@ -1,7 +1,7 @@
 // End-to-End-Test: Kleidungsstück per Bild hinzufügen, auf Smartphone und Desktop.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch } from './helpers.mjs';
+import { checker, PNG, startServer, launch, engine } from './helpers.mjs';
 
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -62,7 +62,7 @@ try {
     ok(await p.locator('#board img').count() === 1, 'Teil liegt auf dem Board');
 
     // Zwei-Finger-Geste (nur Touch): Größe und Drehung
-    if (mobile) {
+    if (mobile && engine === 'chromium') {   // Mehrfingereingabe läuft über CDP, das gibt es nur in Chromium
       const cdp = await ctx.newCDPSession(p);
       const widthOf = () => p.evaluate(() => parseFloat(document.querySelector('#board img.p').style.width));
       const rotOf = () => p.evaluate(() => { const m = /rotate\(([-\d.]+)deg\)/.exec(document.querySelector('#board img.p').style.transform); return m ? parseFloat(m[1]) : 0; });

@@ -11,7 +11,7 @@ import { renderAll } from './render.js';
 import { drawKnob, placeKnob, syncBench } from './rotation.js';
 import { renderSum } from './outfits.js';
 import { persist } from './storage.js';
-import { noDrag, touches } from './gestures.js';
+import { noDrag, pinchCount, touches } from './gestures.js';
 import { renderGrid } from './wardrobe.js';
 
 /* ---------- Outfit-Board ---------- */
@@ -69,8 +69,8 @@ export function applyLive(p, lockFlip){ state.fitted = false; const el = pieceEl
 
 /* ---------- Teil vom Board nehmen: Doppeltipp (Touch) oder Doppelklick (Maus) ---------- */
 // Das Browser-Ereignis „dblclick“ kommt bei Touch nicht an, weil der Tipp als Zeigerereignis abgefangen wird. Darum werden zwei Tipps selbst erkannt.
-const DOUBLE = {ms:350, slop:32};            // Zeit (ms) und Abstand (px) zwischen zwei Tipps
-const TAP_SLOP = {touch:10, mouse:4};        // so weit darf der Finger oder die Maus wandern, ohne dass es als Ziehen gilt
+const DOUBLE = {ms:450, slop:48};            // Zeit (ms) und Abstand (px) zwischen zwei Tipps
+const TAP_SLOP = {touch:14, mouse:4};        // so weit darf der Finger oder die Maus wandern, ohne dass es als Ziehen gilt
 let lastTap = null;
 /** Nimmt ein Teil vom Board. „Rückgängig“ im Hinweis holt es zurück. */
 function takeOff(p){
@@ -82,8 +82,9 @@ function takeOff(p){
 }
 /** Meldet einen Tipp auf ein Teil (ohne Ziehen). Der zweite Tipp kurz darauf auf dasselbe Teil nimmt es vom Board. */
 function tapped(p, e){
-  const prev = lastTap; lastTap = {id:p.id, t:e.timeStamp, x:e.clientX, y:e.clientY};
-  if(!prev || prev.id !== p.id || e.timeStamp - prev.t > DOUBLE.ms || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) > DOUBLE.slop) return;
+  const now = performance.now();   // eigene Uhr statt e.timeStamp: gleiche Basis für beide Tipps, auf jedem Gerät
+  const prev = lastTap; lastTap = {id:p.id, t:now, x:e.clientX, y:e.clientY};
+  if(!prev || prev.id !== p.id || now - prev.t > DOUBLE.ms || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) > DOUBLE.slop) return;
   lastTap = null; takeOff(p);
 }
 
@@ -101,6 +102,7 @@ export function renderBoard(){
       if(touches.size > 1) return; // zweiter Finger: Geste übernimmt (siehe unten)
       im.setPointerCapture(e.pointerId); select(p.id);
       const sx = e.clientX / state.K - p.x, sy = e.clientY / state.K - p.y, slop = e.pointerType === 'touch' ? TAP_SLOP.touch : TAP_SLOP.mouse;
+      const g0 = pinchCount();   // wird eine Zwei-Finger-Geste begonnen, solange dieser Finger unten ist, zählt das Ende nie als Tipp
       let moved = false;   // erst ab einer kleinen Strecke zählt es als Ziehen, davor ist es ein Tipp (und das Layout bleibt unberührt)
       im.onpointermove = m => {
         if(noDrag) return;
@@ -108,7 +110,7 @@ export function renderBoard(){
         moved = true; moveCenter(p, m.clientX / state.K - sx + p.w / 2, m.clientY / state.K - sy + heightOf(p) / 2);
       };
       im.onpointerup = u => {
-        const gesture = noDrag || touches.size > 0;   // Teil einer Zwei-Finger-Geste
+        const gesture = noDrag || touches.size > 0 || pinchCount() !== g0;   // Teil einer Zwei-Finger-Geste
         im.onpointermove = im.onpointerup = null; renderGrid(); persist();
         if(gesture || moved) lastTap = null; else tapped(p, u);
       };

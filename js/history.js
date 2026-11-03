@@ -14,7 +14,7 @@ const MAX = 50, GAP = 600;       // Schritte, und Pause (ms), ab der eine neue �
 let past = [], future = [], present = null, lastT = 0, applying = false;
 
 const clone = o => JSON.parse(JSON.stringify(o));
-const snap = () => ({ items: state.data.items.map(i => ({ ...i })), outfits: clone(state.data.outfits), board: clone(state.board) });
+const snap = () => ({ items: state.data.items.map(i => ({ ...i })), outfits: clone(state.data.outfits), board: clone(state.board), fitted: state.fitted });
 const sameItem = (a, b) => { const k = Object.keys(a); return k.length === Object.keys(b).length && k.every(x => x in b && (typeof a[x] === 'object' ? JSON.stringify(a[x]) === JSON.stringify(b[x]) : a[x] === b[x])); };
 const same = (a, b) => a.items.length === b.items.length && a.items.every((it, k) => sameItem(it, b.items[k])) && JSON.stringify(a.outfits) === JSON.stringify(b.outfits) && JSON.stringify(a.board) === JSON.stringify(b.board);
 
@@ -38,7 +38,7 @@ export function startHistory() { present = snap(); past = []; future = []; lastT
 function apply() {
   applying = true;
   state.data.items = present.items.map(i => ({ ...i })); state.data.outfits = clone(present.outfits); state.board = clone(present.board);
-  state.fitted = false;
+  state.fitted = !!present.fitted;   // Rückgängig stellt auch zurück, ob das Layout noch „angeordnet“ war
   if (state.sel && !state.board.some(p => p.id === state.sel)) state.sel = null;
   renderAll(); flush(); applying = false; lastT = 0; buttons();
 }

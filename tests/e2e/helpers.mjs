@@ -15,7 +15,7 @@ export function checker() {
   return { ok, state };
 }
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 /** Startet einen statischen Dateiserver (nur für den Test, die App selbst braucht keinen Server). */
 export async function startServer(port) {
   const server = http.createServer(async (req, res) => {

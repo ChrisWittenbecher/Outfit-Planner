@@ -171,7 +171,7 @@
   /* Anprobe-Board */
   #wrap { position: relative; max-width: 100%; }
   #board { position: absolute; left: 0; top: 0; transform-origin: 0 0; width: 400px; height: 600px; background: var(--stage) radial-gradient(var(--stage-dot) 1px, transparent 1px) 0 0 / 20px 20px; border-radius: 10px; overflow: hidden; touch-action: none; }
-  #board .p { position: absolute; cursor: grab; user-select: none; -webkit-user-drag: none; }
+  #board .p { position: absolute; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none; }
   #board .p.sel { outline: 2px dashed var(--stage-acc); outline-offset: 3px; }
   #board .hint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--stage-ink); padding: 40px; pointer-events: none; }
   /* Drehgriff am ausgewählten Teil (Position und Winkel setzt app.js per CSSOM) */
@@ -183,6 +183,8 @@
   @media (prefers-reduced-motion: no-preference) { #board.snap .p { transition: left .3s ease, top .3s ease, width .3s ease, transform .3s ease; } }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; justify-content: center; }
   .sub { color: var(--mute); font-size: 13px; margin-top: 8px; text-align: center; }
+  .ver { color: var(--mute); font-size: 12px; text-align: center; padding: 4px 16px calc(84px + env(safe-area-inset-bottom)); }
+  .ver button { background: none; border: 0; padding: 10px 6px; font: inherit; color: var(--acc-strong); text-decoration: underline; cursor: pointer; min-height: var(--tap); }
 
   /* Ebenen- und Preisliste unter dem Board */
   #sum { width: 100%; margin-top: 16px; }
