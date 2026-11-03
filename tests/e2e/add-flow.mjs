@@ -1,13 +1,13 @@
 // End-to-End-Test: Kleidungsstück per Bild hinzufügen, auf Smartphone und Desktop.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
-import { chromium, devices } from 'playwright';
-import { checker, PNG, startServer } from './helpers.mjs';
+import { devices } from 'playwright';
+import { checker, PNG, startServer, launch } from './helpers.mjs';
 
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
 
-const browser = await chromium.launch();
+const browser = await launch();
 try {
   for (const [name, opts] of [['iPhone 13', devices['iPhone 13']], ['Desktop', { viewport: { width: 1280, height: 800 } }]]) {
     const mobile = name !== 'Desktop';

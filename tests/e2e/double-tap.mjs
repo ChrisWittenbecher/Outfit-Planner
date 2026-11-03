@@ -1,12 +1,12 @@
 // End-to-End-Test: Doppeltipp (Touch) und Doppelklick (Maus) nehmen ein Teil vom Board; „Rückgängig“ holt es zurück.
 // Start:  npm run test:e2e   (benötigt Playwright + Chromium)
-import { chromium, devices } from 'playwright';
-import { addItem, checker, startServer } from './helpers.mjs';
+import { devices } from 'playwright';
+import { addItem, checker, startServer, launch } from './helpers.mjs';
 
 const PORT = 8735, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
 const server = await startServer(PORT);
-const browser = await chromium.launch();
+const browser = await launch();
 const count = p => p.locator('#board img.p').count();
 
 try {
