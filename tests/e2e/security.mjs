@@ -17,7 +17,19 @@ try {
   p.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
   // Verstöße genau erfassen (Richtlinie, Quelle, Zeile, Auszug), um einen Fund einer Aktion zuordnen zu können.
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push([e.effectiveDirective, e.blockedURI, (e.sourceFile || '').replace(/^.*\//, ''), e.lineNumber + ':' + e.columnNumber, (e.sample || '').slice(0, 60)].join(' | ')), true); });
-  const detail = async label => { const d = await p.evaluate(() => (window.__csp || []).splice(0)).catch(() => ['(Seite wechselt)']); if (d.length) console.log('   CSP-Detail nach ' + label + ': ' + JSON.stringify(d)); };
+  // Wer setzt ein style-Attribut? Beobachter für Änderungen und Umhüllung von setAttribute / cssText (nur Diagnose).
+  await p.addInitScript(() => {
+    window.__sty = [];
+    const note = (what, el, extra) => { try { window.__sty.push(what + ' ' + (el && el.tagName) + '#' + (el && el.id) + ' ' + String(extra).slice(0, 80) + ' :: ' + new Error().stack.split('\n').slice(1, 4).join(' <- ').replace(/http:\/\/localhost:\d+\//g, '')); } catch (e) {} };
+    const sa = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (n, v) { if (String(n).toLowerCase() === 'style') note('setAttribute', this, v); return sa.call(this, n, v); };
+    const d = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'cssText');
+    if (d && d.set) Object.defineProperty(CSSStyleDeclaration.prototype, 'cssText', { ...d, set(v) { note('cssText', null, v); return d.set.call(this, v); } });
+    document.addEventListener('DOMContentLoaded', () => new MutationObserver(ms => ms.forEach(m => { if (/^(SELECT|OPTION|OPTGROUP|INPUT|LABEL)$/.test(m.target.tagName)) note('mutation', m.target, m.target.getAttribute('style')); })).observe(document, { subtree: true, attributes: true, attributeFilter: ['style'] }));
+  });
+  const detail = async label => { const d = await p.evaluate(() => (window.__csp || []).splice(0)).catch(() => ['(Seite wechselt)']); if (d.length) console.log('   CSP-Detail nach ' + label + ': ' + JSON.stringify(d));
+    const st = await p.evaluate(() => ({ sel: [...document.querySelectorAll('select')].map(e => e.id + '=' + e.getAttribute('style')), log: (window.__sty || []).splice(0).slice(0, 12) })).catch(() => null);
+    if (st && (st.log.length || st.sel.some(x => !/=null$/.test(x)))) console.log('   Style-Detail nach ' + label + ': ' + JSON.stringify(st)); };
   let phase = 'Start';
   p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) { const l = m.location(); violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + (l.url || '').replace(/^.*\//, '') + ':' + l.lineNumber); } });
   // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
