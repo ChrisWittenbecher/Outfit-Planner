@@ -211,15 +211,15 @@
     </div>
     <label class="ck ck--spaced" id="mirrorRow" hidden><input type="checkbox" id="mirror"> Zweiten Schuh ergänzen (gespiegelt, wenn nur ein Schuh zu sehen ist)</label>
     <div class="g2">
-      <div><label for="name">Name</label><input id="name" maxlength="120" placeholder="z. B. Beiger Trenchcoat"></div>
-      <div><label for="cat">Kategorie</label><select id="cat"></select></div>
+      <div><label for="name">Name</label><input id="name" maxlength="120" autocomplete="off" placeholder="z. B. Beiger Trenchcoat"></div>
+      <div><label for="cat">Kategorie</label><select id="cat" autocomplete="off"></select></div>
     </div>
     <label for="itemState">Status</label>
-    <select id="itemState"><option value="own">Besitze ich</option><option value="wish">Wunschliste (noch nicht gekauft)</option></select>
+    <select id="itemState" autocomplete="off"><option value="own">Besitze ich</option><option value="wish">Wunschliste (noch nicht gekauft)</option></select>
     <label for="price">Preis</label>
     <div class="row">
-      <input id="price" inputmode="decimal" maxlength="14" placeholder="z. B. 49,99">
-      <select id="cur" aria-label="Währung"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>SEK</option><option>NOK</option><option>DKK</option><option>PLN</option></select>
+      <input id="price" inputmode="decimal" maxlength="14" autocomplete="off" placeholder="z. B. 49,99">
+      <select id="cur" aria-label="Währung" autocomplete="off"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>SEK</option><option>NOK</option><option>DKK</option><option>PLN</option></select>
     </div>
     <p class="hint" id="priceNote">Ändert sich der Preis, wird er beim Speichern im Verlauf festgehalten.</p>
     <div id="priceHistory" hidden>

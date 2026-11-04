@@ -63,6 +63,8 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 .
 ├── index.html              Seitengerüst und Content-Security-Policy
 ├── version.json            Versionsnummer für den Update-Hinweis
+├── SECURITY.md             Sicherheitskonzept, Meldeweg, Einstellungen auf GitHub
+├── package-lock.json       festgelegte Versionen der Entwicklungswerkzeuge (mit Prüfsummen)
 ├── css/
 │   └── styles.css          Styles in Cascade Layers, alle Farben als Design-Tokens
 ├── js/
@@ -88,13 +90,13 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── fit.js              Outfit-Fitter: Rechnung der Passform (reine Funktionen, getestet)
 │   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
 │   ├── update.js           Versionsanzeige und Update-Hinweis
-│   ├── version.js          Versionsnummer (gleich wie package.json und version.json)
+│   ├── version.js          Versionsnummer, Prüfung von Versionen, Auswahl der Dateien beim Aktualisieren (getestet)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Sicherheit
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -103,10 +105,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 ## Datenschutz und Sicherheit
 
 - **Lokale Datenhaltung:** Alles liegt in IndexedDB deines Browsers. Es gibt keinen Server und kein Konto. Jedes Gerät hat einen eigenen Kleiderschrank, zum Umziehen dienen Backup und Wiederherstellen.
-- **Strikte Content-Security-Policy:** kein `unsafe-inline`, feste Liste erlaubter Verbindungen.
+- **Strikte Content-Security-Policy:** kein `unsafe-inline`, kein `unsafe-eval`, feste Liste erlaubter Verbindungen. Ein Test erzwingt sie.
 - **Nur zwei Einstellungen in `localStorage`:** die Wahl von Design und Bühne (damit sie vor dem ersten Zeichnen bereitsteht). Alles andere liegt in IndexedDB.
-- **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt.
+- **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt: Ein Backup wird nur mit eingebetteten Bildern gelesen (keine Adressen, kein SVG), Größe und Menge sind begrenzt, ungültige oder doppelte Teile werden übersprungen und gemeldet. Bilder über 25 MB werden abgelehnt.
 - **Kein Backend:** Es gibt keinen Server, der angegriffen werden könnte.
+- **Fremder Code nur mit Zustimmung:** Das optionale KI-Freistellen lädt Code von jsDelivr erst, nachdem du es bestätigt hast.
+- **Lieferkette:** GitHub-Actions auf festen Commits, Lockfile mit Prüfsummen, Dependabot, CodeQL und `npm audit`.
+
+Alle Maßnahmen, die Einstellungen auf GitHub (Branch-Schutz, Secret Scanning, …) und die Meldung von Schwachstellen stehen in [SECURITY.md](SECURITY.md).
 
 ### Externe Dienste
 

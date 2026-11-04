@@ -1,5 +1,6 @@
 // @ts-check
 import { sanitizeHistory } from './prices.js';
+import { sanitizePieces } from './geometry.js';
 /**
  * Anprobe – Eingabeprüfung und Bereinigung von Texten, Preisen, Links und gespeicherten Teilen.
  *
@@ -10,6 +11,10 @@ import { sanitizeHistory } from './prices.js';
 
 /** Grenzen, damit überlange oder manipulierte Daten nichts aufblähen. */
 export const LIMITS = Object.freeze({ url: 2048, title: 120, price: 100_000 });
+/** Grenzen für Bilder, die der Nutzer hinzufügt (Schutz vor Dateien, die den Browser lahmlegen). */
+export const IMAGE_LIMITS = Object.freeze({ bytes: 25_000_000, pixels: 60_000_000 });
+/** Grenzen für Backup-Dateien. */
+export const BACKUP_LIMITS = Object.freeze({ bytes: 200_000_000, items: 2000, outfits: 500, pieces: 200 });
 /** Unterstützte Währungen (entspricht dem Auswahlfeld im Dialog). */
 export const CURRENCIES = Object.freeze(['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN']);
 
@@ -152,14 +157,15 @@ export function validateUrl(raw, opts = {}) {
 }
 
 /**
- * Prüft eine Bildquelle aus gespeicherten Daten: nur data:image oder https.
+ * Prüft eine Bildquelle aus einer Datei von außen: nur eingebettete Bilder (data:image) sind erlaubt.
+ * Entfernte Adressen werden bewusst abgelehnt: Eine fremde Backup-Datei könnte sonst beim Anzeigen Anfragen an einen
+ * fremden Server auslösen (Verfolgung, IP-Adresse). Die App selbst speichert Bilder immer als lokale Kopie.
  * @param {unknown} v
- * @returns {string}
+ * @returns {string} die Quelle, oder leer, wenn sie nicht erlaubt ist
  */
 export function sanitizeImageSrc(v) {
   if (typeof v !== 'string' || v.length > 14_000_000) return '';
-  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v)) return v;
-  return /^https:\/\//i.test(v) && v.length <= LIMITS.url ? v : '';
+  return /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v) ? v : '';
 }
 
 /**
@@ -195,4 +201,46 @@ export function sanitizeItem(raw, cats) {
   if (orig) item.orig = orig;
   if (typeof o.ean === 'string' && /^\d{8,14}$/.test(o.ean)) item.ean = o.ean;
   return item;
+}
+
+/**
+ * Bereinigt ein gespeichertes Outfit aus einer Backup-Datei. Nur bekannte Felder bleiben, der Name wird als Text bereinigt.
+ * @param {unknown} raw
+ * @param {number} index Position (für eine Ersatz-Kennung)
+ * @returns {{ id: string, name: string, pieces: import('./geometry.js').Piece[] } | null}
+ */
+export function sanitizeOutfit(raw, index = 0) {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = /** @type {Record<string, any>} */ (raw);
+  const id = typeof o.id === 'string' && o.id !== '' && o.id.length <= 64 ? o.id : 'o' + Date.now().toString(36) + index;
+  return { id, name: sanitizeText(o.name) || 'Outfit', pieces: sanitizePieces(o.pieces).slice(0, BACKUP_LIMITS.pieces) };
+}
+
+/**
+ * Liest und prüft den Text einer Backup-Datei. Alles Unbekannte wird verworfen, nichts wird ungeprüft übernommen:
+ * Größe und Anzahl sind begrenzt, doppelte Kennungen und Teile mit unzulässigem Bild oder Link werden übersprungen.
+ * @param {string} text Inhalt der Datei
+ * @param {readonly string[]} cats erlaubte Kategorien
+ * @returns {{ ok: true, items: Record<string, unknown>[], outfits: NonNullable<ReturnType<typeof sanitizeOutfit>>[], board: import('./geometry.js').Piece[], skipped: number } | { ok: false, error: string }}
+ */
+export function parseBackup(text, cats) {
+  if (typeof text !== 'string' || text.length > BACKUP_LIMITS.bytes) return { ok: false, error: 'Die Datei ist zu groß für ein Backup.' };
+  /** @type {any} */
+  let j;
+  try { j = JSON.parse(text); } catch { return { ok: false, error: 'Diese Datei ist kein gültiges Anprobe-Backup.' }; }
+  if (!j || typeof j !== 'object' || !Array.isArray(j.items)) return { ok: false, error: 'Diese Datei ist kein gültiges Anprobe-Backup.' };
+  if (j.items.length > BACKUP_LIMITS.items) return { ok: false, error: 'Das Backup enthält zu viele Teile (höchstens ' + BACKUP_LIMITS.items + ').' };
+  const rawOutfits = Array.isArray(j.outfits) ? j.outfits.slice(0, BACKUP_LIMITS.outfits) : [];
+  const seen = new Set();
+  /** @type {Record<string, unknown>[]} */
+  const items = [];
+  let skipped = 0;
+  for (const r of j.items) {
+    const it = sanitizeItem(r, cats);
+    if (!it || seen.has(it.id)) { skipped++; continue; }
+    seen.add(it.id);
+    items.push(it);
+  }
+  const outfits = rawOutfits.map((/** @type {unknown} */ o, /** @type {number} */ i) => sanitizeOutfit(o, i)).filter((/** @type {unknown} */ o) => o);
+  return { ok: true, items, outfits, board: sanitizePieces(j.board).slice(0, BACKUP_LIMITS.pieces), skipped };
 }

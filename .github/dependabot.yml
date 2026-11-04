@@ -1,0 +1,13 @@
+# Hält Entwicklungswerkzeuge und GitHub-Actions aktuell. Jede Änderung kommt als Pull Request und läuft durch die Tests.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

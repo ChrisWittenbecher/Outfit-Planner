@@ -8,6 +8,7 @@ import { baseHistory, LEGACY_T, recordPrice } from './prices.js';
 import { makeImage, norm } from './image.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
+import { confirmBox } from './ui.js';
 
 const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false});
 function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(state.draft) $('mirror').checked = !!state.draft.mirror; }
@@ -111,7 +112,7 @@ async function loadFromLink(){
 $('imgLoad').onclick = loadFromLink;
 $('imgUrl').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadFromLink(); } };
 $('imgUrl').oninput = () => $('imgUrl').removeAttribute('aria-invalid');
-async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
+async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
 $('cancel').onclick = () => $('dlg').close();
@@ -127,7 +128,13 @@ $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) pr
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };
 $('rm').onchange = () => { state.draft.rm = $('rm').checked; state.draft.ai = false; syncOpts(); process(); };
 $('tol').oninput = () => { state.draft.tol = +$('tol').value; state.draft.ai = false; processSoon(); };
-$('ai').onclick = () => { if(!state.draft.orig) return; state.draft.ai = true; process(); };
+let aiOk = false;   // Zustimmung gilt nur für diese Sitzung
+$('ai').onclick = async () => {
+  if(!state.draft.orig) return;
+  // Das KI-Modell ist fremder Programmcode von einem Dritten (jsDelivr). Er läuft nur nach ausdrücklicher Zustimmung.
+  if(!aiOk && !await confirmBox({title:'KI-Freistellen laden?', text:'Dafür lädt die App einmalig Programmcode und ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Deine Bilder bleiben auf dem Gerät. Ohne Zustimmung nutzt du die normale Freistellung.', ok:'Laden'})) return;
+  aiOk = true; state.draft.ai = true; process();
+};
 $('rcrop').onclick = () => { if(!state.draft) return; state.draft.crop = null; const b = $('selbox'); if(b) b.style.display = 'none'; process(); };
 
 $('ok').onclick = () => {

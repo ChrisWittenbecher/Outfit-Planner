@@ -22,12 +22,21 @@ $('png').onclick = async () => {
   }
   const a = document.createElement('a'); a.download = 'outfit.png'; a.href = c.toDataURL('image/png'); a.click();
 };
-$('exp').onclick = () => { state.data.board = state.board; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state.data)], {type:'application/json'})); a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); };
+$('exp').onclick = () => {
+  state.data.board = state.board;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(state.data)], {type:'application/json'}));
+  const a = document.createElement('a'); a.href = url; a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);   // Speicher wieder freigeben
+};
 $('imp').onclick = () => $('impf').click();
 $('impf').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
-  try{ const j = JSON.parse(await f.text()); if(!Array.isArray(j.items)) throw 0; if(!await confirmBox({title:'Backup einlesen', text:'Die aktuellen Daten werden durch das Backup ersetzt. Mit „Rückgängig“ holst du sie zurück.', ok:'Ersetzen', danger:true})) return;
-    step(); state.data = {items:j.items.map(i => Scraper.sanitizeItem(i, CATS)).filter(Boolean), outfits:(Array.isArray(j.outfits) ? j.outfits : []).filter(o => o && typeof o.name === 'string')}; state.board = fixOrder(cleanPieces(j.board)); state.data.outfits.forEach(o => { o.pieces = fixOrder(Geo.sanitizePieces(o.pieces)); }); state.sel = null; state.fitted = false; renderAll();
-    toast('Backup eingelesen', {action:{label:'Rückgängig', fn:undo}});
-  }catch(err){ toast('Diese Datei ist kein gültiges Anprobe-Backup.', {kind:'error'}); }
+  const bad = msg => toast(msg, {kind:'error'});
+  if(f.size > Scraper.BACKUP_LIMITS.bytes) return bad('Die Datei ist zu groß für ein Backup.');   // vor dem Lesen prüfen, nichts wird in den Speicher geladen
+  let r;
+  try{ r = Scraper.parseBackup(await f.text(), CATS); }catch(err){ return bad('Diese Datei ist kein gültiges Anprobe-Backup.'); }
+  if(!r.ok) return bad(r.error);
+  if(!await confirmBox({title:'Backup einlesen', text:'Die aktuellen Daten werden durch das Backup ersetzt. Mit „Rückgängig“ holst du sie zurück.', ok:'Ersetzen', danger:true})) return;
+  step(); state.data = {items:r.items, outfits:r.outfits}; state.board = fixOrder(cleanPieces(r.board)); state.sel = null; state.fitted = false; renderAll();
+  toast(r.skipped ? 'Backup eingelesen. ' + r.skipped + ' Teil(e) wurden übersprungen (ungültig, doppelt oder mit externem Bild).' : 'Backup eingelesen', {ms:r.skipped ? 10000 : 6000, action:{label:'Rückgängig', fn:undo}});
 };

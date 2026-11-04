@@ -146,5 +146,10 @@ $('shuffle').onclick = () => {
   renderAll();
   if(state.board.length) fitBoard();
 };
-export function fit(){ state.K = Math.min(1, ($('stage').clientWidth - 36) / 400); $('wrap').style.cssText = `width:${400 * state.K}px;height:${600 * state.K}px`; $('board').style.transform = `scale(${state.K})`; }
+export function fit(){
+  state.K = Math.min(1, ($('stage').clientWidth - 36) / 400);
+  // Einzelne Eigenschaften über das CSSOM setzen statt style.cssText: vorsorglich, weil manche Browser cssText wie einen Inline-Stil behandeln könnten (strikte CSP).
+  const wrap = $('wrap').style; wrap.width = 400 * state.K + 'px'; wrap.height = 600 * state.K + 'px';
+  $('board').style.transform = `scale(${state.K})`;
+}
 addEventListener('resize', fit);

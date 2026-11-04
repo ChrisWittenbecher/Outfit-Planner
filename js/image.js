@@ -3,10 +3,12 @@
  * Anprobe – Bildverarbeitung: Verkleinern, Freistellen, Zuschneiden, Schuhpaare (reine Canvas-Funktionen).
  */
 import { loadImg } from './core.js';
+import { IMAGE_LIMITS } from './scraper.js';
 
 /* ---------- Bildverarbeitung: Zuschneiden & Freistellen ---------- */
 export async function norm(src, max = 1000){ // verkleinert; behält Transparenz bei PNGs
   const im = await loadImg(src, /^https?:/.test(src));
+  if(!(im.naturalWidth > 0) || im.naturalWidth * im.naturalHeight > IMAGE_LIMITS.pixels) throw new Error('Bild zu groß');   // Schutz vor Bildern, die den Browser lahmlegen
   const k = Math.min(1, max / Math.max(im.width, im.height));
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
   const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(im, 0, 0, c.width, c.height);
