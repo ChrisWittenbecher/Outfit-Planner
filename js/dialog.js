@@ -1,7 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Dialog „Teil hinzufügen / bearbeiten“: Bildquelle, Zuschnitt, Freistellen, Speichern.
- */
 import * as Scraper from './scraper.js';
 import { $, CATS, DROP, money, newId, parsePrice, readFile, state } from './core.js';
 import { baseHistory, LEGACY_T, recordPrice } from './prices.js';
@@ -26,7 +23,6 @@ async function process(){
 }
 let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process, 120); };
 
-/* ---------- Hinzufügen/Bearbeiten-Dialog ---------- */
 CATS.forEach(c => $('cat').add(new Option(c, c)));
 export function status(t, err){ $('status').textContent = t; $('status').className = err ? 'err' : ''; }
 function showOrig(){
@@ -47,7 +43,6 @@ function showOrig(){
   };
 }
 function syncOpts(){ syncMirror(); $('rm').checked = state.draft.rm; $('tol').value = state.draft.tol; $('tol').disabled = !state.draft.rm || state.draft.alpha; $('ai').disabled = !state.draft.rm || state.draft.alpha; }
-/** Zeigt den bisherigen Preisverlauf des bearbeiteten Teils (neueste zuerst); erst ab zwei Einträgen. */
 function showHistory(it){
   const h = it && it.priceHistory || [], box = $('priceHistory');
   box.hidden = h.length < 2;
@@ -65,7 +60,6 @@ export function openDlg(it){
   $('imgUrl').value = ''; $('imgUrl').removeAttribute('aria-invalid'); $('imgLoad').disabled = false; linkTok++;
   $('url').value = it ? it.link || '' : ''; $('url').removeAttribute('aria-invalid'); $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
-  // Neues Teil: auf der Wunschliste-Ansicht gleich als Wunsch vormerken
   $('itemState').value = it ? (it.status === 'wish' ? 'wish' : 'own') : (state.statusFilter === 'wish' ? 'wish' : 'own');
   showHistory(it);
   status(''); showOrig(); syncOpts();
@@ -73,21 +67,14 @@ export function openDlg(it){
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
   if(!$('dlg').open) $('dlg').showModal();
 }
-/** Übernimmt ein bereits verkleinertes Original als Bildquelle des Dialogs. */
 async function adopt(n){
   if(!state.draft) state.draft = blank();
   state.draft.orig = n.url; state.draft.alpha = n.alpha; state.draft.crop = null; state.draft.ai = false; showOrig(); syncOpts(); await process();
 }
 const setSource = async src => adopt(await norm(src));
 
-/* ---------- Bild per Link ---------- */
 let linkTok = 0;
 const LINK_WAIT = 20000;   // ms, danach gilt das Laden als gescheitert
-/**
- * Lädt ein Bild direkt vom Link. Das klappt nur, wenn der fremde Server es dem Browser erlaubt (CORS).
- * Gelingt es nicht, bleibt alles andere erhalten, vor allem der Shop-Link; die Meldung sagt, was stattdessen geht.
- * Gespeichert wird nur eine lokale Kopie, nie der Bildlink.
- */
 async function loadFromLink(){
   const raw = $('imgUrl').value.trim();
   if(!raw){ status('Bitte einen Bildlink einfügen.', true); return; }
@@ -131,7 +118,6 @@ $('tol').oninput = () => { state.draft.tol = +$('tol').value; state.draft.ai = f
 let aiOk = false;   // Zustimmung gilt nur für diese Sitzung
 $('ai').onclick = async () => {
   if(!state.draft.orig) return;
-  // Das KI-Modell ist fremder Programmcode von einem Dritten (jsDelivr). Er läuft nur nach ausdrücklicher Zustimmung.
   if(!aiOk && !await confirmBox({title:'KI-Freistellen laden?', text:'Dafür lädt die App einmalig Programmcode und ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Deine Bilder bleiben auf dem Gerät. Ohne Zustimmung nutzt du die normale Freistellung.', ok:'Laden'})) return;
   aiOk = true; state.draft.ai = true; process();
 };
@@ -143,7 +129,6 @@ $('ok').onclick = () => {
   const raw = $('url').value.trim(), v = raw ? Scraper.validateUrl(Scraper.normalizeLinkInput(raw)) : null;
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
   const price = Scraper.sanitizePrice(parsePrice($('price').value)), cur = Scraper.normalizeCurrency($('cur').value, 'EUR'), ed = state.editing;
-  // Preisverlauf: jede Änderung festhalten. Wechselt die Währung, beginnt der Verlauf neu (Beträge wären nicht vergleichbar).
   const prev = ed && ed.cur === cur ? baseHistory(ed.priceHistory || [], ed.price) : [];
   const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price)};
   if(state.editing) Object.assign(state.editing, f); else { const n = {id:newId(), ...f}; state.data.items.unshift(n); state.fresh = n.id; }

@@ -1,12 +1,8 @@
 // @ts-nocheck
-/**
- * Anprobe – Drehen und Positionieren (Griff am Teil und Regler im Arbeitsplatz).
- */
 import * as Geo from './geometry.js';
 import { $, item, state } from './core.js';
 import { KNOB_GAP, applyLive, centerOf, heightOf, moveCenter, selPiece, setRotation } from './board.js';
 
-/** Positioniert den Drehgriff: oberhalb des Teils, bei Platzmangel unterhalb. */
 export function placeKnob(p, lockFlip){
   const ctl = $('board').querySelector('.rot-ctl'); if(!ctl) return;
   const h = heightOf(p), up = h / 2 + KNOB_GAP, cos = Math.cos((p.r || 0) * Math.PI / 180), c = centerOf(p);
@@ -18,7 +14,6 @@ export function placeKnob(p, lockFlip){
   stem.style.top = (flip ? h / 2 : -up + 11) + 'px'; stem.style.height = (KNOB_GAP - 11) + 'px';
   knob.setAttribute('aria-valuenow', String(Math.round(p.r || 0))); knob.setAttribute('aria-valuetext', Geo.angleAria(p.r || 0));
 }
-/** Erzeugt den Drehgriff für das ausgewählte Teil (Maus, Touch und Tastatur). */
 export function drawKnob(){
   $('board').querySelector('.rot-ctl')?.remove();
   const p = selPiece(); if(!p) return;
@@ -44,7 +39,6 @@ export function drawKnob(){
   };
 }
 
-/** Hält den Arbeitsplatz (Regler und Anzeigen) mit dem ausgewählten Teil synchron. */
 export function syncBench(){
   const p = selPiece(), on = !!p; $('benchControls').disabled = !on;
   $('benchHint').textContent = on ? 'Ausgewählt: ' + (item(p.id)?.name || 'Teil') + '. Ziehe den runden Griff am Teil oder nutze die Regler.' : 'Wähle ein Teil auf dem Board, um es stufenlos zu drehen und zu positionieren.';

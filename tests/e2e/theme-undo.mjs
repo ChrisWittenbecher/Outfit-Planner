@@ -1,5 +1,3 @@
-// End-to-End-Test: Dunkelmodus (Umschalter, Speicherung, Bühne, PNG), eigene Dialoge, Rückgängig/Wiederholen.
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium)
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { addItem, checker, startServer, launch } from './helpers.mjs';
@@ -23,7 +21,6 @@ const open = async (ctx) => {
 };
 
 try {
-  /* ================= Desktop, System dunkel ================= */
   {
     console.log('--- Desktop, System dunkel');
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'dark', acceptDownloads: true });
@@ -71,7 +68,6 @@ try {
     await p.click('#stageBtn');   // zurück auf Auto
     ok(await p.evaluate(() => document.documentElement.dataset.stage ?? null) === null, 'Bühne wieder Auto');
 
-    /* ----- Rückgängig / Wiederholen ----- */
     console.log('--- Rückgängig und Wiederholen');
     await wait(p);
     await p.click('#undo');
@@ -141,7 +137,6 @@ try {
     await ctx.close();
   }
 
-  /* ================= Bewegung reduzieren ================= */
   for (const [label, motion, expected] of [['normal', 'no-preference', 'card-in'], ['reduziert', 'reduce', 'none']]) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: motion });
     const { p } = await open(ctx);
@@ -151,7 +146,6 @@ try {
     await ctx.close();
   }
 
-  /* ================= Smartphone, System hell ================= */
   {
     console.log('--- iPhone 13, System hell');
     const ctx = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'light', acceptDownloads: true });

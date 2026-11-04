@@ -1,28 +1,16 @@
 // @ts-check
 import { sanitizeHistory } from './prices.js';
 import { sanitizePieces } from './geometry.js';
-/**
- * Anprobe – Eingabeprüfung und Bereinigung von Texten, Preisen, Links und gespeicherten Teilen.
- *
- * Grundsatz: Alles, was von außen kommt (Eingabefeld, Webseite, Backup-Datei), gilt als unsicher.
- * Es wird geprüft, begrenzt und bereinigt, bevor es in die App gelangt. Texte werden später nur
- * als Text (textContent) eingefügt, nie als HTML.
- */
 
-/** Grenzen, damit überlange oder manipulierte Daten nichts aufblähen. */
 export const LIMITS = Object.freeze({ url: 2048, title: 120, price: 100_000 });
-/** Grenzen für Bilder, die der Nutzer hinzufügt (Schutz vor Dateien, die den Browser lahmlegen). */
 export const IMAGE_LIMITS = Object.freeze({ bytes: 25_000_000, pixels: 60_000_000 });
 /** Grenzen für Backup-Dateien. */
 export const BACKUP_LIMITS = Object.freeze({ bytes: 200_000_000, items: 2000, outfits: 500, pieces: 200 });
-/** Unterstützte Währungen (entspricht dem Auswahlfeld im Dialog). */
 export const CURRENCIES = Object.freeze(['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN']);
 
-// Steuer-, Zero-Width- und Richtungszeichen (Textumkehr-Tricks) entfernen
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff]/g;
 
 /**
- * Macht Text aus fremden Quellen sicher: Tags und Steuerzeichen raus, Leerraum glätten, kürzen.
  * @param {unknown} v
  * @param {number} [max]
  * @returns {string}
@@ -39,7 +27,6 @@ export function sanitizeText(v, max = LIMITS.title) {
 }
 
 /**
- * Liest einen Preis aus Text wie „49,99 €“, „1.299,00“, „1,299.00“. Gibt null zurück, wenn keine Zahl erkennbar ist.
  * @param {unknown} v
  * @returns {number | null}
  */
@@ -47,7 +34,6 @@ export function parsePrice(v) {
   if (v == null) return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   const text = String(v);
-  // Erste Zahl im Text. Leerzeichen als Tausendertrenner nur, wenn genau drei Ziffern folgen („1 299,00“).
   const m = text.match(/\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d{1,2})?|\d[\d.,]*/);
   if (!m) return null;
   if (/[-\u2212\u2013]$/.test(text.slice(0, m.index).trim())) return null; // negative Preise sind ungültig
@@ -81,7 +67,6 @@ export function normalizeCurrency(v, fallback = '') {
 }
 
 /**
- * Erkennt lokale und interne Adressen (Schutz vor Zugriffen auf das Heimnetz).
  * @param {string} host Hostname so, wie ihn `new URL()` liefert
  * @returns {boolean}
  */
@@ -103,8 +88,6 @@ export function isPrivateHost(host) {
 /** @typedef {{ ok: true, url: string } | { ok: false, error: string }} UrlResult */
 
 /**
- * Macht aus einer Eingabe wie „www.shop.de/hemd“ einen vollständigen Link („https://www.shop.de/hemd“).
- * Alles, was nicht wie ein Domainname aussieht (z. B. „javascript:…“), bleibt unverändert und fällt danach in validateUrl durch.
  * @param {unknown} raw
  * @returns {string}
  */
@@ -115,8 +98,6 @@ export function normalizeLinkInput(raw) {
 }
 
 /**
- * Sieht der Link nach einer Bilddatei aus (Endung wie .jpg oder Format-Parameter wie ?format=webp)?
- * Dient nur dazu, bei einem Fehlschlag zu raten, ob jemand eine Shop-Seite statt eines Bildlinks eingefügt hat.
  * @param {string} url
  * @returns {boolean}
  */
@@ -131,8 +112,6 @@ export function looksLikeImageUrl(url) {
 }
 
 /**
- * Prüft einen eingegebenen Link. Erlaubt sind nur http(s)-Adressen ohne Zugangsdaten,
- * ohne lokale oder interne Ziele und mit üblichen Ports.
  * @param {unknown} raw
  * @param {{ allowLocal?: boolean }} [opts] allowLocal nur für die lokale Entwicklung
  * @returns {UrlResult}
@@ -157,9 +136,6 @@ export function validateUrl(raw, opts = {}) {
 }
 
 /**
- * Prüft eine Bildquelle aus einer Datei von außen: nur eingebettete Bilder (data:image) sind erlaubt.
- * Entfernte Adressen werden bewusst abgelehnt: Eine fremde Backup-Datei könnte sonst beim Anzeigen Anfragen an einen
- * fremden Server auslösen (Verfolgung, IP-Adresse). Die App selbst speichert Bilder immer als lokale Kopie.
  * @param {unknown} v
  * @returns {string} die Quelle, oder leer, wenn sie nicht erlaubt ist
  */
@@ -169,7 +145,6 @@ export function sanitizeImageSrc(v) {
 }
 
 /**
- * Prüft einen Kleiderschrank-Eintrag aus einer Backup-Datei und gibt einen bereinigten Eintrag zurück.
  * @param {unknown} raw
  * @param {readonly string[]} cats erlaubte Kategorien
  * @returns {Record<string, unknown> | null} null, wenn der Eintrag unbrauchbar ist
@@ -193,7 +168,6 @@ export function sanitizeItem(raw, cats) {
     link: link.ok ? link.url : '',
     price: sanitizePrice(o.price),
     cur: normalizeCurrency(o.cur, 'EUR'),
-    // Status: „own“ = besitze ich (Standard für ältere Daten), „wish“ = Wunschliste
     status: o.status === 'wish' ? 'wish' : 'own',
     priceHistory: sanitizeHistory(o.priceHistory, LIMITS.price),
   };
@@ -204,7 +178,6 @@ export function sanitizeItem(raw, cats) {
 }
 
 /**
- * Bereinigt ein gespeichertes Outfit aus einer Backup-Datei. Nur bekannte Felder bleiben, der Name wird als Text bereinigt.
  * @param {unknown} raw
  * @param {number} index Position (für eine Ersatz-Kennung)
  * @returns {{ id: string, name: string, pieces: import('./geometry.js').Piece[] } | null}
@@ -217,8 +190,6 @@ export function sanitizeOutfit(raw, index = 0) {
 }
 
 /**
- * Liest und prüft den Text einer Backup-Datei. Alles Unbekannte wird verworfen, nichts wird ungeprüft übernommen:
- * Größe und Anzahl sind begrenzt, doppelte Kennungen und Teile mit unzulässigem Bild oder Link werden übersprungen.
  * @param {string} text Inhalt der Datei
  * @param {readonly string[]} cats erlaubte Kategorien
  * @returns {{ ok: true, items: Record<string, unknown>[], outfits: NonNullable<ReturnType<typeof sanitizeOutfit>>[], board: import('./geometry.js').Piece[], skipped: number } | { ok: false, error: string }}

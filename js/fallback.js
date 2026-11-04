@@ -1,5 +1,3 @@
-// Klassisches Skript (läuft auch ohne ES-Module): zeigt einen Hinweis, wenn die App nicht startet,
-// z. B. beim Öffnen per Doppelklick (file://), weil Browser dort ES-Module blockieren.
 setTimeout(function () {
   if (document.documentElement.dataset.ready) return;
   var s = document.getElementById('saveState');

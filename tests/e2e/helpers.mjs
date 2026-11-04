@@ -1,4 +1,3 @@
-// Gemeinsame Hilfen der End-to-End-Tests: kleiner statischer Server, Testbild, Prüfzähler.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +15,6 @@ export function checker() {
 }
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
-/** Startet einen statischen Dateiserver (nur für den Test, die App selbst braucht keinen Server). */
 export async function startServer(port) {
   const server = http.createServer(async (req, res) => {
     try {
@@ -32,7 +30,6 @@ export async function startServer(port) {
   return server;
 }
 
-/** Fügt über den Dialog ein Teil hinzu (Bild, Name, Kategorie) und wartet, bis die Karte da ist. */
 export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberteil', price = '', png = PNG }) {
   const before = await p.locator('#grid .card').count();
   await p.click(trigger);
@@ -45,6 +42,5 @@ export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberte
   await p.waitForFunction(n => document.querySelectorAll('#grid .card').length === n, before + 1);
 }
 
-/** Browser-Engine der Tests: BROWSER=chromium (Standard) oder BROWSER=webkit (Safari-Engine, wie auf dem iPhone). */
 export const engine = process.env.BROWSER || 'chromium';
 export const launch = () => playwright[engine].launch();

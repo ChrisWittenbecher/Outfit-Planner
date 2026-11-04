@@ -1,7 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Outfit-Board: Teile auflegen, auswählen, verschieben, skalieren, Ebenen, Tastatur.
- */
 import * as Geo from './geometry.js';
 import { $, DEF, announce, imgOf, item, mb, state } from './core.js';
 import { toast } from './ui.js';
@@ -14,9 +11,8 @@ import { persist } from './storage.js';
 import { noDrag, pinchCount, touches } from './gestures.js';
 import { renderGrid } from './wardrobe.js';
 
-/* ---------- Outfit-Board ---------- */
 export function toggle(i){
-  const auto = !state.board.length || state.fitted;   // vor der Änderung prüfen: nur ein unverstelltes Board ordnet sich selbst neu
+  const auto = !state.board.length || state.fitted;
   const ex = state.board.find(p => p.id === i.id);
   if(ex){ state.board = state.board.filter(p => p !== ex); if(state.sel === i.id) state.sel = null; }
   else { state.board = state.board.filter(p => item(p.id)?.cat !== i.cat || i.cat === 'Accessoire'); addPiece(i); }
@@ -28,17 +24,9 @@ export function toggle(i){
 const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; // Standard-Reihenfolge von hinten nach vorn
 const rank = id => RANK[item(id)?.cat] ?? 2;
 function addPiece(i){ const d = DEF[i.cat]; let k = state.board.length; while(k > 0 && rank(state.board[k-1].id) > RANK[i.cat]) k--; state.board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
-/** Bereinigt Teile aus unsicherer Quelle (Speicher, Backup) und entfernt Teile ohne Kleiderschrank-Eintrag. */
 export const cleanPieces = list => Geo.sanitizePieces(list).filter(p => imgOf(p.id));
 export function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
 export function moveLayer(id, to){ const k = state.board.findIndex(p => p.id === id); if(k < 0) return; const [p] = state.board.splice(k, 1); state.board.splice(Math.max(0, Math.min(state.board.length, to)), 0, p); renderBoard(); announce((item(id)?.name || 'Teil') + ' liegt jetzt auf Ebene ' + (state.board.findIndex(q => q.id === id) + 1) + ' von ' + state.board.length); }
-/* ==========================================================================
-   Modul C – Drehen und Positionieren (Schritt 2), gilt für ALLE Teile
-   - Drehung um die Bildmitte (CSS rotate), Position = Mittelpunkt des Teils
-   - Bedienung: Griff am Teil (Maus, Touch, Tastatur), Regler im Arbeitsplatz,
-     Tasten [ und ] drehen, Pfeiltasten schieben (Shift = größere Schritte)
-   - Die Mathematik liegt in js/geometry.js (rein und getestet)
-   ========================================================================== */
 export const KNOB_GAP = 30;          // Abstand des Drehgriffs zur Kante des Teils (px)
 export const aspects = new Map();    // id -> Höhe/Breite des Bildes (wird beim Laden gemerkt)
 export const pieceEls = new Map();   // id -> <img> auf dem Board
@@ -47,19 +35,15 @@ export const heightOf = p => p.w * aspectOf(p.id);
 export const selPiece = () => state.board.find(k => k.id === state.sel);
 export const centerOf = p => ({x:p.x + p.w / 2, y:p.y + heightOf(p) / 2});
 
-/** Schreibt Position, Größe und Drehung ins DOM (nur über CSSOM, daher CSP-konform). */
 export function stylePiece(p, im){ Object.assign(im.style, {left:p.x + 'px', top:p.y + 'px', width:p.w + 'px', transform:`rotate(${p.r || 0}deg)`}); }
 
-/** Wählt ein Teil aus (Klick, Tastatur) und zeigt Griff und Arbeitsplatz an. */
 function select(id){
   if(state.sel === id) return; state.sel = id;
   pieceEls.forEach((el, k) => el.classList.toggle('sel', k === id));
   ['bigger','smaller','front','back'].forEach(b => $(b).disabled = false);
   drawKnob(); syncBench(); renderSum();
 }
-/** Setzt die Drehung live (ohne das Board neu aufzubauen) und speichert. */
 export function setRotation(p, deg){ p.r = Geo.normalizeAngle(deg); applyLive(p); }
-/** Verschiebt den MITTELPUNKT; null lässt die Achse unverändert. */
 export function moveCenter(p, cx, cy){
   const h = heightOf(p), c0 = centerOf(p), bb = Geo.rotatedBounds(p.w, h, p.r || 0);
   const c = Geo.clampCenter(cx ?? c0.x, cy ?? c0.y, bb.w, bb.h);
@@ -67,12 +51,9 @@ export function moveCenter(p, cx, cy){
 }
 export function applyLive(p, lockFlip){ state.fitted = false; const el = pieceEls.get(p.id); if(el) stylePiece(p, el); placeKnob(p, lockFlip); syncBench(); persist(); }
 
-/* ---------- Teil vom Board nehmen: Doppeltipp (Touch) oder Doppelklick (Maus) ---------- */
-// Das Browser-Ereignis „dblclick“ kommt bei Touch nicht an, weil der Tipp als Zeigerereignis abgefangen wird. Darum werden zwei Tipps selbst erkannt.
 const DOUBLE = {ms:450, slop:48};            // Zeit (ms) und Abstand (px) zwischen zwei Tipps
-const TAP_SLOP = {touch:14, mouse:4};        // so weit darf der Finger oder die Maus wandern, ohne dass es als Ziehen gilt
+const TAP_SLOP = {touch:14, mouse:4};
 let lastTap = null;
-/** Nimmt ein Teil vom Board. „Rückgängig“ im Hinweis holt es zurück. */
 function takeOff(p){
   step();
   const it = item(p.id);
@@ -80,9 +61,8 @@ function takeOff(p){
   else { state.board = state.board.filter(k => k !== p); if(state.sel === p.id) state.sel = null; renderAll(); }
   toast('„' + (it ? it.name : 'Teil') + '“ vom Board genommen', {action:{label:'Rückgängig', fn:undo}});
 }
-/** Meldet einen Tipp auf ein Teil (ohne Ziehen). Der zweite Tipp kurz darauf auf dasselbe Teil nimmt es vom Board. */
 function tapped(p, e){
-  const now = performance.now();   // eigene Uhr statt e.timeStamp: gleiche Basis für beide Tipps, auf jedem Gerät
+  const now = performance.now();
   const prev = lastTap; lastTap = {id:p.id, t:now, x:e.clientX, y:e.clientY};
   if(!prev || prev.id !== p.id || now - prev.t > DOUBLE.ms || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) > DOUBLE.slop) return;
   lastTap = null; takeOff(p);
@@ -102,8 +82,8 @@ export function renderBoard(){
       if(touches.size > 1) return; // zweiter Finger: Geste übernimmt (siehe unten)
       im.setPointerCapture(e.pointerId); select(p.id);
       const sx = e.clientX / state.K - p.x, sy = e.clientY / state.K - p.y, slop = e.pointerType === 'touch' ? TAP_SLOP.touch : TAP_SLOP.mouse;
-      const g0 = pinchCount();   // wird eine Zwei-Finger-Geste begonnen, solange dieser Finger unten ist, zählt das Ende nie als Tipp
-      let moved = false;   // erst ab einer kleinen Strecke zählt es als Ziehen, davor ist es ein Tipp (und das Layout bleibt unberührt)
+      const g0 = pinchCount();
+      let moved = false;
       im.onpointermove = m => {
         if(noDrag) return;
         if(!moved && Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) <= slop) return;
@@ -121,7 +101,6 @@ export function renderBoard(){
   drawKnob(); syncBench(); renderSum(); persist();
 }
 $('board').addEventListener('pointerdown', e => { if(touches.size > 1) return; if((e.target === $('board')) && state.sel){ state.sel = null; renderBoard(); } });
-/** Skaliert um den Mittelpunkt, damit Drehung und Position stabil bleiben. */
 function resize(p, f){ state.fitted = false; const c = centerOf(p); p.w = Geo.clamp(p.w * f, Geo.LIMITS.minW, Geo.LIMITS.maxW); const h = heightOf(p); p.x = c.x - p.w / 2; p.y = c.y - h / 2; renderBoard(); }
 $('bigger').onclick = () => { const p = state.board.find(k => k.id === state.sel); if(p) resize(p, 1.1); };
 $('smaller').onclick = () => { const p = state.board.find(k => k.id === state.sel); if(p) resize(p, .9); };
@@ -148,7 +127,6 @@ $('shuffle').onclick = () => {
 };
 export function fit(){
   state.K = Math.min(1, ($('stage').clientWidth - 36) / 400);
-  // Einzelne Eigenschaften über das CSSOM setzen statt style.cssText: vorsorglich, weil manche Browser cssText wie einen Inline-Stil behandeln könnten (strikte CSP).
   const wrap = $('wrap').style; wrap.width = 400 * state.K + 'px'; wrap.height = 600 * state.K + 'px';
   $('board').style.transform = `scale(${state.K})`;
 }

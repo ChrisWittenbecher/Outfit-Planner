@@ -1,4 +1,3 @@
-// Unit-Tests für die reinen Funktionen in js/scraper.js (ohne DOM).  Start:  node --test tests/unit/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as s from '../../js/scraper.js';
@@ -111,7 +110,6 @@ test('looksLikeImageUrl: erkennt Bildendungen und Format-Parameter, sonst nein',
     assert.equal(s.looksLikeImageUrl(no), false, no);
 });
 
-/* ---------- Backup-Datei: alles von außen gilt als unsicher ---------- */
 const CATS = ['Oberteil', 'Hose/Rock', 'Schuhe', 'Jacke', 'Accessoire'];
 const PNG1 = 'data:image/png;base64,iVBORw0KGgo=';
 const good = (id, extra = {}) => ({ id, name: 'Shirt', cat: 'Oberteil', img: PNG1, ...extra });

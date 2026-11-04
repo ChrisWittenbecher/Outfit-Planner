@@ -1,9 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Update-Hinweis. GitHub Pages lässt Dateien bis zu 10 Minuten im Zwischenspeicher, und auf dem iPhone bleiben
- * Tabs und Startbildschirm-Apps tagelang offen. Darum vergleicht die App ihre Version mit version.json (immer frisch geholt)
- * und bietet ein Update an. „Aktualisieren“ lädt alle Dateien am Zwischenspeicher vorbei neu und startet dann die Seite neu.
- */
 import { $ } from './core.js';
 import { VERSION, isVersion, refreshTargets } from './version.js';
 import { toast } from './ui.js';
@@ -11,7 +6,6 @@ import { toast } from './ui.js';
 const CHECK_GAP = 60000;   // höchstens einmal pro Minute prüfen
 let last = 0, offered = '';
 
-/** Liefert die Version auf dem Server, wenn sie von der laufenden abweicht, sonst null. */
 export async function newerVersion(){
   try{
     const r = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
@@ -23,13 +17,11 @@ export async function newerVersion(){
   }catch(e){ return null; }
 }
 
-/** Lädt Seite, Skripte und Stile am Zwischenspeicher vorbei und startet neu. */
 export async function refresh(){
   toast('Aktualisiere …', {ms:10000});
   try{
     const res = await fetch(location.pathname, {cache:'reload'});
     const text = (await res.text()).slice(0, 200000);
-    // Adressen per Muster lesen statt ein Dokument zu bauen: kein fremdes HTML wird interpretiert (Safari meldet dabei sogar CSP-Verstöße).
     const hrefs = [...text.matchAll(/<(?:link|script)\b[^>]*?\s(?:href|src)="([^"]+)"/gi)].map(m => m[1]);
     const urls = refreshTargets(hrefs, location.href);   // nur eigene Dateien der App
     await Promise.all(urls.map(u => fetch(u, {cache:'reload', credentials:'omit'}).catch(() => {})));
@@ -37,7 +29,6 @@ export async function refresh(){
   location.reload();
 }
 
-/** @param {boolean} [manual] true = Nutzer hat gefragt, dann auch „aktuell“ melden */
 export async function checkForUpdate(manual = false){
   if(!manual && Date.now() - last < CHECK_GAP) return;
   last = Date.now();

@@ -1,5 +1,3 @@
-// End-to-End-Test: Doppeltipp (Touch) und Doppelklick (Maus) nehmen ein Teil vom Board; „Rückgängig“ holt es zurück.
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium)
 import { devices } from 'playwright';
 import { addItem, checker, startServer, launch } from './helpers.mjs';
 
@@ -27,28 +25,23 @@ try {
     ok(await count(p) === 2, 'zwei Teile auf dem Board');
 
     await p.locator('#board').scrollIntoViewIfNeeded();
-    /** Mittelpunkt des Teils mit dieser Position in der Ebenenfolge (0 = hinten). */
     const center = async idx => { const b = await p.locator('#board img.p').nth(idx).boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width }; };
     const tap = (x, y) => (mobile ? p.touchscreen.tap(x, y) : p.mouse.click(x, y));
     const wait = ms => p.waitForTimeout(ms);
     const top = await center(1);   // Oberteil liegt vorn
 
-    // 1. Zwei Tipps mit Pause: wählen nur aus
     await tap(top.x, top.y); await wait(500); await tap(top.x, top.y); await wait(500);
     ok(await count(p) === 2 && await p.locator('#board img.p.sel').count() === 1, 'zwei langsame Tipps wählen das Teil nur aus (kein Entfernen)');
 
-    // 2. Zwei Tipps weit auseinander: kein Doppeltipp
     await wait(500);
     await tap(top.x - top.w / 3, top.y); await tap(top.x + top.w / 3, top.y); await wait(200);
     ok(await count(p) === 2, 'zwei Tipps an weit entfernten Stellen zählen nicht als Doppeltipp');
 
-    // 3. Tipp auf zwei verschiedene Teile hintereinander: kein Doppeltipp
     await wait(500);
     const low = await center(0);
     await tap(low.x, low.y + 4); await tap(top.x, top.y); await wait(200);
     ok(await count(p) === 2, 'Tipps auf verschiedene Teile entfernen nichts');
 
-    // 4. Echter Doppeltipp auf das Oberteil
     await wait(500);
     await tap(top.x, top.y); await wait(60); await tap(top.x, top.y); await wait(300);
     ok(await count(p) === 1, 'Doppeltipp nimmt das Teil vom Board');
@@ -58,7 +51,6 @@ try {
     await wait(300);
     ok(await count(p) === 2, '„Rückgängig“ holt das Teil zurück');
 
-    // 4b. Geisterfinger: ging ein pointerup verloren (iOS), darf das den nächsten Doppeltipp nicht verschlucken
     if (mobile) {
       await wait(500);
       await p.evaluate(() => document.getElementById('board').dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', pointerId: 99, isPrimary: true, clientX: 5, clientY: 5, bubbles: true })));
@@ -69,14 +61,12 @@ try {
       await p.click('#toasts button'); await wait(300);
     }
 
-    // 5. Ziehen und gleich danach tippen: kein Doppeltipp (nur Maus; der Test für Touch-Ziehen steckt im Gestentest)
     if (!mobile) {
       await wait(600);
       const c = await center(1);
       await p.mouse.move(c.x, c.y); await p.mouse.down(); await p.mouse.move(c.x + 20, c.y + 10, { steps: 4 }); await p.mouse.up();
       await p.mouse.click(c.x + 20, c.y + 10); await wait(200);
       ok(await count(p) === 2, 'Ziehen und gleich danach tippen entfernt nichts');
-      // 6. Entf nimmt das ausgewählte Teil vom Board, ebenfalls mit „Rückgängig“
       await p.mouse.click(5, 5);                       // Fokus weg von Feldern
       await p.locator('#board img.p').last().click();   // auswählen
       await p.keyboard.press('Delete'); await wait(300);

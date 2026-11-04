@@ -9,7 +9,7 @@ test('recordPrice: neuer Preis wird festgehalten, gleicher nicht', () => {
   assert.equal(p.recordPrice(h, 49.99, 2000), h);        // unverändert: dasselbe Objekt
   h = p.recordPrice(h, 39.99, 3000);
   assert.deepEqual(h, [{ t: 1000, v: 49.99 }, { t: 3000, v: 39.99 }]);
-  assert.equal(p.recordPrice(h, null, 4000), h);          // kein Preis: nichts tun
+  assert.equal(p.recordPrice(h, null, 4000), h);
   assert.equal(p.recordPrice(h, NaN, 4000), h);
   assert.equal(p.recordPrice(h, -1, 4000), h);
 });
@@ -57,7 +57,6 @@ test('baseHistory: Altbestand bekommt den bisherigen Preis als Ausgangspunkt', (
   assert.deepEqual(p.baseHistory([], undefined), []);
   const h = [{ t: 5, v: 9 }];
   assert.equal(p.baseHistory(h, 50), h);                  // vorhandener Verlauf bleibt
-  // Zusammenspiel: Altbestand 50 € → neuer Preis 40 € ergibt eine erkennbare Senkung
   const chg = p.priceChange(p.recordPrice(p.baseHistory([], 50), 40, 1000));
   assert.deepEqual(chg, { prev: 50, now: 40, pct: 20, dir: 'down' });
 });
