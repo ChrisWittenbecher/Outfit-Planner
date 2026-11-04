@@ -15,6 +15,9 @@ try {
   const errors = [], violations = [], foreign = [], dialogs = [];
   p.on('pageerror', e => errors.push(e.message));
   p.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
+  // Verstöße genau erfassen (Richtlinie, Quelle, Zeile, Auszug), um einen Fund einer Aktion zuordnen zu können.
+  await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push([e.effectiveDirective, e.blockedURI, (e.sourceFile || '').replace(/^.*\//, ''), e.lineNumber + ':' + e.columnNumber, (e.sample || '').slice(0, 60)].join(' | ')), true); });
+  const detail = async label => { const d = await p.evaluate(() => (window.__csp || []).splice(0)).catch(() => ['(Seite wechselt)']); if (d.length) console.log('   CSP-Detail nach ' + label + ': ' + JSON.stringify(d)); };
   let phase = 'Start';
   p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) { const l = m.location(); violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + (l.url || '').replace(/^.*\//, '') + ':' + l.lineNumber); } });
   // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
@@ -115,6 +118,7 @@ try {
   ok(await p.evaluate(() => document.documentElement.style.display) !== 'none', 'als eigene Seite ist sie sichtbar');
 
   console.log('--- Update-Code holt nur eigene Dateien'); phase = 'Update-Code holt nur eigene Dateien';
+  await detail('(Vorlauf, bewusst ausgelöste Angriffe)');   // leeren, damit unten nur Neues steht
   const requested = [];
   p.on('request', r => requested.push(r.url()));
   await p.route('**/index.html', route => {
@@ -123,15 +127,15 @@ try {
     return route.fulfill({ status: 200, contentType: 'text/html', body: `<html><head><link rel="stylesheet" href="css/styles.css"><script src="https://evil.example/x.js"></script><link href="//evil.example/y.png" rel="icon"><img src="https://evil.example/pixel.png"><script src="/../../etc/passwd.js"></script><script src="../outside.js"></script></head></html>` });
   });
   await p.route('**/version.json*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"version":"99.0.0"}' }));
-  await p.click('#updBtn'); await wait(500);
+  phase = 'Update: Hinweis'; await p.click('#updBtn'); await wait(500); await detail('Hinweis');
   const nav = p.waitForNavigation({ timeout: 15000 });
-  await p.click('#toasts button'); await nav;
+  phase = 'Update: Aktualisieren und Neuladen'; await p.click('#toasts button'); await nav; await wait(800); await detail('Neuladen');
   ok(requested.some(u => u.endsWith('/css/styles.css')), 'eigene Dateien werden neu geladen');
   ok(!requested.some(u => /evil\.example/.test(u)), 'fremde Adressen werden nicht abgerufen');
   ok(foreign.length === 0, 'nirgends ein Abruf von außen');
   await p.unroute('**/version.json*');
   await p.route('**/version.json*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"version":"<img src=x onerror=alert(1)>"}' }));
-  await p.click('#updBtn'); await wait(500);
+  phase = 'Update: ungültige Version'; await p.click('#updBtn'); await wait(500); await detail('ungültige Version');
   ok(/neueste Version/.test(await p.textContent('#toasts')), 'ungültige Versionsangabe wird ignoriert');
   await p.unroute('**/version.json*');
   await p.route('**/version.json*', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: '1.0.0', pad: 'x'.repeat(5000) }) }));
