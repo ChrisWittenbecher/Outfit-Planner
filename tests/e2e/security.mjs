@@ -1,5 +1,6 @@
 // End-to-End-Test: Sicherheit. Feindliche Backup-Dateien, zu große Bilder, Clickjacking, Update-Code, Sicherheitsrichtlinie.
 // Start:  npm run test:e2e   (BROWSER=webkit für die Safari-Engine)
+import { readFile } from 'node:fs/promises';
 import { devices } from 'playwright';
 import { addItem, checker, startServer, launch, PNG } from './helpers.mjs';
 
@@ -27,11 +28,22 @@ try {
     if (d && d.set) Object.defineProperty(CSSStyleDeclaration.prototype, 'cssText', { ...d, set(v) { note('cssText', null, v); return d.set.call(this, v); } });
     document.addEventListener('DOMContentLoaded', () => new MutationObserver(ms => ms.forEach(m => { if (/^(SELECT|OPTION|OPTGROUP|INPUT|LABEL)$/.test(m.target.tagName)) note('mutation', m.target, m.target.getAttribute('style')); })).observe(document, { subtree: true, attributes: true, attributeFilter: ['style'] }));
   });
+  const styleNotes = [];
   const detail = async label => { const d = await p.evaluate(() => (window.__csp || []).splice(0)).catch(() => ['(Seite wechselt)']); if (d.length) console.log('   CSP-Detail nach ' + label + ': ' + JSON.stringify(d));
     const st = await p.evaluate(() => ({ sel: [...document.querySelectorAll('select')].map(e => e.id + '=' + e.getAttribute('style')), log: (window.__sty || []).splice(0).slice(0, 12) })).catch(() => null);
-    if (st && (st.log.length || st.sel.some(x => !/=null$/.test(x)))) console.log('   Style-Detail nach ' + label + ': ' + JSON.stringify(st)); };
+    if (st && (st.log.length || st.sel.some(x => !/=null$/.test(x)))) { styleNotes.push(label + ': ' + JSON.stringify(st)); console.log('   Style-Detail nach ' + label + ': ' + JSON.stringify(st)); } };
   let phase = 'Start';
-  p.on('console', m => { if (/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) { const l = m.location(); violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + (l.url || '').replace(/^.*\//, '') + ':' + l.lineNumber); } });
+  // Safari-Engine: WebKit meldet für <select>-Felder einen eigenen, internen Inline-Stil als CSP-Verstoß ("apply a stylesheet", Zeile = <select>-Zeile
+  // in index.html, Playwright zählt ab 0). Unser Code setzt dort keinen Stil (kein style-Attribut, keine Mutation, siehe Diagnose); das ist kein Fund.
+  // Ausgenommen wird deshalb genau dieser Fall. Jeder andere Verstoß, auch an anderen Zeilen oder Elementen, bleibt ein Fehler.
+  const htmlLines = (await readFile(new URL('../../index.html', import.meta.url), 'utf8')).split('\n');
+  const engineNotes = [];
+  p.on('console', m => {
+    if (!/content security policy|refused to (load|execute|connect|apply)/i.test(m.text())) return;
+    const l = m.location(), at = (l.url || '').replace(/^.*\//, '') + ':' + l.lineNumber;
+    if (/apply a stylesheet/i.test(m.text()) && at.startsWith('index.html:') && /<select\b/.test(htmlLines[l.lineNumber] || '')) { engineNotes.push(at); return; }
+    violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + at);
+  });
   // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
   await ctx.route(url => !['localhost', '127.0.0.1'].includes(url.hostname), r => { foreign.push(r.request().url()); return r.abort(); });
   const wait = ms => p.waitForTimeout(ms);
@@ -155,7 +167,9 @@ try {
   ok(/neueste Version/.test(await p.textContent('#toasts')), 'überlange version.json wird ignoriert');
 
   ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
+  ok(styleNotes.length === 0, 'unser Code setzt keine Inline-Stile an Formularfeldern ' + styleNotes.join(' | '));
   ok(violations.length === 0, 'keine CSP-Verstöße im ganzen Lauf ' + violations.join(' | '));
+  if (engineNotes.length) console.log('   Hinweis: ' + engineNotes.length + ' interne WebKit-Stilmeldungen an <select>-Feldern (' + [...new Set(engineNotes)].join(', ') + ') nicht als Verstoß gewertet');
   await ctx.close();
 } finally {
   await browser.close();
