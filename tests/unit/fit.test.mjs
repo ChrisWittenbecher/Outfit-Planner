@@ -1,4 +1,3 @@
-// Unit-Tests für den Outfit-Fitter (js/fit.js, ohne DOM).  Start:  node --test tests/unit/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as fit from '../../js/fit.js';
@@ -13,7 +12,6 @@ const BAG = part('b', 'Accessoire', 1.0, 0.8, 0.8);
 const by = slots => Object.fromEntries(slots.map(s => [s.id, s]));
 const H = (slot, aspect) => slot.w * aspect;
 
-/* ---------- Messung der Umrisse ---------- */
 /** Maske aus einer Funktion (Zeile, Breite) -> Spanne in Pixeln, mittig. */
 const mask = (w, h, span) => { const a = new Uint8Array(w * h); for (let y = 0; y < h; y++) { const e = span(y); const lo = Math.round((w - e) / 2); for (let x = lo; x < lo + e; x++) a[y * w + x] = 255; } return a; };
 
@@ -45,7 +43,6 @@ test('bandRatios: Werte bleiben im Bereich 0,2 bis 1', () => {
   assert.ok(r.waist >= 0.2 && r.waist <= 1 && r.hem >= 0.2 && r.hem <= 1);
 });
 
-/* ---------- Anordnung ---------- */
 test('layout: Saum des Oberteils ist so breit wie der Bund der Hose', () => {
   const s = by(fit.layout([TOP, PANTS]));
   const hemPx = s.t.w * TOP.hem, waistPx = s.p.w * PANTS.waist;

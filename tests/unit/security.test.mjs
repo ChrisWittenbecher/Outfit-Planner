@@ -1,5 +1,3 @@
-// Sicherheits-Wächter: prüft Eigenschaften, die nie verloren gehen dürfen. Schlägt ein Test an, bitte die Änderung prüfen,
-// nicht den Test lockern.  Start:  node --test tests/unit/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -11,7 +9,6 @@ const read = f => readFile(join(root, f), 'utf8');
 const jsFiles = async () => (await readdir(join(root, 'js'))).filter(f => f.endsWith('.js')).map(f => 'js/' + f);
 const html = await read('index.html');
 
-/** Liest die Content-Security-Policy aus dem <meta>-Tag als Map: Direktive -> Quellen. */
 function csp() {
   const m = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(html);
   assert.ok(m, 'Content-Security-Policy fehlt');
@@ -87,7 +84,6 @@ test('Workflows: feste Commits, minimale Rechte, keine gefährlichen Auslöser',
     }
     assert.match(y, /^permissions:/m, f + ': „permissions“ auf oberster Ebene fehlt');
     assert.equal(/pull_request_target|workflow_run/.test(y), false, f + ': riskanter Auslöser');
-    // Keine Werte von außen (Titel, Branch-Namen …) direkt in Shell-Befehle einsetzen.
     for (const m of y.matchAll(/run:\s*([\s\S]*?)(?=\n\s*-\s|\n\S|$)/g)) {
       assert.equal(/\$\{\{\s*github\.(event|head_ref)/.test(m[1]), false, f + ': Einschleusen in run: möglich');
     }

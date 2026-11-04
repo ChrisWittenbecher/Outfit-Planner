@@ -1,5 +1,3 @@
-// End-to-End-Test: Update-Hinweis, gemerkter „angeordnet“-Zustand nach Neuladen, Tipp-Toleranz für echte Finger.
-// Start:  npm run test:e2e   (BROWSER=webkit für die Safari-Engine)
 import { devices } from 'playwright';
 import { addItem, checker, startServer, launch } from './helpers.mjs';
 
@@ -62,7 +60,6 @@ try {
   await p.locator('#board').scrollIntoViewIfNeeded();
   const top = await p.locator('#board img.p').last().boundingBox();
   const cx = top.x + top.width / 2, cy = top.y + top.height / 2;
-  // Zwei Tipps mit Versatz von 12 px (Finger landet nicht exakt gleich) und 380 ms Pause: zählt als Doppeltipp.
   const before = await count();
   await p.touchscreen.tap(cx, cy); await wait(300); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
   ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 300 ms Pause nehmen das Teil vom Board');

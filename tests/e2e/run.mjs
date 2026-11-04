@@ -1,5 +1,3 @@
-// Startet alle End-to-End-Tests nacheinander (auch wenn einer scheitert) und fasst zusammen.
-// Browser-Engine wählen:  BROWSER=webkit node tests/e2e/run.mjs   (Standard: chromium)
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

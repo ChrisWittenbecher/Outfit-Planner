@@ -1,8 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Design: Hell, Dunkel oder Automatisch (Systemeinstellung) und Bühne des Boards.
- * Das gespeicherte Design setzt js/theme-init.js schon vor dem ersten Zeichnen; hier liegen Umschalter und Meldungen.
- */
 import { $, announce } from './core.js';
 
 const KEY = 'anprobe-theme', STAGE_KEY = 'anprobe-stage';
@@ -18,7 +14,6 @@ const next = (list, v) => list[(list.findIndex(([k]) => k === v) + 1) % list.len
 
 let mode = read(KEY, MODES), stage = read(STAGE_KEY, STAGES);
 
-/** Setzt Attribut, Schaltfläche und Farbe der Browserleiste. Bei „Automatisch“ gelten wieder die Medienabfragen im HTML. */
 function paint() {
   if (mode === 'auto') delete root.dataset.theme; else root.dataset.theme = mode;
   document.querySelectorAll('#theme svg').forEach(s => { s.hidden = s.dataset.mode !== mode; });
@@ -31,7 +26,6 @@ function paintStage() {
   if (stage === 'auto') delete root.dataset.stage; else root.dataset.stage = stage;
   $('stageBtn').textContent = 'Bühne: ' + label(STAGES, stage);
 }
-/** Wechselt weich (View Transition), wo der Browser es kann und die Person Bewegung nicht reduziert hat. */
 const swap = fn => {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (document.startViewTransition && !calm) document.startViewTransition(fn); else fn();

@@ -1,7 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Preise und Ebenenliste, gespeicherte Outfits.
- */
 import { $, hostOf, imgOf, item, mb, money, state } from './core.js';
 import { cleanPieces, fixOrder, moveLayer, renderBoard } from './board.js';
 import { sumPrices } from './prices.js';
@@ -11,7 +8,6 @@ import { askText, toast } from './ui.js';
 import { step, undo } from './history.js';
 
 const moneyBy = by => Object.entries(by).map(([c, v]) => money(v, c)).join(' + ');
-/** Summen eines Outfits: gesamt und „noch zu kaufen“ (nur Teile der Wunschliste). */
 function totals(pieces){
   const its = pieces.map(p => item(p.id)).filter(Boolean), wish = its.filter(i => i.status === 'wish');
   const all = sumPrices(its), buy = sumPrices(wish);
@@ -45,10 +41,9 @@ $('save').onclick = async () => {
   if(!state.board.length) return;
   const name = await askText({title:'Outfit speichern', label:'Name des Outfits', value:'Outfit ' + (state.data.outfits.length + 1), ok:'Speichern'}); if(name === null) return;
   state.data.outfits.unshift({id:'o'+Date.now(), name:name || 'Outfit', pieces:JSON.parse(JSON.stringify(state.board))});
-  renderOuts(); flush(); // bewusste Aktion: sofort sichern, nicht erst nach dem Timer
+  renderOuts(); flush();
 };
 
-/* ---------- Gespeicherte Outfits ---------- */
 export function renderOuts(){
   if(!state.data.outfits.length){ $('outs').innerHTML = '<div class="empty empty--tight">Noch keine Outfits gespeichert.</div>'; return; }
   $('outs').replaceChildren(...state.data.outfits.map(o => {

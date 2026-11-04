@@ -1,30 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Einstieg: lädt alle Module und startet die App.
- * Jedes Modul registriert seine Ereignisse beim Laden; hier wird nur noch der Bestand geladen und gezeichnet.
- *
- * Aufbau (js/):
- *   core        Zustand, Konstanten, kleine Helfer
- *   storage     Speicher (IndexedDB)
- *   image       Bildverarbeitung (Freistellen, Zuschnitt, Schuhpaare)
- *   dialog      Dialog „Teil hinzufügen / bearbeiten“
- *   wardrobe    Kleiderschrank (Filter, Karten, Menü)
- *   board       Outfit-Board (auflegen, verschieben, skalieren, Ebenen)
- *   rotation    Drehen und Positionieren
- *   gestures    Zwei-Finger-Geste (Touch)
- *   exchange    PNG-Export, Backup
- *   outfits     Preise, Ebenenliste, gespeicherte Outfits
- *   render      alles neu zeichnen
- *   geometry    reine Mathematik (getestet)
- *   scraper     Eingabeprüfung und Bereinigung (getestet)
- *   prices      Preisverlauf und Summen (getestet)
- *   fit         Outfit-Fitter: Rechnung (rein, getestet)
- *   fitter      Outfit-Fitter: Messung am Bild, Anwenden aufs Board
- *   ui          eigene Dialoge und Hinweise (statt alert, confirm, prompt)
- *   theme       Design (Hell, Dunkel, Automatisch) und Bühne des Boards
- *   history     Rückgängig und Wiederholen
- *   update      Versionsanzeige und Update-Hinweis (version.js, version.json)
- */
 import { $ } from './core.js';
 import { load, setReady } from './storage.js';
 import { renderAll } from './render.js';
