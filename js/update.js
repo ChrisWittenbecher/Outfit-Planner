@@ -28,8 +28,10 @@ export async function refresh(){
   toast('Aktualisiere …', {ms:10000});
   try{
     const res = await fetch(location.pathname, {cache:'reload'});
-    const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-    const urls = refreshTargets([...doc.querySelectorAll('link[href], script[src]')].map(n => n.getAttribute('href') || n.getAttribute('src')), location.href);   // nur eigene Dateien der App
+    const text = (await res.text()).slice(0, 200000);
+    // Adressen per Muster lesen statt ein Dokument zu bauen: kein fremdes HTML wird interpretiert (Safari meldet dabei sogar CSP-Verstöße).
+    const hrefs = [...text.matchAll(/<(?:link|script)\b[^>]*?\s(?:href|src)="([^"]+)"/gi)].map(m => m[1]);
+    const urls = refreshTargets(hrefs, location.href);   // nur eigene Dateien der App
     await Promise.all(urls.map(u => fetch(u, {cache:'reload', credentials:'omit'}).catch(() => {})));
   }catch(e){ /* dann eben nur neu laden */ }
   location.reload();
