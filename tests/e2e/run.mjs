@@ -1,11 +1,9 @@
-// Startet alle End-to-End-Tests nacheinander (auch wenn einer scheitert) und fasst zusammen.
-// Browser-Engine wählen:  BROWSER=webkit node tests/e2e/run.mjs   (Standard: chromium)
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const FILES = ['add-flow', 'theme-undo', 'image-link', 'outfit-fit', 'double-tap', 'update-persist', 'security'];
+const FILES = ['add-flow', 'theme-undo', 'image-link', 'outfit-fit', 'double-tap', 'update-persist', 'design-motion', 'security'];
 const failed = [];
 for (const name of FILES) {
   console.log(`\n===== ${name} (${process.env.BROWSER || 'chromium'}) =====`);

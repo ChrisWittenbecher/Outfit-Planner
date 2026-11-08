@@ -8,30 +8,18 @@
   <title>Anprobe – Outfit-Planer</title>
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
-  <!-- Datenschutz: beim Laden von Produktbildern wird nicht verraten, von welcher Seite die Anfrage kommt. -->
   <meta name="referrer" content="no-referrer">
-  <!--
-    Content-Security-Policy (strikt, ohne 'unsafe-inline'):
-    - script-src: eigene Dateien + jsDelivr (nur für das optionale KI-Freistellen, dynamischer Import)
-    - 'wasm-unsafe-eval': nötig, damit das KI-Modell (WebAssembly) laufen darf
-    - style-src 'self': alle Styles liegen in css/styles.css (JS darf Styles per CSSOM setzen)
-    - img-src: Produktbilder kommen von beliebigen https-Shops sowie als data:/blob: aus dem Canvas
-    - connect-src: nur eigener Ursprung und das optionale KI-Modell (jsDelivr, staticimgly.com)
-    - worker-src blob: für den KI-Worker des optionalen Freistellens
-    - Module: alle Dateien in js/ (außer fallback.js) sind ES-Module (script-src 'self' genügt)
-  -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/icon128.png">
   <link rel="stylesheet" href="css/styles.css">
-  <!-- Setzt das gespeicherte Design vor dem ersten Zeichnen (kein Aufblitzen); eigene Datei, damit die CSP ohne Inline-Skript auskommt -->
   <script src="js/theme-init.js"></script>
-  <!-- Alle Module sofort vorladen, damit sie nicht nacheinander (Import-Kaskade) geladen werden -->
   <link rel="modulepreload" href="js/main.js">
   <link rel="modulepreload" href="js/core.js">
   <link rel="modulepreload" href="js/storage.js">
   <link rel="modulepreload" href="js/history.js">
   <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/sheet.js">
   <link rel="modulepreload" href="js/theme.js">
   <link rel="modulepreload" href="js/image.js">
   <link rel="modulepreload" href="js/dialog.js">
@@ -77,7 +65,6 @@
 
   <main id="main" class="layout">
 
-    <!-- ===== Spalte 1: Kleiderschrank ===== -->
     <section class="panel" aria-labelledby="wardrobeTitle">
       <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
 
@@ -86,7 +73,6 @@
       <div id="grid"></div>
     </section>
 
-    <!-- ===== Spalte 2: Outfit-Board ===== -->
     <section class="panel" id="stage" aria-labelledby="outfitTitle">
       <div class="panel-head panel-head--full"><h2 id="outfitTitle">Outfit</h2><span id="saveState" class="meta" role="status"></span></div>
       <div id="wrap">
@@ -108,7 +94,6 @@
         <button type="button" class="pri" id="save">Outfit speichern</button>
       </div>
 
-      <!-- Modul C: Drehen und Positionieren (Schritt 2), gilt für alle Teile -->
       <section class="bench" id="workbench" aria-labelledby="benchTitle">
         <h3 id="benchTitle">Drehen &amp; Positionieren</h3>
         <p id="benchHint" class="hint">Wähle ein Teil auf dem Board, um es stufenlos zu drehen und zu positionieren.</p>
@@ -140,7 +125,6 @@
       <div id="sum"></div>
     </section>
 
-    <!-- ===== Spalte 3: Gespeicherte Outfits ===== -->
     <section class="panel" aria-labelledby="savedTitle">
       <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2></div>
       <div id="outs"></div>
@@ -149,8 +133,8 @@
 
   <p class="ver">Anprobe <span id="ver"></span> · <button type="button" id="updBtn">Nach Update suchen</button></p>
 
-  <!-- Aktionsmenü für ein Teil im Kleiderschrank (Drei-Punkte-Menü) -->
-  <dialog id="menuDlg" aria-labelledby="menuTitle">
+  <dialog id="menuDlg" data-dismiss="backdrop" aria-labelledby="menuTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="menuTitle" class="menu-title"></h2>
     <div class="menu-list">
       <button type="button" id="menuEdit">Bearbeiten</button>
@@ -162,7 +146,8 @@
   </dialog>
 
   <!-- Mehr (Smartphone): Backup und Wiederherstellen -->
-  <dialog id="moreDlg" aria-labelledby="moreTitle">
+  <dialog id="moreDlg" data-dismiss="backdrop" aria-labelledby="moreTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
       <button type="button" id="mExp">Backup speichern</button>
@@ -171,8 +156,8 @@
     </div>
   </dialog>
 
-  <!-- Eigener Dialog für Rückfragen und Namenseingabe (ersetzt confirm und prompt des Browsers) -->
   <dialog id="uiDlg" aria-labelledby="uiTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="uiTitle" class="menu-title"></h2>
     <p id="uiText" hidden></p>
     <label for="uiInput" id="uiLabel" hidden></label>
@@ -186,8 +171,8 @@
   <!-- Bildschirmleser-Ansagen für Aktionen auf dem Board -->
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
 
-  <!-- ===== Dialog: Teil hinzufügen / bearbeiten ===== -->
   <dialog id="dlg" aria-labelledby="dlgTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="dlgTitle">Neues Teil</h2>
     <label for="imgUrl">Bild per Link laden (optional, direkter Link zum Bild)</label>
     <div class="row">

@@ -1,24 +1,13 @@
 // @ts-check
-/**
- * Anprobe – Preislogik: Preisverlauf, Preisänderung und Summen (reine Funktionen ohne DOM).
- *
- * Der Verlauf wird bei jeder Preisänderung automatisch festgehalten, die der Mensch einträgt.
- * Ein automatisches Abrufen von Shop-Preisen ist ohne eigenen Server nicht zuverlässig möglich
- * (Browser dürfen fremde Seiten nicht lesen).
- */
 
 /** @typedef {{ t: number, v: number }} PricePoint  Zeitpunkt (ms seit 1970) und Preis */
 /** @typedef {{ prev: number, now: number, pct: number, dir: 'down' | 'up' }} PriceChange */
 
-/** Höchstens so viele Einträge pro Teil werden gespeichert (die ältesten fallen weg). */
 export const MAX_POINTS = 50;
 
-/** Zeitstempel für Preise, deren Datum unbekannt ist (Teile, die vor dem Preisverlauf gespeichert wurden). */
 export const LEGACY_T = 1;
 
 /**
- * Bei älteren Teilen mit Preis, aber ohne Verlauf: der bisherige Preis wird als Ausgangspunkt übernommen,
- * damit die erste Änderung als Änderung erkannt wird. Das Datum ist dann unbekannt (LEGACY_T).
  * @param {PricePoint[]} history
  * @param {number | null | undefined} price bisheriger Preis des Teils
  * @returns {PricePoint[]}
@@ -29,8 +18,6 @@ export function baseHistory(history, price) {
 }
 
 /**
- * Prüft einen gespeicherten Verlauf (aus Speicher oder Backup) und gibt einen bereinigten zurück:
- * nur gültige Einträge, nach Zeit sortiert, höchstens MAX_POINTS.
  * @param {unknown} raw
  * @param {number} [maxPrice]
  * @returns {PricePoint[]}
@@ -51,7 +38,6 @@ export function sanitizeHistory(raw, maxPrice = 100_000) {
 }
 
 /**
- * Hält einen neuen Preis im Verlauf fest. Gleicher Preis wie zuletzt oder kein Preis: keine Änderung.
  * @param {PricePoint[]} history bisheriger Verlauf
  * @param {number | null} price neuer Preis
  * @param {number} [now] Zeitpunkt (für Tests)
@@ -79,7 +65,6 @@ export function priceChange(history) {
 }
 
 /**
- * Summe der Preise je Währung. Teile ohne Preis werden gezählt, nicht addiert.
  * @param {{ price: number | null, cur?: string }[]} items
  * @returns {{ by: Record<string, number>, missing: number }}
  */

@@ -1,7 +1,4 @@
 // @ts-nocheck
-/**
- * Anprobe – Austausch: PNG-Export, Backup und Wiederherstellen.
- */
 import * as Geo from './geometry.js';
 import * as Scraper from './scraper.js';
 import { $, CATS, imgOf, item, loadImg, state } from './core.js';

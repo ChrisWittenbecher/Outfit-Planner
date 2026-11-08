@@ -1,15 +1,4 @@
 // @ts-check
-/**
- * Anprobe – Geometrie für Drehen und Positionieren (Schritt 2).
- *
- * Reine Funktionen ohne DOM-Zugriff. Dadurch lassen sie sich in Node testen
- * (tests/geometry.test.mjs) und mit TypeScript prüfen (`tsc --checkJs`).
- *
- * Konventionen
- * - Board: 400 × 600 px, Ursprung oben links, x nach rechts, y nach unten.
- * - Winkel in Grad. 0° = Teil steht aufrecht, positiv = im Uhrzeigersinn (wie CSS rotate()).
- * - Die Position eines Teils ist sein MITTELPUNKT. So bleibt er beim Drehen und Skalieren stabil.
- */
 
 /** @typedef {{ id: string, x: number, y: number, w: number, r: number, z?: number }} Piece */
 /** @typedef {{ x: number, y: number }} Point */
@@ -17,7 +6,6 @@
 
 /** Größe des Boards in px. */
 export const BOARD = Object.freeze({ w: 400, h: 600 });
-/** Grenzen für Teile: Breite in px und wie viel mindestens sichtbar bleiben muss. */
 export const LIMITS = Object.freeze({ minW: 40, maxW: 560, minVisible: 40 });
 
 /**
@@ -30,8 +18,6 @@ export const LIMITS = Object.freeze({ minW: 40, maxW: 560, minVisible: 40 });
 export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 /**
- * Bringt einen Winkel in den Bereich [0, 360). Ungültige Werte (NaN, Text, null) ergeben 0.
- * Auf zwei Nachkommastellen gerundet, damit Rechenrauschen nicht gespeichert wird.
  * @param {unknown} deg
  * @returns {number}
  */
@@ -42,7 +28,6 @@ export function normalizeAngle(deg) {
 }
 
 /**
- * Winkel des Zeigers um einen Mittelpunkt. 0° = genau darüber, im Uhrzeigersinn wachsend.
  * @param {number} cx Mittelpunkt x
  * @param {number} cy Mittelpunkt y
  * @param {number} px Zeiger x
@@ -57,8 +42,6 @@ export function angleFromCenter(cx, cy, px, py) {
 }
 
 /**
- * Kürzeste vorzeichenbehaftete Winkeldifferenz von a nach b, im Bereich (-180, 180].
- * Nützlich, damit ein Ziehen über 0°/360° nicht „springt“.
  * @param {number} a
  * @param {number} b
  * @returns {number}
@@ -71,7 +54,6 @@ export function shortestDelta(a, b) {
 }
 
 /**
- * Rastet auf das nächste Vielfache von `step` ein (z. B. mit gedrückter Shift-Taste).
  * @param {number} deg
  * @param {number} [step=15]
  * @returns {number}
@@ -96,8 +78,6 @@ export function rotatedBounds(w, h, deg) {
 }
 
 /**
- * Begrenzt den Mittelpunkt so, dass vom (gedrehten) Teil mindestens `LIMITS.minVisible` px
- * auf dem Board sichtbar bleiben. Das Teil kann also nie unerreichbar „verloren“ gehen.
  * @param {number} cx gewünschter Mittelpunkt x
  * @param {number} cy gewünschter Mittelpunkt y
  * @param {number} bw Breite des umschließenden Rechtecks
@@ -142,8 +122,6 @@ export function angleAria(deg) {
 }
 
 /**
- * Prüft ein Teil aus unsicherer Quelle (gespeicherte Daten, Backup-Datei) und gibt ein
- * bereinigtes Teil zurück. Ungültige Einträge ergeben null. Unbekannte Felder werden verworfen.
  * @param {unknown} raw
  * @returns {Piece | null}
  */
@@ -161,7 +139,6 @@ export function sanitizePiece(raw) {
     w: clamp(o.w, LIMITS.minW, LIMITS.maxW),
     r: normalizeAngle(o.r),
   };
-  // „z“ stammt aus älteren Versionen und wird nur zum Umsortieren gebraucht.
   if (typeof o.z === 'number' && Number.isFinite(o.z)) piece.z = o.z;
   return piece;
 }

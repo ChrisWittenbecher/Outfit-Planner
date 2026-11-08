@@ -1,5 +1,3 @@
-// End-to-End-Test: Outfit-Fitter (Teile passen direkt zueinander).
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium)
 import { devices } from 'playwright';
 import { addItem, checker, startServer, launch } from './helpers.mjs';
 
@@ -8,11 +6,9 @@ const { ok, state: result } = checker();
 const server = await startServer(PORT);
 const browser = await launch();
 
-/** Erzeugt im Browser freigestellte Test-Bilder mit bekannten Umrissen und gibt sie als PNG-Puffer zurück. */
 const shapes = p => p.evaluate(() => {
   const make = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); draw(x); return c.toDataURL('image/png').split(',')[1]; };
   return {
-    // Oberteil: Ärmel 200 breit, Rumpf nur 110 breit -> Saum 0,55 der größten Breite
     top: make(200, 220, x => { x.fillStyle = '#243b82'; x.fillRect(0, 0, 200, 70); x.fillRect(45, 0, 110, 220); }),
     // Hose: Bund 120 von 160 breit (0,75), Saum 160 -> weitet sich nach unten
     pants: make(160, 300, x => { x.fillStyle = '#1f2a44'; x.beginPath(); x.moveTo(20, 0); x.lineTo(140, 0); x.lineTo(160, 300); x.lineTo(0, 300); x.closePath(); x.fill(); }),
@@ -43,13 +39,11 @@ try {
 
     ok(await p.locator('#fit').isDisabled(), '„Passend anordnen“ ist bei leerem Board gesperrt');
 
-    // Hose zuerst, dann Oberteil, dann Schuhe: das Ergebnis darf nicht von der Reihenfolge abhängen
     await tap('Testhose'); await tap('Testshirt'); await tap('Testschuhe'); await settle(p);
     let g = await geo(p);
     ok(g.length === 3, 'drei Teile auf dem Board');
     const [shoes, pants, top] = g;
     ok(g.every(k => k.x >= 0 && k.y >= 0 && k.x + k.w <= 400.5 && k.y + k.w * k.asp <= 600.5), 'alle Teile liegen ganz im Board');
-    // Saum des Oberteils (0,55 der Breite) = Bund der Hose (0,75 der Breite) -> Hose = 0,55/0,75 = 0,73 der Oberteilbreite
     const ratio = pants.w / top.w;
     ok(ratio > 0.66 && ratio < 0.80, `Hose ist so groß, dass ihr Bund zum Saum des Oberteils passt (Verhältnis ${ratio.toFixed(2)}, Standardplatz wäre 0,90)`);
     const overlap = (top.y + top.w * top.asp - pants.y) / (top.w * top.asp);
@@ -88,7 +82,6 @@ try {
     const cuts = await p.evaluate(() => new Promise(res => { const q = indexedDB.open('anprobe'); q.onsuccess = () => { const g = q.result.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => res(g.result.items.map(i => !!i.cut)); }; }));
     ok(cuts.length === 4 && cuts.every(Boolean), 'Testbilder sind freigestellt, der Fitter hat echte Umrisse gemessen');
 
-    // Teil per Tipp im Schrank entfernen: übrige Teile ordnen sich nicht neu, solange das Layout von Hand verändert wurde
     await p.screenshot({ path: `/tmp/shots/fit-${mobile ? 'mobile' : 'desktop'}.png`, fullPage: false });
     ok(native.length === 0, 'keine nativen Dialoge');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));

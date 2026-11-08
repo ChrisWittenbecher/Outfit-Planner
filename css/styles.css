@@ -1,13 +1,5 @@
-/* ==========================================================================
-   Anprobe – Stylesheet
-   Aufbau (Cascade Layers, von schwach nach stark):
-   reset → tokens → base → layout → components → modules → utilities
-   Hinweis: Es gibt bewusst KEINE Inline-Styles im HTML. So kann die
-   Content-Security-Policy ohne 'unsafe-inline' auskommen.
-   ========================================================================== */
 @layer reset, tokens, base, layout, components, modules, utilities;
 
-/* ---------- 1. Reset ---------- */
 @layer reset {
   *, *::before, *::after { box-sizing: border-box; }
   body, h1, h2, h3, p, figure, fieldset, legend { margin: 0; padding: 0; }
@@ -16,22 +8,18 @@
   button, input, select { font: inherit; color: inherit; }
 }
 
-/* ---------- 2. Design-Tokens ---------- */
-/* Hell und Dunkel stehen je Token einmal da: light-dark(hell, dunkel). Der Umschalter setzt nur color-scheme.
-   Außerhalb dieser Ebene stehen KEINE Farbwerte (wird von tests/unit/contrast.test.mjs geprüft). */
 :root { color-scheme: light dark; }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 
 @layer tokens {
   :root {
-    /* Flächen: je höher eine Ebene liegt, desto heller (im Dunkeln) */
     --bg: light-dark(#e8eaee, #0f0f12);          /* Seite */
     --panel: light-dark(#ffffff, #18181b);       /* Bereiche (Ebene 1) */
     --raised: light-dark(#f6f7f9, #212127);      /* Karten, Felder (Ebene 2) */
     --overlay: light-dark(#ffffff, #2a2a32);     /* Dialoge, Menüs (Ebene 3) */
     --canvas: light-dark(#f3f4f7, #212127);      /* ruhige Flächen, z. B. Arbeitsplatz */
-    --tile: light-dark(#f6f7f9, #ececf1);        /* Bühne der Kleiderschrank-Kacheln: bleibt hell, sonst verschwinden dunkle Teile */
+    --tile: light-dark(#f6f7f9, #ececf1);
     --field: light-dark(#ffffff, #212127);       /* Eingabefelder */
     --edge: light-dark(#0000, #26262d);          /* feine Kante um Bereiche im Dunkeln */
     /* Text */
@@ -42,7 +30,6 @@
     /* Linien */
     --line: light-dark(#d5d9e1, #2e2e36);        /* Haarlinien, dekorativ */
     --field-line: light-dark(#7d8496, #7a7a88);  /* Rand von Eingabefeldern: mindestens 3:1 */
-    /* Akzent: im Dunkeln heller und ruhiger, die Schrift darauf kippt auf dunkel */
     --acc: light-dark(#3b3bff, #9a9aff);
     --acc-strong: light-dark(#2525d6, #b4b4ff);
     --acc-soft: light-dark(#e7e7ff, #26264f);
@@ -65,7 +52,6 @@
     --knob: light-dark(#ffffff, #ffffff);
     --chk-a: light-dark(#e5e7ec, #8e8e9a);
     --chk-b: light-dark(#ffffff, #a6a6b2);
-    /* Bühne des Boards (Hell, Mittel, Dunkel). Automatisch: hell im hellen Theme, mittel im dunklen. */
     --stage: light-dark(#ececf1, #8e8e9a);
     --stage-dot: light-dark(#c9ceda, #7f7f8c);
     --stage-ink: light-dark(#5f6678, #0f0f12);
@@ -76,6 +62,15 @@
     --tap: 40px;              /* Mindestgröße für Touch-Ziele */
     --font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
     --serif: Georgia, "Times New Roman", serif;
+    /* Bewegung */
+    --ease-out: cubic-bezier(.23, 1, .32, 1);        /* Ein- und Ausblenden, Druck-Rückmeldung */
+    --ease-in-out: cubic-bezier(.77, 0, .175, 1);    /* Bewegung auf dem Bildschirm */
+    --ease-sheet: cubic-bezier(.32, .72, 0, 1);      /* Bottom-Sheet, wie iOS */
+    --t-press: 140ms;
+    --t-fade: 200ms;
+    --t-sheet: 300ms;
+    --t-sheet-exit: 220ms;
+    --t-exit: 160ms;
   }
   :root[data-stage="light"] { --stage: #ececf1; --stage-dot: #c9ceda; --stage-ink: #5f6678; --stage-acc: #3b3bff; }
   :root[data-stage="mid"]   { --stage: #8e8e9a; --stage-dot: #7f7f8c; --stage-ink: #0f0f12; --stage-acc: #1a1a7a; }
@@ -83,7 +78,6 @@
   @media (prefers-contrast: more) {
     :root { --line: light-dark(#8a90a0, #7a7a88); --edge: light-dark(#8a90a0, #7a7a88); }
   }
-  /* Ältere Browser ohne light-dark(): feste helle Werte (Gleichheit mit den Hell-Werten oben prüft der Test) */
   @supports not (color: light-dark(#000, #fff)) {
     :root {
       --bg: #e8eaee; --panel: #ffffff; --raised: #f6f7f9; --overlay: #ffffff; --canvas: #f3f4f7; --tile: #f6f7f9; --field: #ffffff; --edge: #0000;
@@ -97,11 +91,14 @@
   }
 }
 
-/* ---------- 3. Basis ---------- */
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
-  body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); }
-  h1, h2, h3 { font-family: var(--serif); font-weight: 400; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scrollbar-gutter: stable; }
+  html:has(dialog[open]) { overflow: hidden; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 400; text-wrap: balance; }
+  p, .hint, .sub, .empty { text-wrap: pretty; }
+  a, button, input, select, label, [role="button"] { touch-action: manipulation; }
+  button, [role="button"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   h1 { font-size: 30px; font-style: italic; letter-spacing: -.5px; }
   h2 { font-size: 20px; }
   h3 { font-size: 16px; }
@@ -111,11 +108,12 @@
   input[type=checkbox], input[type=range] { width: auto; min-height: 0; padding: 0; accent-color: var(--acc); }
   :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
   [aria-invalid="true"] { border-color: var(--danger); }
-  dialog { border: 0; border-radius: var(--radius); padding: 22px; width: min(720px, 94vw); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px var(--shade-lg); background: var(--overlay); color: var(--ink); }
+  dialog { border: 0; border-radius: var(--radius); padding: 22px; width: min(720px, 94vw); max-height: 92vh; max-height: 92dvh; overflow: auto; overscroll-behavior: contain; box-shadow: 0 20px 60px var(--shade-lg); background: var(--overlay); color: var(--ink); }
   dialog::backdrop { background: var(--scrim); }
+  dialog[data-closing] { pointer-events: none; }
+  .grab { display: none; }
 }
 
-/* ---------- 4. Seitenlayout ---------- */
 @layer layout {
   .topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 18px 28px; }
   .actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -133,14 +131,17 @@
   @media (max-width: 560px) { .topbar, .layout { padding-inline: 16px; } }
 }
 
-/* ---------- 5. Komponenten ---------- */
 @layer components {
   /* Buttons */
   button { cursor: pointer; border: 1px solid var(--ink); background: transparent; padding: 7px 14px; border-radius: 999px; min-height: 36px; }
-  button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
+  button:active:not(:disabled) { background: var(--ink); color: var(--on-ink); }
   button:disabled { opacity: .45; cursor: not-allowed; }
   button.pri { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
-  button.pri:hover:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  button.pri:active:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  @media (hover: hover) and (pointer: fine) {
+    button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
+    button.pri:hover:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  }
   button.small { padding: 4px 12px; font-size: 13px; min-height: 30px; }
 
   /* Kategorie-Filter */
@@ -155,18 +156,19 @@
   .card img { display: block; width: 100%; aspect-ratio: 3/4; object-fit: contain; padding: 6px; filter: drop-shadow(0 2px 3px var(--shade-sm)); }
   .card img.mb { filter: none; }
   .mb { mix-blend-mode: multiply; }
-  .card .n { padding: 6px 8px 8px; font-size: 13px; line-height: 1.25; background: var(--raised); }
+  .card .n { padding: 6px 8px 8px; font-size: 13px; line-height: 1.25; background: var(--raised); overflow-wrap: anywhere; hyphens: auto; }
   .card .n small { display: block; color: var(--mute); }
   .card .n a.h { display: block; color: var(--acc); font-size: 12px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card .n a.h:hover { text-decoration: underline; }
+  @media (hover: hover) and (pointer: fine) { .card .n a.h:hover { text-decoration: underline; } }
   .card .x { position: absolute; top: 5px; right: 5px; display: none; gap: 4px; }
-  .card:hover .x, .card:focus-within .x { display: flex; }
+  .card:focus-within .x { display: flex; }
+  @media (hover: hover) and (pointer: fine) { .card:hover .x { display: flex; } }
   @media (hover: none) { .card .x { display: flex; } }
   .x button { padding: 0; width: 28px; height: 28px; min-height: 0; background: var(--overlay); border-radius: 50%; font-size: 13px; line-height: 1; display: grid; place-items: center; }
-  .x button:hover:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }   /* nicht --ink: im Dunkeln wäre der Knopf so hell wie die Kachel */
+  .x button:active:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+  @media (hover: hover) and (pointer: fine) { .x button:hover:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); } }
   .empty { color: var(--mute); padding: 30px 6px; text-align: center; grid-column: 1 / -1; }
   .empty--tight { padding: 10px 0; }
-  @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
 
   /* Anprobe-Board */
   #wrap { position: relative; max-width: 100%; }
@@ -174,12 +176,10 @@
   #board .p { position: absolute; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none; }
   #board .p.sel { outline: 2px dashed var(--stage-acc); outline-offset: 3px; }
   #board .hint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--stage-ink); padding: 40px; pointer-events: none; }
-  /* Drehgriff am ausgewählten Teil (Position und Winkel setzt app.js per CSSOM) */
   .rot-ctl { position: absolute; width: 0; height: 0; pointer-events: none; }
   .rot-stem { position: absolute; left: -1px; width: 2px; background: var(--stage-acc); }
   .rot-knob { position: absolute; left: -11px; width: 22px; height: 22px; border-radius: 50%; background: var(--knob); border: 2px solid var(--stage-acc); cursor: grab; pointer-events: auto; touch-action: none; box-shadow: 0 1px 4px var(--shade-sm); }
   .rot-knob:active { cursor: grabbing; }
-  /* Outfit-Fitter: Teile gleiten an ihren Platz (nur beim Anordnen, damit Ziehen nicht nachläuft) */
   @media (prefers-reduced-motion: no-preference) { #board.snap .p { transition: left .3s ease, top .3s ease, width .3s ease, transform .3s ease; } }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; justify-content: center; }
   .sub { color: var(--mute); font-size: 13px; margin-top: 8px; text-align: center; }
@@ -191,7 +191,8 @@
   #sum .r { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
   #sum .r.on { background: var(--acc-soft); }
   #sum .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; border: 0; background: none; padding: 2px 4px; min-height: 0; border-radius: 4px; }
-  #sum .nm:hover:not(:disabled) { background: none; color: var(--acc); text-decoration: underline; }
+  #sum .nm:active:not(:disabled) { background: none; color: var(--acc); }
+  @media (hover: hover) and (pointer: fine) { #sum .nm:hover:not(:disabled) { background: none; color: var(--acc); text-decoration: underline; } }
   #sum .lay { display: flex; gap: 2px; flex: none; }
   #sum .lay button { padding: 0; width: 24px; height: 24px; min-height: 0; font-size: 10px; border-color: var(--line); line-height: 1; }
   #sum a { color: var(--acc); text-decoration: none; font-weight: 600; }
@@ -235,14 +236,12 @@
   @media (max-width: 560px) { #panes, .g2 { grid-template-columns: 1fr; } }
 }
 
-/* ---------- 6. Neue Module (Schritt 1: Gerüst, Logik folgt) ---------- */
 @layer modules {
   .hint { color: var(--mute); font-size: 13px; }
   .status { min-height: 1.4em; font-size: 13px; color: var(--mute); }
   .status.err { color: var(--danger); }
   .badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--acc-soft); color: var(--acc-strong); vertical-align: middle; }
 
-  /* Modul C: Drehen und Positionieren (Arbeitsplatz) */
   .bench { width: 100%; margin-top: 16px; padding: 12px; background: var(--canvas); border-radius: 10px; }
   .bench h3 { margin-bottom: 4px; }
   .ctl { display: grid; grid-template-columns: 7.5em 1fr 3.5em; gap: 8px; align-items: center; margin-top: 8px; }
@@ -253,11 +252,9 @@
   .bench fieldset:disabled { opacity: .55; }
 }
 
-/* ---------- 6b. Smartphone-Optimierung ---------- */
 @layer modules {
   .fab { display: none; }
 
-  /* Karten im Kleiderschrank: Schnellaktionen (Desktop) bzw. Drei-Punkte-Menü (Touch, Smartphone) */
   .card .x { align-items: center; }
   .card .x .acts { display: flex; gap: 4px; }
   .card .x .more { display: none; }
@@ -284,14 +281,21 @@
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
   .menu-list .danger { color: var(--danger); border-color: var(--danger); }
-  .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); }
+  .menu-list .danger:active:not(:disabled) { background: var(--danger); color: var(--on-danger); }
+  @media (hover: hover) and (pointer: fine) { .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); } }
   @media (min-width: 561px) { #menuDlg { width: min(360px, 94vw); } }
 
-  /* Touch-Geräte: keine Hover-Abhängigkeit, größere Ziele */
+  #sum, #priceList, #count, .card .n small, .pc, .out small { font-variant-numeric: tabular-nums; }
+
   @media (pointer: coarse) {
     button { min-height: 44px; }
     .chips button, .out .b button, #opts button, button.small { min-height: 40px; }
     input, select { min-height: 44px; }
+    #sum .lay { gap: 8px; }
+    #sum .lay button, .card .x .more { position: relative; }
+    #sum .lay button { width: 32px; height: 32px; }
+    #sum .lay button::after { content: ""; position: absolute; inset: -6px -4px; }
+    .card .x .more::after { content: ""; position: absolute; inset: -4px; }
   }
 
   @media (max-width: 560px) {
@@ -312,7 +316,6 @@
   }
 }
 
-/* ---------- 6c. Phase 1: Icon-Buttons, Hinweise, eigene Dialoge, Bewegung ---------- */
 @layer modules {
   /* Runde Icon-Buttons (Rückgängig, Wiederholen, Design, Mehr) */
   .ibtn { width: 38px; height: 38px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; border-color: var(--line); font-size: 20px; line-height: 1; }
@@ -321,12 +324,12 @@
   .more-btn { display: none; }
   .tools .wide { min-width: 8.5em; }
 
-  /* Hinweise mit Rückgängig (ersetzen die nativen Browser-Dialoge) */
   #toasts { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(24px, env(safe-area-inset-bottom)); display: grid; justify-items: center; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
   .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; background: var(--overlay); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px var(--shade-lg); font-size: 14px; }
   .toast--err { border-color: var(--danger); }
   .toast button { border: 0; background: none; color: var(--acc); font-weight: 600; padding: 6px 12px; min-height: 36px; border-radius: 8px; }
-  .toast button:hover:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); }
+  .toast button:active:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); }
+  @media (hover: hover) and (pointer: fine) { .toast button:hover:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); } }
 
   /* Eigener Dialog für Rückfragen und Namenseingabe */
   @media (min-width: 561px) { #uiDlg, #moreDlg { width: min(420px, 94vw); } }   /* am Smartphone gilt das Bottom-Sheet in voller Breite */
@@ -343,25 +346,46 @@
     .ibtn { width: 44px; height: 44px; }
   }
 
-  /* Bewegung: Ursache und Wirkung zeigen, nie schmücken. Bei reduzierter Bewegung entfällt alles. */
+  @media (max-width: 560px) {
+    .grab { display: block; position: relative; height: 32px; margin: -18px -16px -12px; touch-action: none; cursor: grab; }
+    .grab::before { content: ""; position: absolute; left: 50%; top: 9px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--faint); }
+  }
+
   @media (prefers-reduced-motion: no-preference) {
-    button { transition: background-color .12s, color .12s, border-color .12s; }
-    .card { transition: border-color .15s, transform .12s; }
+    button { transition: background-color var(--t-press) ease, color var(--t-press) ease, border-color var(--t-press) ease, transform var(--t-press) var(--ease-out); }
+    button:active:not(:disabled) { transform: scale(.97); }
+    .ibtn:active:not(:disabled) { transform: scale(.92); }
+    .fab:active { transform: scale(.94); }
+    .card { transition: border-color .15s ease, transform var(--t-press) var(--ease-out); }
     .card:active { transform: scale(.98); }
-    .card.enter { animation: card-in .3s cubic-bezier(.2, .8, .2, 1); }
-    #board .p { transition: filter .12s; }
+    .card.enter { animation: card-in 300ms var(--ease-out); }
+    #board .p { transition: filter .12s ease; }
     #board .p:active { filter: drop-shadow(0 10px 14px var(--shade-lg)); }
-    dialog[open] { animation: dlg-in .22s cubic-bezier(.2, .8, .2, 1); }
-    dialog[open]::backdrop { animation: fade-in .2s ease-out; }
-    .toast { animation: toast-in .2s cubic-bezier(.2, .8, .2, 1); }
+    dialog[open] { animation: dlg-in var(--t-fade) var(--ease-out); }
+    dialog[open]::backdrop { animation: fade-in var(--t-fade) ease-out; }
+    dialog[open][data-closing] { animation: dlg-out var(--t-exit) var(--ease-out) forwards; }
+    dialog[open][data-closing]::backdrop { animation: fade-out var(--t-exit) ease-out forwards; }
+    .toast { animation: toast-in var(--t-fade) var(--ease-out); }
+    .toast--out { animation: toast-out var(--t-exit) var(--ease-out) forwards; }
     ::view-transition-group(root) { animation-duration: .2s; }
-    @media (max-width: 560px) { dialog[open] { animation-name: sheet-in; } }
+    @media (max-width: 560px) {
+      dialog[open] { animation: sheet-in var(--t-sheet) var(--ease-sheet); }
+      dialog[open][data-closing] { animation: sheet-out var(--t-sheet-exit) var(--ease-sheet) forwards; }
+      dialog[open][data-closing="drag"] { animation: none; }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    dialog[open], dialog[open]::backdrop { animation: fade-in var(--t-press) ease-out; }
   }
   @keyframes card-in { from { opacity: 0; transform: scale(.92); } }
   @keyframes dlg-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+  @keyframes dlg-out { to { opacity: 0; transform: scale(.98); } }
   @keyframes sheet-in { from { transform: translateY(100%); } }
+  @keyframes sheet-out { to { transform: translateY(100%); } }
   @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
 }
 
 @media (forced-colors: active) {
@@ -369,7 +393,6 @@
   :focus-visible { outline-color: Highlight; }
 }
 
-/* ---------- 7. Hilfsklassen ---------- */
 @layer utilities {
   [hidden] { display: none !important; }
   .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

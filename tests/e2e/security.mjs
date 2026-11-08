@@ -1,5 +1,3 @@
-// End-to-End-Test: Sicherheit. Feindliche Backup-Dateien, zu große Bilder, Clickjacking, Update-Code, Sicherheitsrichtlinie.
-// Start:  npm run test:e2e   (BROWSER=webkit für die Safari-Engine)
 import { readFile } from 'node:fs/promises';
 import { devices } from 'playwright';
 import { addItem, checker, startServer, launch, PNG } from './helpers.mjs';
@@ -16,9 +14,7 @@ try {
   const errors = [], violations = [], foreign = [], dialogs = [];
   p.on('pageerror', e => errors.push(e.message));
   p.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
-  // Verstöße genau erfassen (Richtlinie, Quelle, Zeile, Auszug), um einen Fund einer Aktion zuordnen zu können.
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push([e.effectiveDirective, e.blockedURI, (e.sourceFile || '').replace(/^.*\//, ''), e.lineNumber + ':' + e.columnNumber, (e.sample || '').slice(0, 60)].join(' | ')), true); });
-  // Wer setzt ein style-Attribut? Beobachter für Änderungen und Umhüllung von setAttribute / cssText (nur Diagnose).
   await p.addInitScript(() => {
     window.__sty = [];
     const note = (what, el, extra) => { try { window.__sty.push(what + ' ' + (el && el.tagName) + '#' + (el && el.id) + ' ' + String(extra).slice(0, 80) + ' :: ' + new Error().stack.split('\n').slice(1, 4).join(' <- ').replace(/http:\/\/localhost:\d+\//g, '')); } catch (e) {} };
@@ -33,9 +29,7 @@ try {
     const st = await p.evaluate(() => ({ sel: [...document.querySelectorAll('select')].map(e => e.id + '=' + e.getAttribute('style')), log: (window.__sty || []).splice(0).slice(0, 12) })).catch(() => null);
     if (st && (st.log.length || st.sel.some(x => !/=null$/.test(x)))) { styleNotes.push(label + ': ' + JSON.stringify(st)); console.log('   Style-Detail nach ' + label + ': ' + JSON.stringify(st)); } };
   let phase = 'Start';
-  // Safari-Engine: WebKit meldet für <select>-Felder einen eigenen, internen Inline-Stil als CSP-Verstoß ("apply a stylesheet", Zeile = <select>-Zeile
-  // in index.html, Playwright zählt ab 0). Unser Code setzt dort keinen Stil (kein style-Attribut, keine Mutation, siehe Diagnose); das ist kein Fund.
-  // Ausgenommen wird deshalb genau dieser Fall. Jeder andere Verstoß, auch an anderen Zeilen oder Elementen, bleibt ein Fehler.
+  // WebKit meldet interne Inline-Stile an <select> als Verstoß; nur dieser Fall wird ignoriert
   const htmlLines = (await readFile(new URL('../../index.html', import.meta.url), 'utf8')).split('\n');
   const engineNotes = [];
   p.on('console', m => {
@@ -44,7 +38,6 @@ try {
     if (/apply a stylesheet/i.test(m.text()) && at.startsWith('index.html:') && /<select\b/.test(htmlLines[l.lineNumber] || '')) { engineNotes.push(at); return; }
     violations.push(phase + ': ' + m.text().slice(0, 110) + ' @' + at);
   });
-  // Jede Anfrage an einen anderen Host als localhost ist verdächtig (die Tests laden nichts von außen).
   await ctx.route(url => !['localhost', '127.0.0.1'].includes(url.hostname), r => { foreign.push(r.request().url()); return r.abort(); });
   const wait = ms => p.waitForTimeout(ms);
   const open = async () => { await p.goto(BASE); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
@@ -53,7 +46,6 @@ try {
   console.log('--- Sicherheitsrichtlinie im Browser'); phase = 'Sicherheitsrichtlinie im Browser';
   const csp = await p.getAttribute('meta[http-equiv="Content-Security-Policy"]', 'content');
   ok(/default-src 'none'/.test(csp) && !/'unsafe-inline'|'unsafe-eval'/.test(csp), 'CSP sperrt alles außer dem Erlaubten');
-  // Angriffe simulieren: Der Browser muss sie blocken (und meldet dabei absichtlich Verstöße).
   await p.evaluate(() => { setTimeout("window.__evalRan = 1", 0); });
   await p.evaluate(() => { const b = document.createElement('button'); b.setAttribute('onclick', 'window.__handlerRan = 1'); document.body.append(b); b.click(); b.remove(); });
   await p.evaluate(() => { const s = document.createElement('script'); s.textContent = 'window.__inlineRan = 1'; document.head.append(s); });
@@ -66,7 +58,6 @@ try {
   await addItem(p, { trigger: '#fab', name: 'Shirt', cat: 'Oberteil', price: '19,99' });
   await p.locator('#grid .card').first().locator('img').first().click(); await wait(500);
   ok(violations.length === 0, 'normale Nutzung löst keinen CSP-Verstoß aus ' + violations.join(' | '));
-  // Die Hülle des Boards bekommt ihre Größe über das CSSOM und muss sie trotz strikter CSP haben (in jeder Engine).
   const sizes = await p.evaluate(() => { const w = document.getElementById('wrap').getBoundingClientRect(), b = document.getElementById('board').getBoundingClientRect(); return [w.width, w.height, b.width, b.height]; });
   ok(Math.abs(sizes[0] - sizes[2]) < 1.5 && Math.abs(sizes[1] - sizes[3]) < 1.5, 'Hülle des Boards hat die Größe des Boards (' + sizes.map(Math.round).join(' × ') + ')');
 

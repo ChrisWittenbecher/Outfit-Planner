@@ -89,6 +89,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── prices.js           Preisverlauf, Preisänderung, Summen (reine Funktionen, getestet)
 │   ├── fit.js              Outfit-Fitter: Rechnung der Passform (reine Funktionen, getestet)
 │   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
+│   ├── sheet.js            Dialoge: sanftes Schließen, Antippen daneben, Wisch-Griff am Bottom-Sheet
 │   ├── update.js           Versionsanzeige und Update-Hinweis
 │   ├── version.js          Versionsnummer, Prüfung von Versionen, Auswahl der Dateien beim Aktualisieren (getestet)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
@@ -96,7 +97,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   └── icons/              App-Icons
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Sicherheit
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Sicherheit
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -141,6 +142,7 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 - **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
 - **Design-Tokens:** Jede Farbe steht genau einmal in `@layer tokens` als `light-dark(hell, dunkel)`. Das Dunkle folgt `color-scheme` (System) oder `data-theme` (Umschalter). Ältere Browser ohne `light-dark()` bekommen die hellen Werte; der Test `contrast.test.mjs` stellt sicher, dass beides übereinstimmt, dass nirgends sonst Farben stehen und dass die Kontraste halten.
+- **Bewegung und Touch:** Einheitliche Kurven und Zeiten als Tokens (`--ease-out`, `--ease-sheet`, `--t-press` …). Bewegung dient der Rückmeldung (Druck, Ein- und Ausblenden) und endet unter 300 ms. Hover-Stile gelten nur mit Maus (`@media (hover: hover) and (pointer: fine)`), auf dem Handy zeigt `:active` den Druck an, sodass nichts hängen bleibt. Bei „Bewegung reduzieren“ entfallen Skalierung und Verschiebung, Dialoge schließen sofort. Das Bottom-Sheet lässt sich am Griff wegwischen (Geschwindigkeit zählt, nicht nur die Strecke). Die Gestaltung folgt den Regeln aus [emilkowalski/skills](https://github.com/emilkowalski/skills).
 - **Rückgängig ohne Sonderlogik:** `history.js` vergleicht nach jedem Sichern den Bestand mit dem letzten Stand und fasst schnelle Änderungen (z. B. Ziehen) zu einem Schritt zusammen. Bilder werden zwischen den Ständen geteilt, nicht kopiert. Bewusste Aktionen (Löschen, Einlesen) rufen `step()` für eine eigene Schrittgrenze.
 
 ## Roadmap

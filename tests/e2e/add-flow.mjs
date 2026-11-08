@@ -1,7 +1,5 @@
-// End-to-End-Test: Kleidungsstück per Bild hinzufügen, auf Smartphone und Desktop.
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium; Netzwerk wird gemockt, kein Server nötig)
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch, engine } from './helpers.mjs';
+import { checker, PNG, startServer, launch, engine, closed } from './helpers.mjs';
 
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -16,7 +14,7 @@ try {
     const errors = [];
     p.on('pageerror', e => errors.push(e.message));
     const native = [];
-    p.on('dialog', d => { native.push(d.type() + ': ' + d.message()); d.dismiss(); });   // die App nutzt keine nativen Dialoge mehr
+    p.on('dialog', d => { native.push(d.type() + ': ' + d.message()); d.dismiss(); });
     await p.goto(BASE);
     await p.waitForSelector('html[data-ready]', { state: 'attached' });
     console.log('--- ' + name);
@@ -51,7 +49,7 @@ try {
     ok(await p.locator('#dlg').evaluate(d => d.open) && /ungültig/i.test(await p.textContent('#status')), 'ungültiger Link wird abgelehnt');
     await p.fill('#url', 'https://shop.example.com/blaues-shirt');
     await p.click('#ok');
-    ok(!(await p.locator('#dlg').evaluate(d => d.open)), 'Speichern schließt den Dialog');
+    ok(await closed(p, 'dlg'), 'Speichern schließt den Dialog');
     ok(await p.locator('#grid .card').count() === 1, 'Karte im Kleiderschrank');
     const card = await p.locator('#grid .card').first().innerText();
     ok(/Blaues Shirt/.test(card) && /39/.test(card), 'Name und Preis an der Karte');
@@ -99,7 +97,6 @@ try {
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
 
-    // Wunschliste und Preisverlauf: Preis senken + als Wunsch vormerken, filtern, Summe „noch zu kaufen“, als gekauft markieren
     const card1 = () => p.locator('#grid .card').first();
     const openEdit = async () => {
       await card1().scrollIntoViewIfNeeded();
@@ -136,7 +133,6 @@ try {
     await p.waitForSelector('#grid .card');
     ok(await card1().locator('.badge').count() === 0 && await card1().locator('.pc--down').count() === 1, 'Status und Preisverlauf bleiben nach Neuladen erhalten');
 
-    // Aktionen an der Karte: Drei-Punkte-Menü (Smartphone) bzw. runde Schnellaktionen (Desktop)
     const first = p.locator('#grid .card').first();
     await first.scrollIntoViewIfNeeded();
     if (mobile) {

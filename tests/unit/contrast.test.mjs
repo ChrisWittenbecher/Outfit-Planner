@@ -1,4 +1,3 @@
-// Prüft die Farb-Tokens in css/styles.css: Kontrast in beiden Themes, Rückfallwerte, keine Farben außerhalb der Tokens.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -6,8 +5,7 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 
-/* ---------- Tokens lesen ---------- */
-const tokensLayer = css.slice(css.indexOf('@layer tokens {'), css.indexOf('/* ---------- 3. Basis'));
+const tokensLayer = css.slice(css.indexOf('@layer tokens {'), css.indexOf('@layer base {'));
 const rootBlock = tokensLayer.slice(tokensLayer.indexOf(':root {'), tokensLayer.indexOf('}', tokensLayer.indexOf(':root {')));
 const pairs = {};   // name -> [hell, dunkel]
 for (const m of rootBlock.matchAll(/--([\w-]+):\s*light-dark\(\s*(#[0-9a-fA-F]+)\s*,\s*(#[0-9a-fA-F]+)\s*\)/g)) pairs[m[1]] = [m[2], m[3]];
@@ -16,7 +14,6 @@ for (const m of tokensLayer.matchAll(/:root\[data-stage="(\w+)"\]\s*\{([^}]*)\}/
   stageVariants[m[1]] = Object.fromEntries([...m[2].matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]+)/g)].map(x => [x[1], x[2]]));
 }
 
-/* ---------- Kontrast (WCAG 2.x) ---------- */
 const rgb = hex => { let h = hex.slice(1); if (h.length <= 4) h = [...h].map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const alpha = hex => { let h = hex.slice(1); if (h.length <= 4) h = [...h].map(c => c + c).join(''); return h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1; };
 const over = (fg, bg) => { const a = alpha(fg), f = rgb(fg), b = rgb(bg); return '#' + f.map((c, i) => Math.round(c * a + b[i] * (1 - a)).toString(16).padStart(2, '0')).join(''); };
@@ -60,7 +57,6 @@ test('Ebenen im Dunkeln werden nach oben heller (Bereich < Karte < Dialog)', () 
   assert.ok(lum(tok('bg', 'dark')) < lum(tok('panel', 'dark')) && lum(tok('panel', 'dark')) < lum(tok('raised', 'dark')) && lum(tok('raised', 'dark')) < lum(tok('overlay', 'dark')));
 });
 
-/* ---------- Rückfall ohne light-dark() ---------- */
 test('Rückfallblock stimmt für jedes Token mit dem Hell-Wert überein', () => {
   const fb = tokensLayer.slice(tokensLayer.indexOf('@supports not'));
   const fall = Object.fromEntries([...fb.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]+)/g)].map(m => [m[1], m[2]]));
@@ -68,7 +64,6 @@ test('Rückfallblock stimmt für jedes Token mit dem Hell-Wert überein', () => 
   for (const [k, [light]] of Object.entries(pairs)) assert.equal(fall[k].toLowerCase(), light.toLowerCase(), `--${k}`);
 });
 
-/* ---------- Keine Farbe außerhalb der Tokens ---------- */
 test('Farbwerte stehen nur in @layer tokens', () => {
   const rest = css.replace(tokensLayer, '').replace(/\/\*[\s\S]*?\*\//g, '');
   const hits = [...rest.matchAll(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(|(?<![\w-])(?:white|black|red|blue|green|gray|grey)(?![\w-])/g)]
@@ -82,7 +77,6 @@ test('Jedes verwendete var(--token) ist definiert', () => {
   assert.deepEqual(undef, [], 'nicht definiert: ' + undef.join(', '));
 });
 
-/* ---------- HTML: Dark-Mode-Grundlagen und Vorladen ---------- */
 test('theme-init.js ist ein blockierendes Skript im Kopf (kein defer, async, module)', () => {
   const head = html.slice(0, html.indexOf('</head>'));
   const tag = head.match(/<script[^>]*theme-init\.js[^>]*>/)?.[0];
@@ -95,7 +89,7 @@ test('color-scheme ist als Meta und im CSS auf hell und dunkel gesetzt', () => {
   assert.match(css, /:root\[data-theme="light"\]\s*\{\s*color-scheme:\s*light/);
   assert.match(css, /:root\[data-theme="dark"\]\s*\{\s*color-scheme:\s*dark/);
 });
-const CLASSIC = ['theme-init.js', 'fallback.js'];   // klassische Skripte, keine ES-Module
+const CLASSIC = ['theme-init.js', 'fallback.js'];
 test('Jedes Modul in js/ wird vorab geladen (modulepreload), klassische Skripte ausgenommen', async () => {
   const { readdirSync } = await import('node:fs');
   const files = readdirSync(new URL('../../js/', import.meta.url)).filter(f => f.endsWith('.js') && !CLASSIC.includes(f));

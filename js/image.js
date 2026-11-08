@@ -1,14 +1,10 @@
 // @ts-nocheck
-/**
- * Anprobe – Bildverarbeitung: Verkleinern, Freistellen, Zuschneiden, Schuhpaare (reine Canvas-Funktionen).
- */
 import { loadImg } from './core.js';
 import { IMAGE_LIMITS } from './scraper.js';
 
-/* ---------- Bildverarbeitung: Zuschneiden & Freistellen ---------- */
 export async function norm(src, max = 1000){ // verkleinert; behält Transparenz bei PNGs
   const im = await loadImg(src, /^https?:/.test(src));
-  if(!(im.naturalWidth > 0) || im.naturalWidth * im.naturalHeight > IMAGE_LIMITS.pixels) throw new Error('Bild zu groß');   // Schutz vor Bildern, die den Browser lahmlegen
+  if(!(im.naturalWidth > 0) || im.naturalWidth * im.naturalHeight > IMAGE_LIMITS.pixels) throw new Error('Bild zu groß');
   const k = Math.min(1, max / Math.max(im.width, im.height));
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
   const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(im, 0, 0, c.width, c.height);
@@ -32,7 +28,6 @@ function cutout(cv, tol){ // Hintergrund = vom Rand aus erreichbare, ähnlich ge
     const nb = [px > 0 ? i-1 : -1, px < w-1 ? i+1 : -1, py > 0 ? i-w : -1, py < h-1 ? i+w : -1];
     for(const j of nb) if(j >= 0 && !bg[j] && (d[j*4+3] < 10 || (dp(i, j) < ts && dm(j) < tg))){ bg[j] = 1; st[sp++] = j; }
   }
-  // kleine Reste (Schatten, Etiketten) entfernen, größte Flächen behalten
   const seen = new Uint8Array(n), comps = []; 
   for(let s0 = 0; s0 < n; s0++){
     if(bg[s0] || seen[s0]) continue;
@@ -84,9 +79,6 @@ function mirrorPair(cv){ // ergänzt einen gespiegelten zweiten Schuh
   x.drawImage(cv, 0, 0); x.save(); x.translate(o.width, 0); x.scale(-1, 1); x.drawImage(cv, 0, 0); x.restore(); return o;
 }
 /**
- * Erzeugt aus einem Original das fertige Bild: zuschneiden, Hintergrund entfernen, Schuhe ergänzen.
- * Wird vom Dialog (process) genutzt.
- * `d.mirror` und `d.ai` können hier angepasst werden.
  * @param {{orig:string, crop:?{x:number,y:number,w:number,h:number}, alpha:boolean, rm:boolean, tol:number, ai:boolean, mirror:boolean, mirrorTouched:boolean}} d
  * @param {string} cat Kategorie (steuert die Schuh-Spiegelung)
  * @param {(t:string, err?:boolean)=>void} [say] Meldungen für die Oberfläche

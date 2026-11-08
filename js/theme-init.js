@@ -1,9 +1,7 @@
-/* Anprobe – setzt das gespeicherte Design vor dem ersten Zeichnen (kein Aufblitzen).
-   Bewusst klassisches, winziges Skript ohne Module; die Logik zum Umschalten steht in theme.js. */
 (function () {
+  // fremder Rahmen: ausblenden (frame-ancestors lässt sich per <meta> nicht setzen)
   try {
     var d = document.documentElement;
-    // Clickjacking-Schutz: Per <meta> lässt sich frame-ancestors nicht setzen. Steckt die Seite in einem fremden Rahmen, bleibt sie unsichtbar.
     if (window.top !== window.self) { d.style.display = 'none'; return; }
   } catch (e) { document.documentElement.style.display = 'none'; return; }
   try {

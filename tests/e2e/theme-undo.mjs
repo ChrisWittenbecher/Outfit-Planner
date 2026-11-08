@@ -1,8 +1,6 @@
-// End-to-End-Test: Dunkelmodus (Umschalter, Speicherung, Bühne, PNG), eigene Dialoge, Rückgängig/Wiederholen.
-// Start:  npm run test:e2e   (benötigt Playwright + Chromium)
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { addItem, checker, startServer, launch } from './helpers.mjs';
+import { addItem, checker, startServer, launch, closed } from './helpers.mjs';
 
 const PORT = 8732, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -13,6 +11,11 @@ const bg = (p, sel) => p.evaluate(s => getComputedStyle(document.querySelector(s
 const attr = p => p.evaluate(() => document.documentElement.dataset.theme ?? null);
 const ready = p => p.waitForSelector('html[data-ready]', { state: 'attached' });
 const wait = (p, ms = 800) => p.waitForTimeout(ms);   // länger als die Pause, ab der ein neuer Rückgängig-Schritt beginnt
+const toggle = async (p, want) => {   // der erste Wechsel einer frischen Engine kann länger dauern (View Transition), also auf das Ergebnis warten
+  await p.click('#theme');
+  await p.waitForFunction(w => (document.documentElement.dataset.theme ?? null) === w, want, { timeout: 8000 });
+  await p.waitForTimeout(250);
+};
 const cards = p => p.locator('#grid .card').count();
 const open = async (ctx) => {
   const p = await ctx.newPage(); const errors = [], native = [];
@@ -23,7 +26,6 @@ const open = async (ctx) => {
 };
 
 try {
-  /* ================= Desktop, System dunkel ================= */
   {
     console.log('--- Desktop, System dunkel');
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'dark', acceptDownloads: true });
@@ -37,16 +39,16 @@ try {
     await p.click('#cancel');
 
     // Umschalten: Automatisch → Hell → Dunkel → Automatisch, mit Speicherung
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, 'light');
     ok(await attr(p) === 'light' && await bg(p, 'body') === 'rgb(232, 234, 238)', 'Hell erzwingt das helle Design trotz dunklem System');
     ok(await p.evaluate(() => localStorage.getItem('anprobe-theme')) === 'light', 'Wahl „Hell“ wird gespeichert');
     await p.reload({ waitUntil: 'domcontentloaded' });
     ok(await attr(p) === 'light', 'Init-Skript setzt das Design schon vor dem Start der Module (kein Aufblitzen)');
     await ready(p);
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, 'dark');
     ok(await attr(p) === 'dark' && await bg(p, 'body') === 'rgb(15, 15, 18)', 'Dunkel erzwingt das dunkle Design');
     ok(await p.evaluate(() => document.getElementById('metaLight').content) === '#0f0f12', 'Farbe der Browserleiste folgt dem gewählten Design');
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, null);
     ok(await attr(p) === null && await p.evaluate(() => localStorage.getItem('anprobe-theme')) === null, 'Zurück auf Automatisch: Attribut und Speicher geleert');
 
     // Teil anlegen; Kachel bleibt hell, Bühne wechselt
@@ -71,7 +73,6 @@ try {
     await p.click('#stageBtn');   // zurück auf Auto
     ok(await p.evaluate(() => document.documentElement.dataset.stage ?? null) === null, 'Bühne wieder Auto');
 
-    /* ----- Rückgängig / Wiederholen ----- */
     console.log('--- Rückgängig und Wiederholen');
     await wait(p);
     await p.click('#undo');
@@ -97,7 +98,7 @@ try {
     ok(await p.locator('#uiDlg').evaluate(d => d.open) && await p.inputValue('#uiInput') === 'Outfit 1', 'Namens-Dialog statt prompt(), Vorschlag „Outfit 1“');
     ok(await bg(p, '#uiDlg') === 'rgb(42, 42, 50)', 'Dialog im Dunkeln');
     await p.keyboard.press('Escape');
-    ok(!(await p.locator('#uiDlg').evaluate(d => d.open)) && await p.locator('#outs .out').count() === 0, 'Esc bricht ab, nichts gespeichert');
+    ok(await closed(p, 'uiDlg') && await p.locator('#outs .out').count() === 0, 'Esc bricht ab, nichts gespeichert');
     await p.click('#save'); await p.fill('#uiInput', 'Sommer'); await p.keyboard.press('Enter');
     await p.waitForSelector('#outs .out');
     ok(await p.textContent('#outs .out b') === 'Sommer', 'Enter speichert das Outfit unter dem Namen');
@@ -141,7 +142,6 @@ try {
     await ctx.close();
   }
 
-  /* ================= Bewegung reduzieren ================= */
   for (const [label, motion, expected] of [['normal', 'no-preference', 'card-in'], ['reduziert', 'reduce', 'none']]) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: motion });
     const { p } = await open(ctx);
@@ -151,7 +151,6 @@ try {
     await ctx.close();
   }
 
-  /* ================= Smartphone, System hell ================= */
   {
     console.log('--- iPhone 13, System hell');
     const ctx = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'light', acceptDownloads: true });
@@ -164,10 +163,10 @@ try {
     await p.click('#more');
     ok(await p.locator('#moreDlg').evaluate(d => d.open), '„Mehr“ öffnet das Menü');
     const exp = p.waitForEvent('download'); await p.click('#mExp');
-    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && !(await p.locator('#moreDlg').evaluate(d => d.open)), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
-    await p.click('#theme'); await wait(p, 400);
+    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
+    await toggle(p, 'light');
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, 'dark');
     ok(await attr(p) === 'dark' && await bg(p, 'body') === 'rgb(15, 15, 18)', 'Umschalter auf Dunkel am Smartphone');
     ok(native.length === 0, 'keine nativen Dialoge');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));

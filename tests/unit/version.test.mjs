@@ -1,4 +1,3 @@
-// Prüft, dass die Versionsnummer überall gleich ist. Wer veröffentlicht, zählt sie in allen drei Dateien hoch.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
