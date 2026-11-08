@@ -14,13 +14,13 @@ export function checker() {
   return { ok, state };
 }
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
-export async function startServer(port) {
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+export async function startServer(port, dir = root) {
   const server = http.createServer(async (req, res) => {
     try {
       const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '') || 'index.html';
-      const file = path.join(root, rel);
-      if (!file.startsWith(root)) throw new Error('außerhalb');
+      const file = path.join(dir, rel);
+      if (!file.startsWith(dir)) throw new Error('außerhalb');
       const body = await readFile(file);
       res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
       res.end(body);
@@ -46,4 +46,10 @@ export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberte
 export const closed = (p, id) => p.waitForFunction(i => !document.getElementById(i).open, id, { timeout: 3000 }).then(() => true, () => false);
 
 export const engine = process.env.BROWSER || 'chromium';
-export const launch = () => playwright[engine].launch();
+/** Service Worker sind standardmäßig gesperrt, damit page.route() in den Tests zuverlässig greift; der PWA-Test erlaubt sie ausdrücklich. */
+export const launch = async () => {
+  const browser = await playwright[engine].launch();
+  const make = browser.newContext.bind(browser);
+  browser.newContext = (opts = {}) => make({ serviceWorkers: 'block', ...opts });
+  return browser;
+};

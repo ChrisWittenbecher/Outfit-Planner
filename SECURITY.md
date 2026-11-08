@@ -22,6 +22,11 @@ Bitte **nicht** öffentlich als Issue, sondern über *Security → Report a vuln
 | Clickjacking | Die Seite blendet sich in fremden Rahmen aus (`frame-ancestors` ist per `<meta>` nicht möglich) | `security.mjs` |
 | Fremder Code | Nur das optionale KI-Freistellen lädt Code von jsDelivr, und erst nach ausdrücklicher Zustimmung | `security.mjs` |
 | Update | `version.json` wird streng geprüft; beim Aktualisieren werden nur eigene Dateien der App neu geladen | `version.test.mjs`, `security.mjs` |
+| Offline-Speicher | Der Service Worker (`sw.js`) fasst nur GET-Anfragen im App-Ordner an, nie fremde Adressen (jsDelivr bleibt unberührt), lädt ohne Anmeldedaten und kennt keine fremden Skripte. Jede Version hat einen eigenen Cache, alte werden gelöscht. Er ändert sich mit jeder Versionsnummer, daher erkennt der Browser jedes Update | `pwa.test.mjs`, `pwa.mjs` |
+| Backup-Erinnerung | Zeitpunkt des letzten Backups liegt getrennt von den Daten im Browserspeicher und wird nie in Backups oder ins Netz geschrieben | `care.test.mjs`, `pwa.mjs` |
+
+Hinweis zu `*.github.io`: Alle Projekte eines Nutzers teilen sich dieselbe Adresse (denselben „Ursprung“). Der Service Worker
+ist auf den Ordner `/Outfit-Planner/` begrenzt, der Browserspeicher aber nicht. Wer das vermeiden will, nutzt eine eigene Domain für die App.
 
 ## Schutzmaßnahmen in der Pipeline
 

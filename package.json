@@ -1,6 +1,6 @@
 {
   "name": "anprobe",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Anprobe – Outfit-Planer (statische Web-App)",
   "type": "module",

@@ -18,6 +18,7 @@
     "js/scraper.js",
     "js/prices.js",
     "js/fit.js",
-    "js/version.js"
+    "js/version.js",
+    "js/care.js"
   ]
 }

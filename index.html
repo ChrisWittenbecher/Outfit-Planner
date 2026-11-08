@@ -9,9 +9,14 @@
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
-  <link rel="apple-touch-icon" href="assets/icons/icon128.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Anprobe">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/theme-init.js"></script>
   <link rel="modulepreload" href="js/main.js">
@@ -37,6 +42,8 @@
   <link rel="modulepreload" href="js/fitter.js">
   <link rel="modulepreload" href="js/version.js">
   <link rel="modulepreload" href="js/update.js">
+  <link rel="modulepreload" href="js/care.js">
+  <link rel="modulepreload" href="js/pwa.js">
   <script type="module" src="js/main.js"></script>
   <script src="js/fallback.js" defer></script>
 </head>
@@ -131,7 +138,7 @@
     </section>
   </main>
 
-  <p class="ver">Anprobe <span id="ver"></span> · <button type="button" id="updBtn">Nach Update suchen</button></p>
+  <p class="ver">Anprobe <span id="ver"></span> · <span id="bk"></span><span id="bkSep" hidden> · </span><button type="button" id="updBtn">Nach Update suchen</button></p>
 
   <dialog id="menuDlg" data-dismiss="backdrop" aria-labelledby="menuTitle">
     <div class="grab" aria-hidden="true"></div>
