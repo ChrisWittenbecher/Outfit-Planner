@@ -2,7 +2,7 @@ import { devices } from 'playwright';
 import { cp, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { addItem, checker, startServer, launch, root } from './helpers.mjs';
+import { addItem, checker, persisted, startServer, launch, root } from './helpers.mjs';
 
 const PORT = 8738, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -45,7 +45,7 @@ try {
     ok(!cached.urls.some(u => /\.(exe|zip)$/.test(u)) && cached.urls.length < 60, 'nur Dateien der App (' + cached.urls.length + ')');
 
     await addItem(p, { trigger: '#addBtn', name: 'Offline-Hemd', price: '20' });
-    await p.waitForTimeout(500);
+    await persisted(p, 1);
 
     console.log('--- Offline');
     await ctx.setOffline(true);
@@ -99,10 +99,17 @@ try {
       await release('8.8.8');
       await b.p.reload(); await ready(b.p);
       ok(['7.7.7', '8.8.8'].includes(await shown(b.p)), 'beim ersten Neuladen läuft eine vollständige, in sich stimmige Version (' + await shown(b.p) + ')');
-      for (let i = 0; i < 60; i++) { const k = await b.p.evaluate(() => caches.keys()); if (k.includes('anprobe-8.8.8') && !k.includes('anprobe-7.7.7')) break; await b.p.waitForTimeout(250); }
-      ok(true, 'der neue Service Worker lädt die neue Version im Hintergrund vor, übernimmt und räumt den alten Cache auf');
+      const probe = () => b.p.evaluate(async () => {
+        const ver = async init => { try { return (await (await fetch('js/version.js?p=' + Date.now(), init)).text()).match(/VERSION = '([^']+)'/)?.[1]; } catch (e) { return 'ERR ' + e.message; } };
+        const reg = await navigator.serviceWorker.getRegistration();
+        return { caches: await caches.keys(), controlled: !!navigator.serviceWorker.controller, active: reg?.active?.state, waiting: reg?.waiting?.state, installing: reg?.installing?.state, viaWorker: await ver(), network: await ver({ cache: 'no-store' }) };
+      });
+      let took = false;
+      for (let i = 0; i < 60 && !took; i++) { const s = await probe(); took = s.caches.includes('anprobe-8.8.8') && !s.caches.includes('anprobe-7.7.7') && s.viaWorker === '8.8.8'; if (!took) await b.p.waitForTimeout(250); }
+      ok(took, 'der neue Service Worker lädt die neue Version im Hintergrund vor, übernimmt und räumt den alten Cache auf ' + (took ? '' : JSON.stringify(await probe())));
       await b.p.reload(); await ready(b.p);
-      ok(await shown(b.p) === '8.8.8', 'beim nächsten Start ist die neue Version da, ohne Knopfdruck (' + await shown(b.p) + ')');
+      const after = await shown(b.p);
+      ok(after === '8.8.8', 'beim nächsten Start ist die neue Version da, ohne Knopfdruck (' + after + ')' + (after === '8.8.8' ? '' : ' ' + JSON.stringify(await probe())));
       await b.ctx.close();
     } finally { srv.close(); await rm(dir, { recursive: true, force: true }); }
   }
@@ -114,6 +121,7 @@ try {
     await p.goto(BASE); await ready(p);
     ok((await p.textContent('#bk')) === '' && await p.locator('#bkSep').isHidden(), 'leerer Schrank: keine Backup-Zeile');
     await addItem(p, { trigger: '#addBtn', name: 'Hemd' });
+    await persisted(p, 1);
     await p.reload(); await ready(p); await p.waitForTimeout(400);
     ok(/Noch kein Backup/.test(await p.textContent('#bk')), 'mit Teilen: „Noch kein Backup“ in der Fußzeile');
     ok(!/Backup speichern/.test(await p.textContent('#toasts')), 'am ersten Tag keine Erinnerung');
@@ -144,6 +152,7 @@ try {
     await p.goto(BASE); await ready(p); await p.waitForTimeout(400);
     ok(!/Home-Bildschirm/.test(await p.textContent('#toasts')), 'leerer Schrank: noch kein Hinweis');
     await addItem(p, { trigger: '#fab', name: 'Hemd' });
+    await persisted(p, 1);
     await p.reload(); await ready(p); await p.waitForTimeout(600);
     ok(/Home-Bildschirm/.test(await p.textContent('#toasts')), 'mit Teilen erscheint der Hinweis');
     await p.reload(); await ready(p); await p.waitForTimeout(600);
