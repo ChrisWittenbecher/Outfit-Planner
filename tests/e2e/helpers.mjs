@@ -43,15 +43,15 @@ export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberte
 }
 
 /** Wartet, bis der Bestand wirklich in IndexedDB liegt. Wer direkt nach einer Änderung neu lädt, verliert sie sonst (Speichern ist verzögert). */
-export async function persisted(p, items) {
+export async function persisted(p, items, wears) {
   const t = Date.now();
   while (Date.now() - t < 5000) {
     const n = await p.evaluate(() => new Promise(res => {
       const q = indexedDB.open('anprobe', 1);
-      q.onerror = () => res(-3);
-      q.onsuccess = () => { const db = q.result, g = db.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => { db.close(); res(g.result?.items?.length ?? -1); }; g.onerror = () => { db.close(); res(-2); }; };
+      q.onerror = () => res(null);
+      q.onsuccess = () => { const db = q.result, g = db.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => { db.close(); res(g.result ? { items: g.result.items?.length ?? 0, wears: g.result.wears?.length ?? 0 } : null); }; g.onerror = () => { db.close(); res(null); }; };
     }));
-    if (n === items) return true;
+    if (n && n.items === items && (wears === undefined || n.wears === wears)) return true;
     await new Promise(r => setTimeout(r, 50));
   }
   return false;

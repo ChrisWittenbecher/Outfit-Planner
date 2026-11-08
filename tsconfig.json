@@ -19,6 +19,7 @@
     "js/prices.js",
     "js/fit.js",
     "js/version.js",
-    "js/care.js"
+    "js/care.js",
+    "js/wear.js"
   ]
 }

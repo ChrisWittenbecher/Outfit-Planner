@@ -31,7 +31,7 @@ export const CATS = ['Oberteil','Jacke','Hose/Rock','Schuhe','Accessoire'];
 export const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[110,230,180,1],'Schuhe':[110,470,180,2],'Accessoire':[280,260,100,5]};
 export const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
-export const state = {data:{items:[], outfits:[]}, board:[], filter:'Alle', statusFilter:'Alle', fresh:null, fitted:false, draft:null, sel:null, editing:null, K:1};
+export const state = {data:{items:[], outfits:[], wears:[], plans:{}}, board:[], filter:'Alle', statusFilter:'Alle', fresh:null, fitted:false, draft:null, sel:null, editing:null, K:1};
 export const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 export const item = id => state.data.items.find(i => i.id === id);
 export const imgOf = id => item(id)?.img;

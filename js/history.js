@@ -7,9 +7,9 @@ const MAX = 50, GAP = 600;
 let past = [], future = [], present = null, lastT = 0, applying = false;
 
 const clone = o => JSON.parse(JSON.stringify(o));
-const snap = () => ({ items: state.data.items.map(i => ({ ...i })), outfits: clone(state.data.outfits), board: clone(state.board), fitted: state.fitted });
+const snap = () => ({ items: state.data.items.map(i => ({ ...i })), outfits: clone(state.data.outfits), wears: clone(state.data.wears), plans: clone(state.data.plans), board: clone(state.board), fitted: state.fitted });
 const sameItem = (a, b) => { const k = Object.keys(a); return k.length === Object.keys(b).length && k.every(x => x in b && (typeof a[x] === 'object' ? JSON.stringify(a[x]) === JSON.stringify(b[x]) : a[x] === b[x])); };
-const same = (a, b) => a.items.length === b.items.length && a.items.every((it, k) => sameItem(it, b.items[k])) && JSON.stringify(a.outfits) === JSON.stringify(b.outfits) && JSON.stringify(a.board) === JSON.stringify(b.board);
+const same = (a, b) => a.items.length === b.items.length && a.items.every((it, k) => sameItem(it, b.items[k])) && JSON.stringify(a.outfits) === JSON.stringify(b.outfits) && JSON.stringify(a.wears) === JSON.stringify(b.wears) && JSON.stringify(a.plans) === JSON.stringify(b.plans) && JSON.stringify(a.board) === JSON.stringify(b.board);
 
 function buttons() { $('undo').disabled = !past.length; $('redo').disabled = !future.length; }
 
@@ -28,7 +28,7 @@ export function startHistory() { present = snap(); past = []; future = []; lastT
 
 function apply() {
   applying = true;
-  state.data.items = present.items.map(i => ({ ...i })); state.data.outfits = clone(present.outfits); state.board = clone(present.board);
+  state.data.items = present.items.map(i => ({ ...i })); state.data.outfits = clone(present.outfits); state.data.wears = clone(present.wears); state.data.plans = clone(present.plans); state.board = clone(present.board);
   state.fitted = !!present.fitted;
   if (state.sel && !state.board.some(p => p.id === state.sel)) state.sel = null;
   renderAll(); flush(); applying = false; lastT = 0; buttons();

@@ -8,6 +8,7 @@ import { flush } from './storage.js';
 import { toast } from './ui.js';
 import { closeDialog, showDialog } from './sheet.js';
 import { step, undo } from './history.js';
+import { costPerWear, dayKey, wearStats, withoutItem } from './wear.js';
 
 const STATUS = [['Alle', 'Alle'], ['own', 'Besitze ich'], ['wish', 'Wunschliste']];
 export function renderChips(){
@@ -19,6 +20,7 @@ const isWish = i => i.status === 'wish';
 export function renderGrid(){
   const list = state.data.items.filter(i => (state.filter === 'Alle' || i.cat === state.filter) && (state.statusFilter === 'Alle' || (state.statusFilter === 'wish') === isWish(i)));
   const wishes = state.data.items.filter(isWish).length;
+  const worn = wearStats(state.data.wears, dayKey(new Date()));
   $('count').textContent = state.data.items.length + ' Teile' + (wishes ? ' · ' + wishes + ' auf der Wunschliste' : '');
   if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (state.data.items.length ? 'Nichts in dieser Auswahl.' : 'Noch leer. Füge deinen ersten Screenshot hinzu.') + '</div>'; return; }
   $('grid').replaceChildren(...list.map(i => {
@@ -27,6 +29,8 @@ export function renderGrid(){
     const im = d.querySelector('img'); im.src = i.img; im.loading = 'lazy'; im.decoding = 'async'; if(!i.cut) im.classList.add('mb');
     d.querySelector('span').textContent = i.name;
     const sm = d.querySelector('small'); sm.textContent = i.cat + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
+    const w = !isWish(i) && worn.get(i.id);
+    if(w){ const cw = costPerWear(i.price, w.count), ws = document.createElement('small'); ws.textContent = w.count + '× getragen'; d.querySelector('.n small').after(ws); if(cw != null){ const wc = document.createElement('small'); wc.textContent = money(cw, i.cur) + ' pro Tragen'; ws.after(wc); } }
     const ch = priceChange(i.priceHistory || []);
     if(ch){ const pc = document.createElement('span'); pc.className = 'pc pc--' + ch.dir; pc.textContent = (ch.dir === 'down' ? '↓ ' : '↑ ') + ch.pct + ' %'; pc.title = 'Preis zuletzt von ' + money(ch.prev, i.cur) + ' auf ' + money(ch.now, i.cur) + (ch.dir === 'down' ? ' gesunken' : ' gestiegen'); sm.append(' ', pc); }
     if(isWish(i)){ d.classList.add('wish'); const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = 'Wunsch'; d.append(bd); }
@@ -52,6 +56,7 @@ function deleteItem(i){
   state.board = state.board.filter(p => p.id !== i.id);
   if(state.sel === i.id) state.sel = null;
   state.data.outfits.forEach(o => { o.pieces = o.pieces.filter(p => p.id !== i.id); });
+  state.data.wears = withoutItem(state.data.wears, i.id);
   renderAll(); flush();
   toast('„' + i.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}});
 }

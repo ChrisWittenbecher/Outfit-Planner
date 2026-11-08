@@ -1,6 +1,7 @@
 // @ts-check
 import { sanitizeHistory } from './prices.js';
 import { sanitizePieces } from './geometry.js';
+import { sanitizePlans, sanitizeWears } from './wear.js';
 
 export const LIMITS = Object.freeze({ url: 2048, title: 120, price: 100_000 });
 export const IMAGE_LIMITS = Object.freeze({ bytes: 25_000_000, pixels: 60_000_000 });
@@ -192,7 +193,7 @@ export function sanitizeOutfit(raw, index = 0) {
 /**
  * @param {string} text Inhalt der Datei
  * @param {readonly string[]} cats erlaubte Kategorien
- * @returns {{ ok: true, items: Record<string, unknown>[], outfits: NonNullable<ReturnType<typeof sanitizeOutfit>>[], board: import('./geometry.js').Piece[], skipped: number } | { ok: false, error: string }}
+ * @returns {{ ok: true, items: Record<string, unknown>[], outfits: NonNullable<ReturnType<typeof sanitizeOutfit>>[], board: import('./geometry.js').Piece[], wears: import('./wear.js').Wear[], plans: import('./wear.js').Plans, skipped: number } | { ok: false, error: string }}
  */
 export function parseBackup(text, cats) {
   if (typeof text !== 'string' || text.length > BACKUP_LIMITS.bytes) return { ok: false, error: 'Die Datei ist zu groß für ein Backup.' };
@@ -213,5 +214,7 @@ export function parseBackup(text, cats) {
     items.push(it);
   }
   const outfits = rawOutfits.map((/** @type {unknown} */ o, /** @type {number} */ i) => sanitizeOutfit(o, i)).filter((/** @type {unknown} */ o) => o);
-  return { ok: true, items, outfits, board: sanitizePieces(j.board).slice(0, BACKUP_LIMITS.pieces), skipped };
+  const wears = sanitizeWears(j.wears, seen, sanitizeText);
+  const plans = sanitizePlans(j.plans, new Set(outfits.map((/** @type {{ id: string }} */ o) => o.id)));
+  return { ok: true, items, outfits, board: sanitizePieces(j.board).slice(0, BACKUP_LIMITS.pieces), wears, plans, skipped };
 }

@@ -43,6 +43,9 @@
   <link rel="modulepreload" href="js/version.js">
   <link rel="modulepreload" href="js/update.js">
   <link rel="modulepreload" href="js/care.js">
+  <link rel="modulepreload" href="js/wear.js">
+  <link rel="modulepreload" href="js/wearlog.js">
+  <link rel="modulepreload" href="js/calendar.js">
   <link rel="modulepreload" href="js/pwa.js">
   <script type="module" src="js/main.js"></script>
   <script src="js/fallback.js" defer></script>
@@ -133,7 +136,7 @@
     </section>
 
     <section class="panel" aria-labelledby="savedTitle">
-      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2></div>
+      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2><button type="button" class="small" id="calBtn" aria-haspopup="dialog">Kalender</button></div>
       <div id="outs"></div>
     </section>
   </main>
@@ -157,6 +160,7 @@
     <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
+      <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mExp">Backup speichern</button>
       <button type="button" id="mImp">Backup einlesen</button>
       <button type="button" id="mClose">Schließen</button>
@@ -170,6 +174,40 @@
     <label for="uiInput" id="uiLabel" hidden></label>
     <input id="uiInput" maxlength="80" autocomplete="off" hidden>
     <div class="foot"><button type="button" id="uiCancel">Abbrechen</button><button type="button" class="pri" id="uiOk">OK</button></div>
+  </dialog>
+
+  <!-- Kalender: getragene und geplante Outfits, Auswertung -->
+  <dialog id="calDlg" aria-labelledby="calTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="calTitle" class="menu-title">Kalender</h2>
+    <div class="chips" id="calTabs" role="group" aria-label="Ansicht">
+      <button type="button" id="calTabCal" aria-pressed="true">Kalender</button>
+      <button type="button" id="calTabStats" aria-pressed="false">Auswertung</button>
+    </div>
+    <div id="calCal">
+      <div class="cal-nav">
+        <button type="button" class="ibtn" id="calPrev" aria-label="Vorheriger Monat">‹</button>
+        <h3 id="calMonth"></h3>
+        <button type="button" class="ibtn" id="calNext" aria-label="Nächster Monat">›</button>
+        <button type="button" class="small" id="calToday">Heute</button>
+      </div>
+      <table id="calGrid" aria-labelledby="calMonth">
+        <thead><tr><th scope="col" abbr="Montag">Mo</th><th scope="col" abbr="Dienstag">Di</th><th scope="col" abbr="Mittwoch">Mi</th><th scope="col" abbr="Donnerstag">Do</th><th scope="col" abbr="Freitag">Fr</th><th scope="col" abbr="Samstag">Sa</th><th scope="col" abbr="Sonntag">So</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <h3 id="calDayTitle" class="cal-day-title"></h3>
+      <ul id="calDayList" class="cal-list"></ul>
+      <label for="calPick">Outfit</label>
+      <select id="calPick" autocomplete="off"></select>
+      <div class="cal-act">
+        <button type="button" class="pri" id="calWear">Als getragen eintragen</button>
+        <button type="button" id="calPlan">Für diesen Tag planen</button>
+      </div>
+      <p class="hint" id="calHint"></p>
+    </div>
+    <div id="calStats" hidden></div>
+    <div id="calLive" class="sr-only" role="status" aria-live="polite"></div>
+    <div class="foot"><button type="button" id="calClose">Schließen</button></div>
   </dialog>
 
   <!-- Hinweise mit „Rückgängig“ (ersetzen alert) -->
