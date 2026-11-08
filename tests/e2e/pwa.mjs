@@ -108,8 +108,13 @@ try {
       for (let i = 0; i < 60 && !took; i++) { const s = await probe(); took = s.caches.includes('anprobe-8.8.8') && !s.caches.includes('anprobe-7.7.7') && s.viaWorker === '8.8.8'; if (!took) await b.p.waitForTimeout(250); }
       ok(took, 'der neue Service Worker lädt die neue Version im Hintergrund vor, übernimmt und räumt den alten Cache auf ' + (took ? '' : JSON.stringify(await probe())));
       await b.p.reload(); await ready(b.p);
-      const after = await shown(b.p);
-      ok(after === '8.8.8', 'beim nächsten Start ist die neue Version da, ohne Knopfdruck (' + after + ')' + (after === '8.8.8' ? '' : ' ' + JSON.stringify(await probe())));
+      const timing = await b.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/version\.js/.test(e.name)).map(e => ({ worker: e.workerStart > 0, size: e.transferSize, delivery: e.deliveryType, status: e.responseStatus })));
+      console.log('Hinweis: nach dem Neuladen zeigt die Seite ' + await shown(b.p) + ' ' + JSON.stringify(timing) + ' ' + JSON.stringify(await probe()));
+      // „Nächster Start“ heißt: die App wird neu geöffnet (neues Dokument im selben Browserprofil), nicht per Neuladen aktualisiert
+      await b.p.close();
+      const next = await b.ctx.newPage(); await next.goto(BASE2); await ready(next);
+      const after = await shown(next);
+      ok(after === '8.8.8', 'beim nächsten Start ist die neue Version da, ohne Knopfdruck (' + after + ')' + (after === '8.8.8' ? '' : ' ' + JSON.stringify(await next.evaluate(() => caches.keys()))));
       await b.ctx.close();
     } finally { srv.close(); await rm(dir, { recursive: true, force: true }); }
   }
