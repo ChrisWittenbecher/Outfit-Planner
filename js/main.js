@@ -15,6 +15,7 @@ import './ui.js';
 import './theme.js';
 import './update.js';
 import './calendar.js';
+import './ideas.js';
 import { startCare } from './pwa.js';
 import { startHistory } from './history.js';
 
