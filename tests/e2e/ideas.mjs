@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { PNG, checker, closed, launch, persisted, startServer } from './helpers.mjs';
+import { PNG, checker, closed, engine, launch, persisted, startServer } from './helpers.mjs';
 
 const PORT = 8742, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -36,7 +36,7 @@ try {
     const mobile = name !== 'Desktop';
     console.log('--- ' + name);
     const ctx = await browser.newContext(opts);
-    try { await ctx.grantPermissions(['clipboard-read', 'clipboard-write']); } catch { /* nicht jede Engine kennt die Berechtigung */ }
+    if (engine === 'chromium') await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);   // WebKit kennt diese Berechtigungen nicht und bricht später ab
     const p = await ctx.newPage();
     const errors = [], native = [];
     p.on('pageerror', e => errors.push(e.message));
@@ -115,7 +115,7 @@ try {
     await p.fill('#packDays', '5'); await p.dispatchEvent('#packDays', 'change');
     await p.click('#packCopy');
     ok(await wait(async () => /kopiert|nicht geklappt/.test(await p.textContent('#ideaLive'))), 'Kopieren meldet sich: ' + (await p.textContent('#ideaLive')).trim());
-    if (/Liste kopiert/.test(await p.textContent('#ideaLive')) && !mobile && (process.env.BROWSER || 'chromium') === 'chromium') {
+    if (/Liste kopiert/.test(await p.textContent('#ideaLive')) && !mobile && engine === 'chromium') {
       const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
       ok(/^Packliste für 5 Tage \(Kalt\)/.test(clip) && clip.includes('☐ '), 'Zwischenablage enthält die Liste');
     }
