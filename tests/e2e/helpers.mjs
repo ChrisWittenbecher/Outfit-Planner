@@ -42,16 +42,33 @@ export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberte
   await p.waitForFunction(n => document.querySelectorAll('#grid .card').length === n, before + 1);
 }
 
+/** Liest den Stand aus IndexedDB (Speicherformat 2): Anzahl Teile im Store, Reihenfolge und Einträge im kleinen Datensatz. */
+export const stored = p => p.evaluate(() => new Promise(res => {
+  const q = indexedDB.open('anprobe', 2);
+  q.onerror = () => res(null);
+  q.onsuccess = () => {
+    const db = q.result;
+    try {
+      const tx = db.transaction(['kv', 'items']), s = tx.objectStore('kv').get('s'), n = tx.objectStore('items').count();
+      tx.oncomplete = () => { db.close(); res(s.result ? { items: n.result, order: s.result.order?.length ?? 0, wears: s.result.wears?.length ?? 0, v: s.result.v } : null); };
+      tx.onerror = tx.onabort = () => { db.close(); res(null); };
+    } catch { db.close(); res(null); }
+  };
+}));
+
+/** Alle Teile aus dem Store „items“ (volle Daten, mit Bildern). */
+export const storedItems = p => p.evaluate(() => new Promise((res, rej) => {
+  const q = indexedDB.open('anprobe', 2);
+  q.onerror = () => rej(q.error);
+  q.onsuccess = () => { const db = q.result, g = db.transaction('items').objectStore('items').getAll(); g.onsuccess = () => { db.close(); res(g.result); }; g.onerror = () => { db.close(); rej(g.error); }; };
+}));
+
 /** Wartet, bis der Bestand wirklich in IndexedDB liegt. Wer direkt nach einer Änderung neu lädt, verliert sie sonst (Speichern ist verzögert). */
 export async function persisted(p, items, wears) {
   const t = Date.now();
   while (Date.now() - t < 5000) {
-    const n = await p.evaluate(() => new Promise(res => {
-      const q = indexedDB.open('anprobe', 1);
-      q.onerror = () => res(null);
-      q.onsuccess = () => { const db = q.result, g = db.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => { db.close(); res(g.result ? { items: g.result.items?.length ?? 0, wears: g.result.wears?.length ?? 0 } : null); }; g.onerror = () => { db.close(); res(null); }; };
-    }));
-    if (n && n.items === items && (wears === undefined || n.wears === wears)) return true;
+    const n = await stored(p);
+    if (n && n.items === items && n.order === items && (wears === undefined || n.wears === wears)) return true;
     await new Promise(r => setTimeout(r, 50));
   }
   return false;

@@ -37,7 +37,8 @@ Der typische Ablauf:
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
 | **Dunkelmodus** | Hell, Dunkel oder **Automatisch** (folgt dem System), umschaltbar oben rechts und gespeichert. Kachel und Board bleiben eine helle **Bühne**, damit dunkle Kleidungsstücke sichtbar bleiben; die Bühne des Boards lässt sich auf Hell, Mittel oder Dunkel stellen und wird auch im PNG-Export verwendet. Kontraste sind per Test abgesichert (Text mindestens 4,5:1, Feldränder mindestens 3:1). |
 | **Rückgängig und Wiederholen** | Bis zu 50 Schritte für Kleiderschrank, Board und Outfits (Strg/Cmd + Z, Strg/Cmd + Umschalt + Z oder die Pfeile oben). Löschen und Backup-Einlesen fragen nicht mehr nach, sondern bieten stattdessen **„Rückgängig“** an. |
-| **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. |
+| **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. Das Format bleibt über alle Versionen lesbar; Vorschaubilder gehören nicht hinein, sie entstehen beim Einlesen neu. |
+| **Schnelle Karten** | Der Kleiderschrank zeigt kleine Vorschaubilder (längste Seite 480 Pixel) statt der vollen Bilder. Sie entstehen nach und nach im Hintergrund, bleiben gespeichert und werden ersetzt, wenn sich das Bild ändert. Board und PNG-Export nutzen weiter das volle Bild. Gespeichert wird jedes Teil einzeln: Wer ein Teil umbenennt, schreibt nicht mehr den ganzen Schrank neu. |
 | **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. Bewegung wird bei „Bewegung reduzieren“ des Systems abgeschaltet. |
 | **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Anprobe senden“) gibt es auf dem iPhone nicht. |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
@@ -76,7 +77,9 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 ├── js/
 │   ├── main.js             Einstieg: lädt die Module, startet die App
 │   ├── core.js             gemeinsamer Zustand, Konstanten, Helfer
-│   ├── storage.js          Speicher (IndexedDB)
+│   ├── storage.js          Speicher (IndexedDB): Teile einzeln, Umstellung vom alten Format, Fehlermeldungen
+│   ├── model.js            Speicherformat 2: Änderungsliste, Zerlegen und Zusammensetzen (reine Logik)
+│   ├── thumbs.js           Vorschaubilder im Hintergrund erzeugen und speichern
 │   ├── image.js            Bildverarbeitung: Freistellen, Zuschnitt, Schuhpaare
 │   ├── dialog.js           Dialog „Teil hinzufügen / bearbeiten“
 │   ├── wardrobe.js         Kleiderschrank: Filter, Karten, Drei-Punkte-Menü
@@ -152,10 +155,11 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 ### Architektur in Kürze
 
 - **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js`, `wear.js`, `color.js`, `search.js` und `intake.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js`, `wear.js`, `color.js`, `search.js`, `intake.js` und `model.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
 - **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
-- **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
+- **Persistenz:** IndexedDB (Version 2) mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen. Jedes Teil liegt einzeln im Store `items`, der Rest (Reihenfolge, Outfits, Protokoll, Pläne, Board) als kleiner Datensatz unter `kv.s`, Vorschaubilder im Store `thumbs`. Beim Speichern wird nur geschrieben, was sich geändert hat, in einer Transaktion. Schlägt das fehl (etwa wegen Platzmangel), steht eine Meldung in der Oberfläche, und der nächste Versuch holt es nach.
+- **Umstellung vom alten Format:** Beim ersten Start mit Version 1.7 werden vorhandene Daten in einer einzigen Transaktion umgestellt: Entweder ist alles umgestellt, oder es bleibt alles beim Alten. Dazu legt die App 14 Tage lang eine Kopie des alten Formats an (`kv.s_v1`); reicht der Platz dafür nicht, wird ohne Kopie umgestellt. Hält ein anderer Tab noch eine ältere Version offen, wartet die App und sagt es.
 - **Design-Tokens:** Jede Farbe steht genau einmal in `@layer tokens` als `light-dark(hell, dunkel)`. Das Dunkle folgt `color-scheme` (System) oder `data-theme` (Umschalter). Ältere Browser ohne `light-dark()` bekommen die hellen Werte; der Test `contrast.test.mjs` stellt sicher, dass beides übereinstimmt, dass nirgends sonst Farben stehen und dass die Kontraste halten.
 - **Bewegung und Touch:** Einheitliche Kurven und Zeiten als Tokens (`--ease-out`, `--ease-sheet`, `--t-press` …). Bewegung dient der Rückmeldung (Druck, Ein- und Ausblenden) und endet unter 300 ms. Hover-Stile gelten nur mit Maus (`@media (hover: hover) and (pointer: fine)`), auf dem Handy zeigt `:active` den Druck an, sodass nichts hängen bleibt. Bei „Bewegung reduzieren“ entfallen Skalierung und Verschiebung, Dialoge schließen sofort. Das Bottom-Sheet lässt sich am Griff wegwischen (Geschwindigkeit zählt, nicht nur die Strecke). Die Gestaltung folgt den Regeln aus [emilkowalski/skills](https://github.com/emilkowalski/skills).
 - **Rückgängig ohne Sonderlogik:** `history.js` vergleicht nach jedem Sichern den Bestand mit dem letzten Stand und fasst schnelle Änderungen (z. B. Ziehen) zu einem Schritt zusammen. Bilder werden zwischen den Ständen geteilt, nicht kopiert. Bewusste Aktionen (Löschen, Einlesen) rufen `step()` für eine eigene Schrittgrenze.

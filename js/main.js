@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { $ } from './core.js';
 import { load, setReady } from './storage.js';
+import { loadThumbs } from './thumbs.js';
 import { renderAll } from './render.js';
 import './dialog.js';
 import './wardrobe.js';
@@ -17,8 +18,9 @@ import './calendar.js';
 import { startCare } from './pwa.js';
 import { startHistory } from './history.js';
 
-load().then(ok => {
+load().then(async ok => {
   setReady(ok);
+  if (ok) await loadThumbs();   // erst dann zeichnen, damit die Karten gleich die kleinen Bilder bekommen
   if (!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.';
   renderAll();
   startHistory();

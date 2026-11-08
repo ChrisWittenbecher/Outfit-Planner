@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { addItem, checker, startServer, launch } from './helpers.mjs';
+import { addItem, checker, startServer, launch, storedItems } from './helpers.mjs';
 
 const PORT = 8734, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -79,7 +79,7 @@ try {
     await p.waitForTimeout(500); await p.reload(); await p.waitForSelector('html[data-ready]', { state: 'attached' });
     await p.waitForSelector('#board img.p'); await p.waitForTimeout(300);
     ok(JSON.stringify((await geo(p)).map(k => [k.x, k.y, k.w])) === before, 'Layout bleibt nach dem Neuladen erhalten');
-    const cuts = await p.evaluate(() => new Promise(res => { const q = indexedDB.open('anprobe'); q.onsuccess = () => { const g = q.result.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => res(g.result.items.map(i => !!i.cut)); }; }));
+    const cuts = (await storedItems(p)).map(i => !!i.cut);
     ok(cuts.length === 4 && cuts.every(Boolean), 'Testbilder sind freigestellt, der Fitter hat echte Umrisse gemessen');
 
     await p.screenshot({ path: `/tmp/shots/fit-${mobile ? 'mobile' : 'desktop'}.png`, fullPage: false });

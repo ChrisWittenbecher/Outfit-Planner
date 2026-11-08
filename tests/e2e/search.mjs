@@ -1,6 +1,6 @@
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { PNG, checker, closed, launch, persisted, startServer } from './helpers.mjs';
+import { PNG, checker, closed, launch, persisted, startServer, storedItems } from './helpers.mjs';
 
 const PORT = 8740, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -153,7 +153,7 @@ try {
     ok(await cards() === 4, 'zwei neue Teile (' + await cards() + ')');
     ok(await card('gruene jacke').count() === 1 && await card('Neues Teil').count() === 1, 'Namen aus Dateinamen, „IMG_0042“ wird zu „Neues Teil“');
     ok(/Jacke · Grün/.test(await card('gruene jacke').locator('small').first().textContent()), 'Farbe automatisch erkannt');
-    ok(await card('gruene jacke').locator('img').evaluate(i => i.src.startsWith('data:image/png')), 'Bild ist freigestellt (PNG mit Transparenz)');
+    ok((await storedItems(p)).some(i => i.name.toLowerCase() === 'gruene jacke' && i.cut && i.img.startsWith('data:image/png')), 'Bild ist freigestellt (PNG mit Transparenz)');
     await p.click('#toasts button');   // Rückgängig
     ok(await wait(async () => await cards() === 2), 'ein Klick auf „Rückgängig“ entfernt alle neuen Teile');
 

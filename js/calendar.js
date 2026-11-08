@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { $, item, mb, money, state } from './core.js';
+import { $, item, mb, money, showThumb, state } from './core.js';
 import { renderGrid } from './wardrobe.js';
 import { renderOuts } from './outfits.js';
 import { flush } from './storage.js';
@@ -126,7 +126,7 @@ function renderStats() {
   }
   const row = (it, sub, right, rightSub) => {
     const li = el('li'), im = new Image();
-    im.src = it.img; im.alt = ''; im.className = mb(it).trim(); im.loading = 'lazy';
+    showThumb(im, it); im.alt = ''; im.className = mb(it).trim(); im.loading = 'lazy';
     const txt = el('div', 't'); txt.append(el('b', '', it.name), el('small', '', sub));
     const v = el('div', 'v'); v.append(el('b', '', right)); if (rightSub) v.append(el('small', '', rightSub));
     li.append(im, txt, v); return li;
