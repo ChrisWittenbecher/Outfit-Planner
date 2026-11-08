@@ -11,14 +11,10 @@ const bg = (p, sel) => p.evaluate(s => getComputedStyle(document.querySelector(s
 const attr = p => p.evaluate(() => document.documentElement.dataset.theme ?? null);
 const ready = p => p.waitForSelector('html[data-ready]', { state: 'attached' });
 const wait = (p, ms = 800) => p.waitForTimeout(ms);   // länger als die Pause, ab der ein neuer Rückgängig-Schritt beginnt
-const diagClick = async (p, tag) => {
-  await p.evaluate(() => { window.__c = []; document.getElementById('theme').addEventListener('click', () => window.__c.push(Math.round(performance.now())), true); });
-  const t0 = Date.now();
+const toggle = async (p, want) => {   // der erste Wechsel einer frischen Engine kann länger dauern (View Transition), also auf das Ergebnis warten
   await p.click('#theme');
-  for (const t of [50, 150, 400, 800, 1600]) {
-    await p.waitForTimeout(t === 50 ? 50 : 100);
-    console.log('DIAG', tag, Date.now() - t0, await p.evaluate(() => JSON.stringify({ attr: document.documentElement.dataset.theme ?? null, clicks: window.__c.length, openDlg: document.querySelectorAll('dialog[open]').length, anims: document.getAnimations().length, vt: typeof document.startViewTransition, hidden: document.hidden, active: document.activeElement && (document.activeElement.id || document.activeElement.tagName), overflow: getComputedStyle(document.documentElement).overflow })));
-  }
+  await p.waitForFunction(w => (document.documentElement.dataset.theme ?? null) === w, want, { timeout: 8000 });
+  await p.waitForTimeout(250);
 };
 const cards = p => p.locator('#grid .card').count();
 const open = async (ctx) => {
@@ -43,16 +39,16 @@ try {
     await p.click('#cancel');
 
     // Umschalten: Automatisch → Hell → Dunkel → Automatisch, mit Speicherung
-    await diagClick(p, 'A'); await wait(p, 400);
+    await toggle(p, 'light');
     ok(await attr(p) === 'light' && await bg(p, 'body') === 'rgb(232, 234, 238)', 'Hell erzwingt das helle Design trotz dunklem System');
     ok(await p.evaluate(() => localStorage.getItem('anprobe-theme')) === 'light', 'Wahl „Hell“ wird gespeichert');
     await p.reload({ waitUntil: 'domcontentloaded' });
     ok(await attr(p) === 'light', 'Init-Skript setzt das Design schon vor dem Start der Module (kein Aufblitzen)');
     await ready(p);
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, 'dark');
     ok(await attr(p) === 'dark' && await bg(p, 'body') === 'rgb(15, 15, 18)', 'Dunkel erzwingt das dunkle Design');
     ok(await p.evaluate(() => document.getElementById('metaLight').content) === '#0f0f12', 'Farbe der Browserleiste folgt dem gewählten Design');
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, null);
     ok(await attr(p) === null && await p.evaluate(() => localStorage.getItem('anprobe-theme')) === null, 'Zurück auf Automatisch: Attribut und Speicher geleert');
 
     // Teil anlegen; Kachel bleibt hell, Bühne wechselt
@@ -168,9 +164,9 @@ try {
     ok(await p.locator('#moreDlg').evaluate(d => d.open), '„Mehr“ öffnet das Menü');
     const exp = p.waitForEvent('download'); await p.click('#mExp');
     ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
-    await diagClick(p, 'B'); await wait(p, 400);
+    await toggle(p, 'light');
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
-    await p.click('#theme'); await wait(p, 400);
+    await toggle(p, 'dark');
     ok(await attr(p) === 'dark' && await bg(p, 'body') === 'rgb(15, 15, 18)', 'Umschalter auf Dunkel am Smartphone');
     ok(native.length === 0, 'keine nativen Dialoge');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
