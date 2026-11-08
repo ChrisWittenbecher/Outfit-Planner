@@ -62,6 +62,15 @@
     --tap: 40px;              /* Mindestgröße für Touch-Ziele */
     --font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
     --serif: Georgia, "Times New Roman", serif;
+    /* Bewegung */
+    --ease-out: cubic-bezier(.23, 1, .32, 1);        /* Ein- und Ausblenden, Druck-Rückmeldung */
+    --ease-in-out: cubic-bezier(.77, 0, .175, 1);    /* Bewegung auf dem Bildschirm */
+    --ease-sheet: cubic-bezier(.32, .72, 0, 1);      /* Bottom-Sheet, wie iOS */
+    --t-press: 140ms;
+    --t-fade: 200ms;
+    --t-sheet: 300ms;
+    --t-sheet-exit: 220ms;
+    --t-exit: 160ms;
   }
   :root[data-stage="light"] { --stage: #ececf1; --stage-dot: #c9ceda; --stage-ink: #5f6678; --stage-acc: #3b3bff; }
   :root[data-stage="mid"]   { --stage: #8e8e9a; --stage-dot: #7f7f8c; --stage-ink: #0f0f12; --stage-acc: #1a1a7a; }
@@ -83,9 +92,13 @@
 }
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
-  body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); }
-  h1, h2, h3 { font-family: var(--serif); font-weight: 400; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scrollbar-gutter: stable; }
+  html:has(dialog[open]) { overflow: hidden; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 400; text-wrap: balance; }
+  p, .hint, .sub, .empty { text-wrap: pretty; }
+  a, button, input, select, label, [role="button"] { touch-action: manipulation; }
+  button, [role="button"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   h1 { font-size: 30px; font-style: italic; letter-spacing: -.5px; }
   h2 { font-size: 20px; }
   h3 { font-size: 16px; }
@@ -95,8 +108,10 @@
   input[type=checkbox], input[type=range] { width: auto; min-height: 0; padding: 0; accent-color: var(--acc); }
   :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
   [aria-invalid="true"] { border-color: var(--danger); }
-  dialog { border: 0; border-radius: var(--radius); padding: 22px; width: min(720px, 94vw); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px var(--shade-lg); background: var(--overlay); color: var(--ink); }
+  dialog { border: 0; border-radius: var(--radius); padding: 22px; width: min(720px, 94vw); max-height: 92vh; max-height: 92dvh; overflow: auto; overscroll-behavior: contain; box-shadow: 0 20px 60px var(--shade-lg); background: var(--overlay); color: var(--ink); }
   dialog::backdrop { background: var(--scrim); }
+  dialog[data-closing] { pointer-events: none; }
+  .grab { display: none; }
 }
 
 @layer layout {
@@ -119,10 +134,14 @@
 @layer components {
   /* Buttons */
   button { cursor: pointer; border: 1px solid var(--ink); background: transparent; padding: 7px 14px; border-radius: 999px; min-height: 36px; }
-  button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
+  button:active:not(:disabled) { background: var(--ink); color: var(--on-ink); }
   button:disabled { opacity: .45; cursor: not-allowed; }
   button.pri { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
-  button.pri:hover:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  button.pri:active:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  @media (hover: hover) and (pointer: fine) {
+    button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
+    button.pri:hover:not(:disabled) { background: var(--acc-strong); border-color: var(--acc-strong); }
+  }
   button.small { padding: 4px 12px; font-size: 13px; min-height: 30px; }
 
   /* Kategorie-Filter */
@@ -137,18 +156,19 @@
   .card img { display: block; width: 100%; aspect-ratio: 3/4; object-fit: contain; padding: 6px; filter: drop-shadow(0 2px 3px var(--shade-sm)); }
   .card img.mb { filter: none; }
   .mb { mix-blend-mode: multiply; }
-  .card .n { padding: 6px 8px 8px; font-size: 13px; line-height: 1.25; background: var(--raised); }
+  .card .n { padding: 6px 8px 8px; font-size: 13px; line-height: 1.25; background: var(--raised); overflow-wrap: anywhere; hyphens: auto; }
   .card .n small { display: block; color: var(--mute); }
   .card .n a.h { display: block; color: var(--acc); font-size: 12px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card .n a.h:hover { text-decoration: underline; }
+  @media (hover: hover) and (pointer: fine) { .card .n a.h:hover { text-decoration: underline; } }
   .card .x { position: absolute; top: 5px; right: 5px; display: none; gap: 4px; }
-  .card:hover .x, .card:focus-within .x { display: flex; }
+  .card:focus-within .x { display: flex; }
+  @media (hover: hover) and (pointer: fine) { .card:hover .x { display: flex; } }
   @media (hover: none) { .card .x { display: flex; } }
   .x button { padding: 0; width: 28px; height: 28px; min-height: 0; background: var(--overlay); border-radius: 50%; font-size: 13px; line-height: 1; display: grid; place-items: center; }
-  .x button:hover:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+  .x button:active:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+  @media (hover: hover) and (pointer: fine) { .x button:hover:not(:disabled) { background: var(--acc); border-color: var(--acc); color: var(--on-acc); } }
   .empty { color: var(--mute); padding: 30px 6px; text-align: center; grid-column: 1 / -1; }
   .empty--tight { padding: 10px 0; }
-  @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } }
 
   /* Anprobe-Board */
   #wrap { position: relative; max-width: 100%; }
@@ -171,7 +191,8 @@
   #sum .r { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
   #sum .r.on { background: var(--acc-soft); }
   #sum .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; border: 0; background: none; padding: 2px 4px; min-height: 0; border-radius: 4px; }
-  #sum .nm:hover:not(:disabled) { background: none; color: var(--acc); text-decoration: underline; }
+  #sum .nm:active:not(:disabled) { background: none; color: var(--acc); }
+  @media (hover: hover) and (pointer: fine) { #sum .nm:hover:not(:disabled) { background: none; color: var(--acc); text-decoration: underline; } }
   #sum .lay { display: flex; gap: 2px; flex: none; }
   #sum .lay button { padding: 0; width: 24px; height: 24px; min-height: 0; font-size: 10px; border-color: var(--line); line-height: 1; }
   #sum a { color: var(--acc); text-decoration: none; font-weight: 600; }
@@ -260,13 +281,21 @@
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
   .menu-list .danger { color: var(--danger); border-color: var(--danger); }
-  .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); }
+  .menu-list .danger:active:not(:disabled) { background: var(--danger); color: var(--on-danger); }
+  @media (hover: hover) and (pointer: fine) { .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); } }
   @media (min-width: 561px) { #menuDlg { width: min(360px, 94vw); } }
+
+  #sum, #priceList, #count, .card .n small, .pc, .out small { font-variant-numeric: tabular-nums; }
 
   @media (pointer: coarse) {
     button { min-height: 44px; }
     .chips button, .out .b button, #opts button, button.small { min-height: 40px; }
     input, select { min-height: 44px; }
+    #sum .lay { gap: 8px; }
+    #sum .lay button, .card .x .more { position: relative; }
+    #sum .lay button { width: 32px; height: 32px; }
+    #sum .lay button::after { content: ""; position: absolute; inset: -6px -4px; }
+    .card .x .more::after { content: ""; position: absolute; inset: -4px; }
   }
 
   @media (max-width: 560px) {
@@ -299,7 +328,8 @@
   .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; background: var(--overlay); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px var(--shade-lg); font-size: 14px; }
   .toast--err { border-color: var(--danger); }
   .toast button { border: 0; background: none; color: var(--acc); font-weight: 600; padding: 6px 12px; min-height: 36px; border-radius: 8px; }
-  .toast button:hover:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); }
+  .toast button:active:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); }
+  @media (hover: hover) and (pointer: fine) { .toast button:hover:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); } }
 
   /* Eigener Dialog für Rückfragen und Namenseingabe */
   @media (min-width: 561px) { #uiDlg, #moreDlg { width: min(420px, 94vw); } }   /* am Smartphone gilt das Bottom-Sheet in voller Breite */
@@ -316,24 +346,46 @@
     .ibtn { width: 44px; height: 44px; }
   }
 
+  @media (max-width: 560px) {
+    .grab { display: block; position: relative; height: 32px; margin: -18px -16px -12px; touch-action: none; cursor: grab; }
+    .grab::before { content: ""; position: absolute; left: 50%; top: 9px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--faint); }
+  }
+
   @media (prefers-reduced-motion: no-preference) {
-    button { transition: background-color .12s, color .12s, border-color .12s; }
-    .card { transition: border-color .15s, transform .12s; }
+    button { transition: background-color var(--t-press) ease, color var(--t-press) ease, border-color var(--t-press) ease, transform var(--t-press) var(--ease-out); }
+    button:active:not(:disabled) { transform: scale(.97); }
+    .ibtn:active:not(:disabled) { transform: scale(.92); }
+    .fab:active { transform: scale(.94); }
+    .card { transition: border-color .15s ease, transform var(--t-press) var(--ease-out); }
     .card:active { transform: scale(.98); }
-    .card.enter { animation: card-in .3s cubic-bezier(.2, .8, .2, 1); }
-    #board .p { transition: filter .12s; }
+    .card.enter { animation: card-in 300ms var(--ease-out); }
+    #board .p { transition: filter .12s ease; }
     #board .p:active { filter: drop-shadow(0 10px 14px var(--shade-lg)); }
-    dialog[open] { animation: dlg-in .22s cubic-bezier(.2, .8, .2, 1); }
-    dialog[open]::backdrop { animation: fade-in .2s ease-out; }
-    .toast { animation: toast-in .2s cubic-bezier(.2, .8, .2, 1); }
+    dialog[open] { animation: dlg-in var(--t-fade) var(--ease-out); }
+    dialog[open]::backdrop { animation: fade-in var(--t-fade) ease-out; }
+    dialog[open][data-closing] { animation: dlg-out var(--t-exit) var(--ease-out) forwards; }
+    dialog[open][data-closing]::backdrop { animation: fade-out var(--t-exit) ease-out forwards; }
+    .toast { animation: toast-in var(--t-fade) var(--ease-out); }
+    .toast--out { animation: toast-out var(--t-exit) var(--ease-out) forwards; }
     ::view-transition-group(root) { animation-duration: .2s; }
-    @media (max-width: 560px) { dialog[open] { animation-name: sheet-in; } }
+    @media (max-width: 560px) {
+      dialog[open] { animation: sheet-in var(--t-sheet) var(--ease-sheet); }
+      dialog[open][data-closing] { animation: sheet-out var(--t-sheet-exit) var(--ease-sheet) forwards; }
+      dialog[open][data-closing="drag"] { animation: none; }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    dialog[open], dialog[open]::backdrop { animation: fade-in var(--t-press) ease-out; }
   }
   @keyframes card-in { from { opacity: 0; transform: scale(.92); } }
   @keyframes dlg-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+  @keyframes dlg-out { to { opacity: 0; transform: scale(.98); } }
   @keyframes sheet-in { from { transform: translateY(100%); } }
+  @keyframes sheet-out { to { transform: translateY(100%); } }
   @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
 }
 
 @media (forced-colors: active) {

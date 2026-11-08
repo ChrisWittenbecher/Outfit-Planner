@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 
-const tokensLayer = css.slice(css.indexOf('@layer tokens {'), css.indexOf('/* ---------- 3. Basis'));
+const tokensLayer = css.slice(css.indexOf('@layer tokens {'), css.indexOf('@layer base {'));
 const rootBlock = tokensLayer.slice(tokensLayer.indexOf(':root {'), tokensLayer.indexOf('}', tokensLayer.indexOf(':root {')));
 const pairs = {};   // name -> [hell, dunkel]
 for (const m of rootBlock.matchAll(/--([\w-]+):\s*light-dark\(\s*(#[0-9a-fA-F]+)\s*,\s*(#[0-9a-fA-F]+)\s*\)/g)) pairs[m[1]] = [m[2], m[3]];

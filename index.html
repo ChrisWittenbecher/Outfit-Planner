@@ -19,6 +19,7 @@
   <link rel="modulepreload" href="js/storage.js">
   <link rel="modulepreload" href="js/history.js">
   <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/sheet.js">
   <link rel="modulepreload" href="js/theme.js">
   <link rel="modulepreload" href="js/image.js">
   <link rel="modulepreload" href="js/dialog.js">
@@ -132,7 +133,8 @@
 
   <p class="ver">Anprobe <span id="ver"></span> · <button type="button" id="updBtn">Nach Update suchen</button></p>
 
-  <dialog id="menuDlg" aria-labelledby="menuTitle">
+  <dialog id="menuDlg" data-dismiss="backdrop" aria-labelledby="menuTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="menuTitle" class="menu-title"></h2>
     <div class="menu-list">
       <button type="button" id="menuEdit">Bearbeiten</button>
@@ -144,7 +146,8 @@
   </dialog>
 
   <!-- Mehr (Smartphone): Backup und Wiederherstellen -->
-  <dialog id="moreDlg" aria-labelledby="moreTitle">
+  <dialog id="moreDlg" data-dismiss="backdrop" aria-labelledby="moreTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
       <button type="button" id="mExp">Backup speichern</button>
@@ -154,6 +157,7 @@
   </dialog>
 
   <dialog id="uiDlg" aria-labelledby="uiTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="uiTitle" class="menu-title"></h2>
     <p id="uiText" hidden></p>
     <label for="uiInput" id="uiLabel" hidden></label>
@@ -168,6 +172,7 @@
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
 
   <dialog id="dlg" aria-labelledby="dlgTitle">
+    <div class="grab" aria-hidden="true"></div>
     <h2 id="dlgTitle">Neues Teil</h2>
     <label for="imgUrl">Bild per Link laden (optional, direkter Link zum Bild)</label>
     <div class="row">

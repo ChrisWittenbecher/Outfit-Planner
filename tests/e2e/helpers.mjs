@@ -42,5 +42,8 @@ export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberte
   await p.waitForFunction(n => document.querySelectorAll('#grid .card').length === n, before + 1);
 }
 
+/** Wartet, bis ein Dialog fertig ausgeblendet und geschlossen ist. */
+export const closed = (p, id) => p.waitForFunction(i => !document.getElementById(i).open, id, { timeout: 3000 }).then(() => true, () => false);
+
 export const engine = process.env.BROWSER || 'chromium';
 export const launch = () => playwright[engine].launch();

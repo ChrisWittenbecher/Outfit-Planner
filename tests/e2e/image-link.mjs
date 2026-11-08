@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch } from './helpers.mjs';
+import { checker, PNG, startServer, launch, closed } from './helpers.mjs';
 
 const PORT = 8733, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -56,7 +56,7 @@ try {
     ok((await statusText(p)) === '', 'Bild vom Link geladen und freigestellt (Enter im Feld startet das Laden)');
     await p.fill('#name', 'Blaues Shirt'); await p.selectOption('#cat', 'Oberteil');
     await p.click('#ok');
-    ok(!(await p.locator('#dlg').evaluate(d => d.open)), 'Speichern schließt den Dialog');
+    ok(await closed(p, 'dlg'), 'Speichern schließt den Dialog');
     const card = p.locator('#grid .card').first();
     ok(await card.locator(`a[href="${SHOP}"]`).count() === 1, 'Shop-Link ist an der Karte gespeichert, „https://“ wurde ergänzt');
 

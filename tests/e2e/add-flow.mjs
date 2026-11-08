@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch, engine } from './helpers.mjs';
+import { checker, PNG, startServer, launch, engine, closed } from './helpers.mjs';
 
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -49,7 +49,7 @@ try {
     ok(await p.locator('#dlg').evaluate(d => d.open) && /ungültig/i.test(await p.textContent('#status')), 'ungültiger Link wird abgelehnt');
     await p.fill('#url', 'https://shop.example.com/blaues-shirt');
     await p.click('#ok');
-    ok(!(await p.locator('#dlg').evaluate(d => d.open)), 'Speichern schließt den Dialog');
+    ok(await closed(p, 'dlg'), 'Speichern schließt den Dialog');
     ok(await p.locator('#grid .card').count() === 1, 'Karte im Kleiderschrank');
     const card = await p.locator('#grid .card').first().innerText();
     ok(/Blaues Shirt/.test(card) && /39/.test(card), 'Name und Preis an der Karte');

@@ -1,6 +1,6 @@
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { addItem, checker, startServer, launch } from './helpers.mjs';
+import { addItem, checker, startServer, launch, closed } from './helpers.mjs';
 
 const PORT = 8732, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -93,7 +93,7 @@ try {
     ok(await p.locator('#uiDlg').evaluate(d => d.open) && await p.inputValue('#uiInput') === 'Outfit 1', 'Namens-Dialog statt prompt(), Vorschlag „Outfit 1“');
     ok(await bg(p, '#uiDlg') === 'rgb(42, 42, 50)', 'Dialog im Dunkeln');
     await p.keyboard.press('Escape');
-    ok(!(await p.locator('#uiDlg').evaluate(d => d.open)) && await p.locator('#outs .out').count() === 0, 'Esc bricht ab, nichts gespeichert');
+    ok(await closed(p, 'uiDlg') && await p.locator('#outs .out').count() === 0, 'Esc bricht ab, nichts gespeichert');
     await p.click('#save'); await p.fill('#uiInput', 'Sommer'); await p.keyboard.press('Enter');
     await p.waitForSelector('#outs .out');
     ok(await p.textContent('#outs .out b') === 'Sommer', 'Enter speichert das Outfit unter dem Namen');
@@ -158,7 +158,7 @@ try {
     await p.click('#more');
     ok(await p.locator('#moreDlg').evaluate(d => d.open), '„Mehr“ öffnet das Menü');
     const exp = p.waitForEvent('download'); await p.click('#mExp');
-    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && !(await p.locator('#moreDlg').evaluate(d => d.open)), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
+    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
     await p.click('#theme'); await wait(p, 400);
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
     await p.click('#theme'); await wait(p, 400);

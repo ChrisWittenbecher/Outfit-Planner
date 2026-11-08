@@ -6,6 +6,7 @@ import { openDlg } from './dialog.js';
 import { toggle } from './board.js';
 import { flush } from './storage.js';
 import { toast } from './ui.js';
+import { closeDialog, showDialog } from './sheet.js';
 import { step, undo } from './history.js';
 
 const STATUS = [['Alle', 'Alle'], ['own', 'Besitze ich'], ['wish', 'Wunschliste']];
@@ -59,10 +60,10 @@ function openMenu(i){
   menuItem = i; $('menuTitle').textContent = i.name;
   $('menuBought').hidden = !isWish(i);
   $('menuOffer').hidden = !/^https?:/.test(i.link || '');
-  $('menuDlg').showModal();
+  showDialog($('menuDlg'));
 }
-$('menuEdit').onclick = () => { const i = menuItem; $('menuDlg').close(); if(i) openDlg(i); };
-$('menuBought').onclick = () => { const i = menuItem; $('menuDlg').close(); if(i) markBought(i); };
-$('menuOffer').onclick = () => { const i = menuItem; $('menuDlg').close(); if(i) openOffer(i); };
-$('menuDelete').onclick = () => { const i = menuItem; $('menuDlg').close(); if(i) deleteItem(i); };
-$('menuClose').onclick = () => $('menuDlg').close();
+$('menuEdit').onclick = () => { const i = menuItem; closeDialog($('menuDlg')); if(i) openDlg(i); };
+$('menuBought').onclick = () => { const i = menuItem; closeDialog($('menuDlg')); if(i) markBought(i); };
+$('menuOffer').onclick = () => { const i = menuItem; closeDialog($('menuDlg')); if(i) openOffer(i); };
+$('menuDelete').onclick = () => { const i = menuItem; closeDialog($('menuDlg')); if(i) deleteItem(i); };
+$('menuClose').onclick = () => closeDialog($('menuDlg'));
