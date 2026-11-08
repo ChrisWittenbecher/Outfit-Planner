@@ -144,6 +144,12 @@
   }
   button.small { padding: 4px 12px; font-size: 13px; min-height: 30px; }
 
+  /* Suche */
+  .search { margin-bottom: 10px; -webkit-appearance: none; appearance: none; }
+  .search::-webkit-search-cancel-button { cursor: pointer; }
+  .card .n small.tg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hint--tip { margin-top: 8px; }
+
   /* Kategorie-Filter */
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .chips button { padding: 3px 11px; font-size: 13px; min-height: 30px; border-color: var(--line); }

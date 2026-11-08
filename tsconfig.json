@@ -20,6 +20,8 @@
     "js/fit.js",
     "js/version.js",
     "js/care.js",
-    "js/wear.js"
+    "js/wear.js",
+    "js/color.js",
+    "js/search.js"
   ]
 }

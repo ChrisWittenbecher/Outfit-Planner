@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { loadImg } from './core.js';
 import { IMAGE_LIMITS } from './scraper.js';
+import { dominantColor } from './color.js';
 
 export async function norm(src, max = 1000){ // verkleinert; behält Transparenz bei PNGs
   const im = await loadImg(src, /^https?:/.test(src));
@@ -99,4 +100,12 @@ export async function makeImage(d, cat, say = () => {}){
   }
   if(cat === 'Schuhe'){ if(d.rm && !d.mirrorTouched) d.mirror = countParts(out) < 2; if(d.mirror) out = mirrorPair(out); } else d.mirror = false;
   return {img: cut ? out.toDataURL('image/png') : out.toDataURL('image/jpeg', .9), cut, mirror: !!d.mirror};
+}
+/** Häufigste Farbe eines fertigen Bildes (nur auf dem Gerät gerechnet). @returns {Promise<string|null>} */
+export async function detectColor(src, cut){
+  const im = await loadImg(src), k = Math.min(1, 64 / Math.max(im.width, im.height));
+  const w = Math.max(1, Math.round(im.width * k)), h = Math.max(1, Math.round(im.height * k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(im, 0, 0, w, h);
+  return dominantColor(x.getImageData(0, 0, w, h).data, w, h, {center:!cut});
 }

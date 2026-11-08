@@ -2,13 +2,17 @@
 import * as Scraper from './scraper.js';
 import { $, CATS, DROP, money, newId, parsePrice, readFile, state } from './core.js';
 import { baseHistory, LEGACY_T, recordPrice } from './prices.js';
-import { makeImage, norm } from './image.js';
+import { detectColor, makeImage, norm } from './image.js';
+import { COLOR_NAMES } from './color.js';
+import { parseTags } from './search.js';
+import { addMany } from './batch.js';
+import { MAX_BATCH } from './intake.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
 import { confirmBox } from './ui.js';
 import { closeDialog, showDialog } from './sheet.js';
 
-const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false});
+const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false, colorTouched:false});
 function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(state.draft) $('mirror').checked = !!state.draft.mirror; }
 let tok = 0;
 /** Verarbeitet das Bild im Dialog und zeigt das Ergebnis an. */
@@ -18,13 +22,20 @@ async function process(){
     const r = await makeImage(state.draft, $('cat').value, status);
     if(my !== tok) return;
     state.draft.img = r.img; state.draft.cut = r.cut;
-    const el = new Image(); el.src = state.draft.img; el.alt = ''; $('res').replaceChildren(el); syncMirror();
+    const el = new Image(); el.src = state.draft.img; el.alt = ''; $('res').replaceChildren(el); syncMirror(); autoColor(r.img, r.cut, my);
   }catch(e){ if(my === tok) status('Bild konnte nicht verarbeitet werden.', true); }
   finally{ if(my === tok) state.draft.busy = false; }
+}
+/** Erkennt die Farbe und trägt sie ein, solange du sie nicht selbst gewählt hast. */
+async function autoColor(src, cut, my){
+  const dr = state.draft;
+  try{ const c = await detectColor(src, cut); if(dr === state.draft && !dr.colorTouched && (my === undefined || my === tok)) $('color').value = c || ''; }catch(e){}
 }
 let ptm; const processSoon = () => { clearTimeout(ptm); ptm = setTimeout(process, 120); };
 
 CATS.forEach(c => $('cat').add(new Option(c, c)));
+COLOR_NAMES.forEach(c => $('color').add(new Option(c, c)));
+$('color').onchange = () => { if(state.draft) state.draft.colorTouched = true; };
 export function status(t, err){ $('status').textContent = t; $('status').className = err ? 'err' : ''; }
 function showOrig(){
   const d = $('drop');
@@ -63,6 +74,10 @@ export function openDlg(it){
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
   $('itemState').value = it ? (it.status === 'wish' ? 'wish' : 'own') : (state.statusFilter === 'wish' ? 'wish' : 'own');
   showHistory(it);
+  $('tags').value = it && Array.isArray(it.tags) ? it.tags.join(', ') : '';
+  $('color').value = it && it.color || '';
+  if(it){ state.draft.colorTouched = !!it.color; if(!it.color) autoColor(it.img, !!it.cut); }
+  $('multiTip').hidden = !!it;
   status(''); showOrig(); syncOpts();
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
@@ -107,10 +122,14 @@ $('cancel').onclick = () => closeDialog($('dlg'));
 $('drop').onclick = () => { if(!state.draft || !state.draft.orig) $('file').click(); };
 $('drop').onkeydown = e => { if(e.key === 'Enter' && (!state.draft || !state.draft.orig)) $('file').click(); };
 $('pick').onclick = () => $('file').click();
-$('file').onchange = e => { takeFile(e.target.files[0]); e.target.value = ''; };
+const intake = files => {
+  if(files.length > 1 && !state.editing){ closeDialog($('dlg')); addMany(files); }   // mehrere Bilder: ohne Dialog, jedes freigestellt und hinzugefügt
+  else takeFile(files[0]);
+};
+$('file').onchange = e => { const files = [...e.target.files]; e.target.value = ''; if(files.length) intake(files); };
 ['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
+$('drop').addEventListener('drop', e => { const files = [...e.dataTransfer.files]; if(files.length) intake(files); });
 document.addEventListener('paste', e => { const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
 $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) process(); };
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };
@@ -131,7 +150,8 @@ $('ok').onclick = () => {
   if(v && !v.ok){ status('Der Link ist ungültig: ' + v.error, true); $('url').setAttribute('aria-invalid', 'true'); return; }
   const price = Scraper.sanitizePrice(parsePrice($('price').value)), cur = Scraper.normalizeCurrency($('cur').value, 'EUR'), ed = state.editing;
   const prev = ed && ed.cur === cur ? baseHistory(ed.priceHistory || [], ed.price) : [];
-  const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price)};
-  if(state.editing) Object.assign(state.editing, f); else { const n = {id:newId(), ...f}; state.data.items.unshift(n); state.fresh = n.id; }
+  const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price), tags:parseTags($('tags').value, Scraper.sanitizeText)};
+  if(COLOR_NAMES.includes($('color').value)) f.color = $('color').value;
+  if(state.editing){ Object.assign(state.editing, f); if(!f.color) delete state.editing.color; } else { const n = {id:newId(), ...f}; state.data.items.unshift(n); state.fresh = n.id; }
   renderAll(); state.fresh = null; flush(); closeDialog($('dlg'));
 };

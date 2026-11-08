@@ -9,28 +9,43 @@ import { toast } from './ui.js';
 import { closeDialog, showDialog } from './sheet.js';
 import { step, undo } from './history.js';
 import { costPerWear, dayKey, wearStats, withoutItem } from './wear.js';
+import { allTags, hasTag, matchItem } from './search.js';
 
 const STATUS = [['Alle', 'Alle'], ['own', 'Besitze ich'], ['wish', 'Wunschliste']];
 export function renderChips(){
   const chip = (label, on, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.setAttribute('aria-pressed', String(on)); b.onclick = fn; return b; };
   $('statusChips').replaceChildren(...STATUS.map(([key, label]) => chip(label, key === state.statusFilter, () => { state.statusFilter = key; renderAll(); })));
   $('chips').replaceChildren(...['Alle',...CATS].map(c => chip(c, c === state.filter, () => { state.filter = c; renderAll(); })));
+  const tags = allTags(state.data.items);
+  if(state.tag && !tags.some(t => t.tag.toLowerCase() === state.tag.toLowerCase())) state.tag = '';
+  $('tagChips').hidden = !tags.length;
+  $('tagChips').replaceChildren(...tags.slice(0, 20).map(t => chip('#' + t.tag, state.tag !== '' && t.tag.toLowerCase() === state.tag.toLowerCase(), () => { state.tag = state.tag !== '' && t.tag.toLowerCase() === state.tag.toLowerCase() ? '' : t.tag; renderAll(); })));
 }
+let qt = 0;
+$('q').oninput = () => {
+  state.query = $('q').value.trim(); renderGrid();
+  clearTimeout(qt); qt = setTimeout(() => announce(searching() ? shown + ' Treffer' : 'Alle Teile'), 600);
+};
+$('q').onkeydown = e => { if(e.key === 'Escape' && $('q').value){ e.preventDefault(); e.stopPropagation(); $('q').value = ''; $('q').oninput(); } };
+const searching = () => state.query !== '' || state.tag !== '';
+let shown = 0;
 const isWish = i => i.status === 'wish';
 export function renderGrid(){
-  const list = state.data.items.filter(i => (state.filter === 'Alle' || i.cat === state.filter) && (state.statusFilter === 'Alle' || (state.statusFilter === 'wish') === isWish(i)));
+  const list = state.data.items.filter(i => (state.filter === 'Alle' || i.cat === state.filter) && (state.statusFilter === 'Alle' || (state.statusFilter === 'wish') === isWish(i)) && matchItem(i, state.query, hostOf(i.link)) && (!state.tag || hasTag(i, state.tag)));
+  shown = list.length;
   const wishes = state.data.items.filter(isWish).length;
   const worn = wearStats(state.data.wears, dayKey(new Date()));
-  $('count').textContent = state.data.items.length + ' Teile' + (wishes ? ' · ' + wishes + ' auf der Wunschliste' : '');
-  if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (state.data.items.length ? 'Nichts in dieser Auswahl.' : 'Noch leer. Füge deinen ersten Screenshot hinzu.') + '</div>'; return; }
+  $('count').textContent = searching() ? list.length + ' von ' + state.data.items.length + ' Teilen' : state.data.items.length + ' Teile' + (wishes ? ' · ' + wishes + ' auf der Wunschliste' : '');
+  if(!list.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = state.data.items.length ? (state.query ? 'Nichts gefunden für „' + state.query + '“.' : 'Nichts in dieser Auswahl.') : 'Noch leer. Füge deinen ersten Screenshot hinzu.'; $('grid').replaceChildren(e); return; }
   $('grid').replaceChildren(...list.map(i => {
     const d = document.createElement('div'); d.className = 'card' + (state.board.some(p => p.id === i.id) ? ' used' : '') + (i.id === state.fresh ? ' enter' : '');
     d.innerHTML = '<img alt=""><div class="n"><span></span><small></small></div><div class="x"></div>';
     const im = d.querySelector('img'); im.src = i.img; im.loading = 'lazy'; im.decoding = 'async'; if(!i.cut) im.classList.add('mb');
     d.querySelector('span').textContent = i.name;
-    const sm = d.querySelector('small'); sm.textContent = i.cat + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
+    const sm = d.querySelector('small'); sm.textContent = i.cat + (i.color ? ' · ' + i.color : '') + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
     const w = !isWish(i) && worn.get(i.id);
     if(w){ const cw = costPerWear(i.price, w.count), ws = document.createElement('small'); ws.textContent = w.count + '× getragen'; d.querySelector('.n small').after(ws); if(cw != null){ const wc = document.createElement('small'); wc.textContent = money(cw, i.cur) + ' pro Tragen'; ws.after(wc); } }
+    if(Array.isArray(i.tags) && i.tags.length){ const tg = document.createElement('small'); tg.className = 'tg'; tg.textContent = i.tags.map(t => '#' + t).join(' '); d.querySelector('.n').append(tg); }
     const ch = priceChange(i.priceHistory || []);
     if(ch){ const pc = document.createElement('span'); pc.className = 'pc pc--' + ch.dir; pc.textContent = (ch.dir === 'down' ? '↓ ' : '↑ ') + ch.pct + ' %'; pc.title = 'Preis zuletzt von ' + money(ch.prev, i.cur) + ' auf ' + money(ch.now, i.cur) + (ch.dir === 'down' ? ' gesunken' : ' gestiegen'); sm.append(' ', pc); }
     if(isWish(i)){ d.classList.add('wish'); const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = 'Wunsch'; d.append(bd); }
