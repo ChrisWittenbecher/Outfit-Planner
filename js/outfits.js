@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { $, hostOf, imgOf, item, mb, money, state } from './core.js';
+import { $, hostOf, item, mb, money, showThumb, state } from './core.js';
 import { cleanPieces, fixOrder, moveLayer, renderBoard } from './board.js';
 import { sumPrices } from './prices.js';
 import { flush } from './storage.js';
@@ -52,7 +52,7 @@ export function renderOuts(){
     const d = document.createElement('div'); d.className = 'out';
     d.innerHTML = '<div class="mini"><div></div></div><div><b></b><small></small><div class="b"><button>Laden</button><button>Heute getragen</button><button>Löschen</button></div></div>';
     d.querySelector('b').textContent = o.name; { const t = totals(o.pieces); d.querySelector('small').textContent = t.txt + (t.buyCount ? ' · noch zu kaufen: ' + (t.buy || '–') : ''); }
-    o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1, transform:`rotate(${p.r || 0}deg)`}); d.querySelector('.mini>div').append(im); });
+    o.pieces.forEach((p, idx) => { const it = item(p.id); if(!it) return; const im = new Image(); showThumb(im, it); im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1, transform:`rotate(${p.r || 0}deg)`}); d.querySelector('.mini>div').append(im); });
     const [ld, wr, rm] = d.querySelectorAll('button');
     ld.onclick = () => { step(); state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; state.fitted = false; renderAll(); };
     wr.onclick = () => {

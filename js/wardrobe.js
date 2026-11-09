@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { $, CATS, announce, hostOf, money, state } from './core.js';
+import { $, CATS, announce, hostOf, money, showThumb, state } from './core.js';
+import { wantThumbs } from './thumbs.js';
 import { priceChange } from './prices.js';
 import { renderAll } from './render.js';
 import { openDlg } from './dialog.js';
@@ -31,6 +32,7 @@ const searching = () => state.query !== '' || state.tag !== '';
 let shown = 0;
 const isWish = i => i.status === 'wish';
 export function renderGrid(){
+  wantThumbs();
   const list = state.data.items.filter(i => (state.filter === 'Alle' || i.cat === state.filter) && (state.statusFilter === 'Alle' || (state.statusFilter === 'wish') === isWish(i)) && matchItem(i, state.query, hostOf(i.link)) && (!state.tag || hasTag(i, state.tag)));
   shown = list.length;
   const wishes = state.data.items.filter(isWish).length;
@@ -40,7 +42,7 @@ export function renderGrid(){
   $('grid').replaceChildren(...list.map(i => {
     const d = document.createElement('div'); d.className = 'card' + (state.board.some(p => p.id === i.id) ? ' used' : '') + (i.id === state.fresh ? ' enter' : '');
     d.innerHTML = '<img alt=""><div class="n"><span></span><small></small></div><div class="x"></div>';
-    const im = d.querySelector('img'); im.src = i.img; im.loading = 'lazy'; im.decoding = 'async'; if(!i.cut) im.classList.add('mb');
+    const im = d.querySelector('img'); showThumb(im, i); im.loading = 'lazy'; im.decoding = 'async'; if(!i.cut) im.classList.add('mb');
     d.querySelector('span').textContent = i.name;
     const sm = d.querySelector('small'); sm.textContent = i.cat + (i.color ? ' · ' + i.color : '') + (i.price != null ? ' · ' + money(i.price, i.cur) : '');
     const w = !isWish(i) && worn.get(i.id);

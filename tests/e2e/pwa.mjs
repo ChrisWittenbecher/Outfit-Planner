@@ -11,7 +11,7 @@ const browser = await launch();
 const DAY = 86400000;
 const ready = p => p.waitForSelector('html[data-ready]', { state: 'attached' });
 const meta = (p, patch) => p.evaluate(async patch => {
-  const db = await new Promise((res, rej) => { const q = indexedDB.open('anprobe', 1); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+  const db = await new Promise((res, rej) => { const q = indexedDB.open('anprobe', 2); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
   const get = () => new Promise(r => { const g = db.transaction('kv').objectStore('kv').get('meta'); g.onsuccess = () => r(g.result || {}); });
   if (patch) {
     const merged = { ...(await get()), ...patch };
