@@ -6,6 +6,7 @@ import { cleanPieces, fixOrder } from './board.js';
 import { renderAll } from './render.js';
 import { confirmBox, toast } from './ui.js';
 import { step, undo } from './history.js';
+import { markBackup } from './pwa.js';
 
 $('png').onclick = async () => {
   if(!state.board.length) return;
@@ -24,6 +25,7 @@ $('exp').onclick = () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(state.data)], {type:'application/json'}));
   const a = document.createElement('a'); a.href = url; a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);   // Speicher wieder freigeben
+  markBackup();
 };
 $('imp').onclick = () => $('impf').click();
 $('impf').onchange = async e => {

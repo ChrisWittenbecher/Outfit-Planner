@@ -19,6 +19,12 @@ export async function load(){
   }
   return false; // Lesen fehlgeschlagen: nichts überschreiben
 }
+async function kv(mode, key, val){
+  const d = await idb;
+  return new Promise((res, rej) => { const o = d.transaction('kv', mode).objectStore('kv'), q = mode === 'readonly' ? o.get(key) : o.put(val, key); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+}
+export async function getMeta(){ try{ const m = await kv('readonly', 'meta'); return m && typeof m === 'object' ? m : {}; }catch(e){ return {}; } }
+export async function setMeta(patch){ try{ await kv('readwrite', 'meta', {...await getMeta(), ...patch}); }catch(e){} }
 let pt = 0, ready = false, hook = null;
 export function onFlush(fn){ hook = fn; }
 export async function flush(){ clearTimeout(pt); pt = 0; if(!ready) return; state.data.board = state.board; state.data.fitted = state.fitted; hook?.(); try{ const d = await idb; d.transaction('kv','readwrite').objectStore('kv').put(state.data,'s'); }catch(e){} }

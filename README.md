@@ -36,6 +36,7 @@ Der typische Ablauf:
 | **Rückgängig und Wiederholen** | Bis zu 50 Schritte für Kleiderschrank, Board und Outfits (Strg/Cmd + Z, Strg/Cmd + Umschalt + Z oder die Pfeile oben). Löschen und Backup-Einlesen fragen nicht mehr nach, sondern bieten stattdessen **„Rückgängig“** an. |
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. |
 | **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. Bewegung wird bei „Bewegung reduzieren“ des Systems abgeschaltet. |
+| **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Anprobe senden“) gibt es auf dem iPhone nicht. |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
 
 ## Schnellstart
@@ -63,6 +64,8 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 .
 ├── index.html              Seitengerüst und Content-Security-Policy
 ├── version.json            Versionsnummer für den Update-Hinweis
+├── manifest.webmanifest    Name, Symbole und Farben für die Installation als App
+├── sw.js                   Service Worker: Offline-Speicher pro Version (Versionsnummer wie in version.json)
 ├── SECURITY.md             Sicherheitskonzept, Meldeweg, Einstellungen auf GitHub
 ├── package-lock.json       festgelegte Versionen der Entwicklungswerkzeuge (mit Prüfsummen)
 ├── css/
@@ -91,10 +94,12 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
 │   ├── sheet.js            Dialoge: sanftes Schließen, Antippen daneben, Wisch-Griff am Bottom-Sheet
 │   ├── update.js           Versionsanzeige und Update-Hinweis
+│   ├── care.js             Backup-Erinnerung und Installationshinweis (reine Logik)
+│   ├── pwa.js              Service Worker anmelden, Backup-Zeile und Hinweise
 │   ├── version.js          Versionsnummer, Prüfung von Versionen, Auswahl der Dateien beim Aktualisieren (getestet)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
-│   └── icons/              App-Icons
+│   └── icons/              App-Icons (auch maskierbar und für den iPhone-Home-Bildschirm)
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
 │   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Sicherheit

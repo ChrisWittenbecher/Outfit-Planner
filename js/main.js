@@ -13,6 +13,7 @@ import './fitter.js';
 import './ui.js';
 import './theme.js';
 import './update.js';
+import { startCare } from './pwa.js';
 import { startHistory } from './history.js';
 
 load().then(ok => {
@@ -20,5 +21,6 @@ load().then(ok => {
   if (!ok) $('saveState').textContent = 'Speicher nicht lesbar – Änderungen werden nicht gesichert. Seite neu laden.';
   renderAll();
   startHistory();
+  startCare();
   document.documentElement.dataset.ready = '1'; // Signal für Tests und die Fallback-Meldung
 });
