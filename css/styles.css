@@ -395,6 +395,21 @@
 }
 
 @layer modules {
+  /* Ideen: Vorschläge, Packliste, Verkaufstext */
+  .head-act { display: flex; gap: 6px; }
+  @media (min-width: 561px) { #ideaDlg, #saleDlg { width: min(520px, 94vw); } }
+  .idea-list { list-style: none; margin: 6px 0 0; padding: 0; }
+  .idea-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .idea-strip { flex: 0 0 100%; display: flex; gap: 2px; overflow: hidden; }
+  .idea-strip img { flex: none; width: 34px; height: 46px; object-fit: contain; padding: 2px; background: var(--tile); border-radius: 6px; }
+  .idea-list .t { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
+  .idea-list small { display: block; color: var(--mute); }
+  #packList h3 { margin: 14px 0 2px; font-size: 14px; }
+  #packList h3 small { font-weight: 400; color: var(--mute); }
+  #packList ul { list-style: none; margin: 0; padding: 0; }
+  #packList li { padding: 4px 0; }
+  #saleText { display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--field-line); border-radius: var(--radius-sm); background: var(--field); color: inherit; font: inherit; line-height: 1.45; resize: vertical; }
+
   /* Kalender und Auswertung */
   @media (min-width: 561px) { #calDlg { width: min(520px, 94vw); } }
   .cal-nav { display: flex; align-items: center; gap: 8px; margin: 12px 0 6px; }

@@ -6,6 +6,7 @@ import { flush } from './storage.js';
 import { step } from './history.js';
 import { closeDialog, showDialog } from './sheet.js';
 import { WEAR_ERR, logWear, ownedIds, prepareWear } from './wearlog.js';
+import { openSale } from './sell.js';
 import { addDays, costPerWear, dayKey, dormant, idleText, monthGrid, shiftMonth, wearStats } from './wear.js';
 
 const dlg = $('calDlg');
@@ -142,7 +143,12 @@ function renderStats() {
   box.append(h1, l1);
   if (rest.length) {
     const h2 = el('h3', '', 'Lange nicht getragen'), l2 = el('ul', 'stat-list');
-    for (const r of rest) l2.append(row(r.item, r.last ? 'zuletzt ' + idleText(r.idle) : 'noch nie getragen', r.item.price != null ? money(r.item.price, r.item.cur) : '–'));
+    for (const r of rest) {
+      const li = row(r.item, r.last ? 'zuletzt ' + idleText(r.idle) : 'noch nie getragen', r.item.price != null ? money(r.item.price, r.item.cur) : '–');
+      const sell = button('Verkaufstext', () => openSale(r.item));
+      sell.setAttribute('aria-label', 'Verkaufstext für „' + r.item.name + '“ erstellen');
+      li.append(sell); l2.append(li);
+    }
     box.append(h2, el('p', 'hint', 'Seit 90 Tagen oder länger nicht dabei. Teile ohne Eintrag stehen am Ende.'), l2);
   }
 }

@@ -1,4 +1,4 @@
-const VERSION = '1.7.0';
+const VERSION = '1.8.0';
 const CACHE = 'anprobe-' + VERSION;
 const HOME = new URL('index.html', self.registration.scope).href;
 

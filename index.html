@@ -51,6 +51,12 @@
   <link rel="modulepreload" href="js/model.js">
   <link rel="modulepreload" href="js/thumbs.js">
   <link rel="modulepreload" href="js/wearlog.js">
+  <link rel="modulepreload" href="js/stylist.js">
+  <link rel="modulepreload" href="js/packing.js">
+  <link rel="modulepreload" href="js/sale.js">
+  <link rel="modulepreload" href="js/clip.js">
+  <link rel="modulepreload" href="js/ideas.js">
+  <link rel="modulepreload" href="js/sell.js">
   <link rel="modulepreload" href="js/calendar.js">
   <link rel="modulepreload" href="js/pwa.js">
   <script type="module" src="js/main.js"></script>
@@ -144,7 +150,7 @@
     </section>
 
     <section class="panel" aria-labelledby="savedTitle">
-      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2><button type="button" class="small" id="calBtn" aria-haspopup="dialog">Kalender</button></div>
+      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2><span class="head-act"><button type="button" class="small" id="ideaBtn" aria-haspopup="dialog">Ideen</button><button type="button" class="small" id="calBtn" aria-haspopup="dialog">Kalender</button></span></div>
       <div id="outs"></div>
     </section>
   </main>
@@ -168,6 +174,7 @@
     <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
+      <button type="button" id="mIdea">Ideen: Vorschläge &amp; Packliste</button>
       <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mExp">Backup speichern</button>
       <button type="button" id="mImp">Backup einlesen</button>
@@ -185,6 +192,51 @@
   </dialog>
 
   <!-- Kalender: getragene und geplante Outfits, Auswertung -->
+  <dialog id="ideaDlg" aria-labelledby="ideaTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="ideaTitle" class="menu-title">Ideen</h2>
+    <div class="chips" id="ideaWeather" role="group" aria-label="Wetter">
+      <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
+      <button type="button" data-w="mild" aria-pressed="true">Mild</button>
+      <button type="button" data-w="warm" aria-pressed="false">Warm</button>
+      <button type="button" data-w="regen" aria-pressed="false">Regen</button>
+    </div>
+    <div class="chips" id="ideaTabs" role="group" aria-label="Ansicht">
+      <button type="button" id="ideaTabOut" aria-pressed="true">Outfit-Vorschläge</button>
+      <button type="button" id="ideaTabPack" aria-pressed="false">Packliste</button>
+    </div>
+    <div id="ideaOut">
+      <p class="hint" id="ideaNote"></p>
+      <ul id="ideaList" class="idea-list"></ul>
+      <div class="cal-act"><button type="button" id="ideaMore">Andere Vorschläge</button></div>
+    </div>
+    <div id="ideaPack" hidden>
+      <label for="packDays">Wie viele Tage?</label>
+      <input type="number" id="packDays" min="1" max="30" value="5" inputmode="numeric" autocomplete="off">
+      <p class="hint" id="packNote"></p>
+      <div id="packList"></div>
+      <div class="cal-act"><button type="button" id="packCopy">Liste kopieren</button></div>
+    </div>
+    <div id="ideaLive" class="sr-only" role="status" aria-live="polite"></div>
+    <div class="foot"><button type="button" id="ideaClose">Schließen</button></div>
+  </dialog>
+
+  <dialog id="saleDlg" aria-labelledby="saleTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="saleTitle" class="menu-title">Verkaufstext</h2>
+    <p class="hint" id="saleFor"></p>
+    <div class="g2">
+      <div><label for="saleCond">Zustand</label><select id="saleCond" autocomplete="off"></select></div>
+      <div><label for="saleSize">Größe (optional)</label><input id="saleSize" maxlength="20" autocomplete="off"></div>
+    </div>
+    <label class="ck ck--spaced"><input type="checkbox" id="saleShip"> Versand möglich</label>
+    <label for="saleText">Text</label>
+    <textarea id="saleText" rows="11" autocomplete="off"></textarea>
+    <p class="hint" id="salePrice"></p>
+    <div id="saleLive" class="sr-only" role="status" aria-live="polite"></div>
+    <div class="foot"><button type="button" id="saleCopy" class="pri">Text kopieren</button><button type="button" id="saleClose">Schließen</button></div>
+  </dialog>
+
   <dialog id="calDlg" aria-labelledby="calTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="calTitle" class="menu-title">Kalender</h2>
