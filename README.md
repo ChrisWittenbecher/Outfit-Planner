@@ -30,6 +30,8 @@ Der typische Ablauf:
 | **Outfit-Fitter** | Teile ordnen sich beim Auflegen **direkt passend zueinander** an, ohne dass du Größe und Lage anpassen musst: Die App misst an den freigestellten Bildern, wie breit der Saum des Oberteils und der Bund der Hose sind, und skaliert die Hose so, dass beides zusammenpasst. Die Schuhe richten sich nach dem Hosensaum, die Jacke ist etwas weiter als das Oberteil, Accessoires stehen daneben. Das Ganze wird auf das Board gestreckt. Verstellst du etwas von Hand, bleibt dein Layout (auch nach dem Neuladen); **„Passend anordnen“** stellt die Passform jederzeit wieder her. Bei Bildern ohne Freistellung nimmt die App übliche Proportionen an. |
 | **Anprobe-Board** | **Doppeltipp** (am Smartphone) oder Doppelklick (Maus) nimmt ein Teil vom Board, ebenso die Entf-Taste; ein Hinweis mit „Rückgängig“ holt es zurück. Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
+| **Suche, Tags und Farbe** | Das Suchfeld im Kleiderschrank findet nach Name, Kategorie, Farbe, Tag, Status und Shop (alle Wörter müssen passen; Groß- und Kleinschreibung, ß und Akzente sind egal). **Tags** (z. B. „Büro, Sommer“) legst du beim Bearbeiten an und filterst sie über Chips unter den Kategorien. Die **Farbe** erkennt die App beim Hinzufügen aus dem Bild, ganz auf deinem Gerät, und du kannst sie ändern. |
+| **Mehrere Bilder auf einmal** | Im Dialog „Neues Teil“ mehrere Bilder wählen (oder ablegen): Jedes wird freigestellt und mit Namen aus dem Dateinamen hinzugefügt, bis zu 30 auf einmal. Die Kategorie folgt dem aktiven Filter (erst „Schuhe“ antippen, dann hinzufügen). Ein Klick auf „Rückgängig“ nimmt alle wieder weg. |
 | **Tragen-Protokoll und Kalender** | „Heute getragen“ an jedem gespeicherten Outfit, oder im **Kalender** (Gespeichert → „Kalender“, am Smartphone im Menü „⋯“) für beliebige Tage bis heute. Künftige Tage lassen sich mit einem gespeicherten Outfit **planen**. Die Karten zeigen, wie oft ein Teil getragen wurde und was ein Tragen **kostet** (Preis geteilt durch Tragetage). Die **Auswertung** nennt die am häufigsten getragenen Teile und die, die seit 90 Tagen oder nie dabei waren. Wunschlisten-Teile zählen nicht; ein Outfit zählt pro Tag nur einmal. Alles ist Teil von Backup und Rückgängig. |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
 | **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
@@ -96,6 +98,10 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── sheet.js            Dialoge: sanftes Schließen, Antippen daneben, Wisch-Griff am Bottom-Sheet
 │   ├── update.js           Versionsanzeige und Update-Hinweis
 │   ├── care.js             Backup-Erinnerung und Installationshinweis (reine Logik)
+│   ├── color.js            Farbname aus Pixeln (reine Funktion, getestet)
+│   ├── search.js           Suche, Tags, Normalisierung (reine Funktionen, getestet)
+│   ├── intake.js           Namensvorschlag aus Dateinamen (reine Funktion, getestet)
+│   ├── batch.js            Mehrere Bilder auf einmal hinzufügen
 │   ├── wear.js             Tragen-Protokoll, Kalenderraster, Kosten pro Tragen, Prüfung beim Einlesen (reine Funktionen, getestet)
 │   ├── wearlog.js          Eintragen eines Outfits für einen Tag (mit Rückgängig)
 │   ├── calendar.js         Dialog Kalender und Auswertung
@@ -106,7 +112,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   └── icons/              App-Icons (auch maskierbar und für den iPhone-Home-Bildschirm)
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Sicherheit
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Suche und Mehrfach-Upload, Sicherheit
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -146,7 +152,7 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 ### Architektur in Kürze
 
 - **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js` und `wear.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js`, `wear.js`, `color.js`, `search.js` und `intake.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
 - **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen.
@@ -161,7 +167,7 @@ Der Plan folgt einem Konzept aus Bestandsaufnahme, Dunkelmodus und Funktionsidee
 | Phase | Inhalt | Stand |
 |---|---|---|
 | **1 – Dunkelmodus und Feinschliff** | Dunkelmodus mit Bühne, Kontrast-Test, eigene Dialoge statt Browser-Dialogen, Rückgängig/Wiederholen, Bewegung, schnelleres Laden | fertig |
-| **2 – Kernfunktionen** | Anprobe-Modus am Smartphone, ~~Kalender mit Tragen-Protokoll und Kosten pro Tragen~~ (fertig), Suche, Tags und Farberkennung, Mehrfach-Upload, Installierbarkeit (PWA) mit Teilen-Ziel, Datenmodell 2.0 mit Vorschaubildern | geplant |
+| **2 – Kernfunktionen** | Anprobe-Modus am Smartphone, ~~Kalender mit Tragen-Protokoll und Kosten pro Tragen~~ (fertig), ~~Suche, Tags und Farberkennung, Mehrfach-Upload~~ (fertig), Installierbarkeit (PWA) mit Teilen-Ziel, Datenmodell 2.0 mit Vorschaubildern | geplant |
 | **3 – Erweiterungen** | Regel-Stylist mit Wetter, Kapselgarderobe und Packliste, Schrankhüter und Verkaufsentwurf, Kategorisierung per KI im Browser | geplant |
 
 Was einen Server bräuchte (automatische Preisverfolgung, Abstimmung mit anderen, Konto-Sync), steht weiter unten.

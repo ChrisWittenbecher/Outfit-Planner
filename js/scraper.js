@@ -2,6 +2,8 @@
 import { sanitizeHistory } from './prices.js';
 import { sanitizePieces } from './geometry.js';
 import { sanitizePlans, sanitizeWears } from './wear.js';
+import { COLOR_NAMES } from './color.js';
+import { sanitizeTags } from './search.js';
 
 export const LIMITS = Object.freeze({ url: 2048, title: 120, price: 100_000 });
 export const IMAGE_LIMITS = Object.freeze({ bytes: 25_000_000, pixels: 60_000_000 });
@@ -171,7 +173,9 @@ export function sanitizeItem(raw, cats) {
     cur: normalizeCurrency(o.cur, 'EUR'),
     status: o.status === 'wish' ? 'wish' : 'own',
     priceHistory: sanitizeHistory(o.priceHistory, LIMITS.price),
+    tags: sanitizeTags(o.tags, sanitizeText),
   };
+  if (typeof o.color === 'string' && COLOR_NAMES.includes(/** @type {any} */ (o.color))) item.color = o.color;
   const orig = sanitizeImageSrc(o.orig);
   if (orig) item.orig = orig;
   if (typeof o.ean === 'string' && /^\d{8,14}$/.test(o.ean)) item.ean = o.ean;

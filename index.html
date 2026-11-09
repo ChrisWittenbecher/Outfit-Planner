@@ -44,6 +44,10 @@
   <link rel="modulepreload" href="js/update.js">
   <link rel="modulepreload" href="js/care.js">
   <link rel="modulepreload" href="js/wear.js">
+  <link rel="modulepreload" href="js/color.js">
+  <link rel="modulepreload" href="js/search.js">
+  <link rel="modulepreload" href="js/intake.js">
+  <link rel="modulepreload" href="js/batch.js">
   <link rel="modulepreload" href="js/wearlog.js">
   <link rel="modulepreload" href="js/calendar.js">
   <link rel="modulepreload" href="js/pwa.js">
@@ -78,8 +82,10 @@
     <section class="panel" aria-labelledby="wardrobeTitle">
       <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
 
+      <input type="search" id="q" class="search" placeholder="Suchen: Name, Farbe, Tag …" aria-label="Kleiderschrank durchsuchen" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="80" enterkeyhint="search">
       <div class="chips" id="statusChips" role="group" aria-label="Nach Besitz filtern"></div>
       <div class="chips" id="chips" role="group" aria-label="Nach Kategorie filtern"></div>
+      <div class="chips" id="tagChips" role="group" aria-label="Nach Tag filtern" hidden></div>
       <div id="grid"></div>
     </section>
 
@@ -231,7 +237,8 @@
       <div><div class="cap" id="capOrig">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0" role="button" aria-describedby="capOrig"></div></div>
       <div><div class="cap">Ergebnis</div><div id="res"><span>Noch kein Bild</span></div></div>
     </div>
-    <input type="file" id="file" accept="image/*" hidden>
+    <input type="file" id="file" accept="image/*" multiple hidden>
+    <p class="hint hint--tip" id="multiTip">Tipp: Wähle mehrere Bilder auf einmal. Sie werden automatisch freigestellt und alle hinzugefügt.</p>
     <div id="opts">
       <label class="ck"><input type="checkbox" id="rm" checked> Hintergrund entfernen</label>
       <label class="ck" title="Höher = mehr Hintergrund und Schatten werden entfernt">Toleranz <input type="range" id="tol" min="6" max="80" value="28"></label>
@@ -244,6 +251,11 @@
       <div><label for="name">Name</label><input id="name" maxlength="120" autocomplete="off" placeholder="z. B. Beiger Trenchcoat"></div>
       <div><label for="cat">Kategorie</label><select id="cat" autocomplete="off"></select></div>
     </div>
+    <div class="g2">
+      <div><label for="color">Farbe</label><select id="color" autocomplete="off"><option value="">Keine Angabe</option></select></div>
+      <div><label for="tags">Tags (mit Komma trennen)</label><input id="tags" maxlength="200" autocomplete="off" autocapitalize="off" placeholder="z. B. Büro, Sommer"></div>
+    </div>
+    <p class="hint" id="colorNote">Die Farbe wird auf deinem Gerät aus dem Bild erkannt und lässt sich ändern.</p>
     <label for="itemState">Status</label>
     <select id="itemState" autocomplete="off"><option value="own">Besitze ich</option><option value="wish">Wunschliste (noch nicht gekauft)</option></select>
     <label for="price">Preis</label>

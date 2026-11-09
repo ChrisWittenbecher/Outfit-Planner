@@ -128,9 +128,8 @@ try {
     ok(await wait(async () => /1× getragen/.test(await info('Testhemd'))), 'Strg+Z nimmt den nachgetragenen Eintrag zurück');
 
     console.log('--- Löschen räumt auf');
-    await card('Testhose').locator('.more').click().catch(() => {});
-    if (await p.locator('#menuDlg[open]').count()) await p.click('#menuDelete');
-    else await card('Testhose').locator('button[aria-label="Löschen"]').click({ force: true });
+    if (mobile) { await card('Testhose').locator('.more').click(); await p.click('#menuDelete'); }
+    else { await card('Testhose').hover(); await card('Testhose').locator('.acts button[aria-label="Löschen"]').click(); }
     await wait(async () => await card('Testhose').count() === 0);
     await openCal();
     ok(/1 Teil\b/.test(await p.textContent('#calDayList')), 'gelöschtes Teil verschwindet aus dem Protokoll');
