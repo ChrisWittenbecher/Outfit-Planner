@@ -47,4 +47,5 @@ $('uiInput').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); don
 $('more').onclick = () => showDialog($('moreDlg'));
 $('mClose').onclick = () => closeDialog($('moreDlg'));
 $('mExp').onclick = () => { closeDialog($('moreDlg')); $('exp').click(); };
+$('mCal').onclick = () => { closeDialog($('moreDlg')); $('calBtn').click(); };
 $('mImp').onclick = () => { closeDialog($('moreDlg')); $('imp').click(); };

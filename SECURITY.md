@@ -23,6 +23,7 @@ Bitte **nicht** öffentlich als Issue, sondern über *Security → Report a vuln
 | Fremder Code | Nur das optionale KI-Freistellen lädt Code von jsDelivr, und erst nach ausdrücklicher Zustimmung | `security.mjs` |
 | Update | `version.json` wird streng geprüft; beim Aktualisieren werden nur eigene Dateien der App neu geladen | `version.test.mjs`, `security.mjs` |
 | Offline-Speicher | Der Service Worker (`sw.js`) fasst nur GET-Anfragen im App-Ordner an, nie fremde Adressen (jsDelivr bleibt unberührt), lädt ohne Anmeldedaten und kennt keine fremden Skripte. Jede Version hat einen eigenen Cache, alte werden gelöscht. Er ändert sich mit jeder Versionsnummer, daher erkennt der Browser jedes Update | `pwa.test.mjs`, `pwa.mjs` |
+| Tragen-Protokoll und Pläne im Backup | Jeder Eintrag wird beim Einlesen und beim Start neu aufgebaut: nur echte Kalendertage (2000–2100), nur Verweise auf vorhandene Teile und Outfits, Namen von Markup befreit, Anzahl und Länge begrenzt, Kennungen eindeutig, Prototyp-Schlüssel wirkungslos. Die Oberfläche setzt Texte nur als `textContent` ein. | `wear.test.mjs`, `calendar.mjs` |
 | Backup-Erinnerung | Zeitpunkt des letzten Backups liegt getrennt von den Daten im Browserspeicher und wird nie in Backups oder ins Netz geschrieben | `care.test.mjs`, `pwa.mjs` |
 
 Hinweis zu `*.github.io`: Alle Projekte eines Nutzers teilen sich dieselbe Adresse (denselben „Ursprung“). Der Service Worker

@@ -6,6 +6,8 @@ import { flush } from './storage.js';
 import { renderAll } from './render.js';
 import { askText, toast } from './ui.js';
 import { step, undo } from './history.js';
+import { dayKey, withoutOutfit } from './wear.js';
+import { WEAR_ERR, logWear } from './wearlog.js';
 
 const moneyBy = by => Object.entries(by).map(([c, v]) => money(v, c)).join(' + ');
 function totals(pieces){
@@ -48,12 +50,17 @@ export function renderOuts(){
   if(!state.data.outfits.length){ $('outs').innerHTML = '<div class="empty empty--tight">Noch keine Outfits gespeichert.</div>'; return; }
   $('outs').replaceChildren(...state.data.outfits.map(o => {
     const d = document.createElement('div'); d.className = 'out';
-    d.innerHTML = '<div class="mini"><div></div></div><div><b></b><small></small><div class="b"><button>Laden</button><button>Löschen</button></div></div>';
+    d.innerHTML = '<div class="mini"><div></div></div><div><b></b><small></small><div class="b"><button>Laden</button><button>Heute getragen</button><button>Löschen</button></div></div>';
     d.querySelector('b').textContent = o.name; { const t = totals(o.pieces); d.querySelector('small').textContent = t.txt + (t.buyCount ? ' · noch zu kaufen: ' + (t.buy || '–') : ''); }
     o.pieces.forEach((p, idx) => { const s = imgOf(p.id); if(!s) return; const im = new Image(); im.src = s; im.className = mb(item(p.id)).trim(); Object.assign(im.style, {left:p.x+'px', top:p.y+'px', width:p.w+'px', zIndex:idx + 1, transform:`rotate(${p.r || 0}deg)`}); d.querySelector('.mini>div').append(im); });
-    const [ld, rm] = d.querySelectorAll('button');
+    const [ld, wr, rm] = d.querySelectorAll('button');
     ld.onclick = () => { step(); state.board = fixOrder(cleanPieces(JSON.parse(JSON.stringify(o.pieces)))); state.sel = null; state.fitted = false; renderAll(); };
-    rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}}); };
+    wr.onclick = () => {
+      const r = logWear(dayKey(new Date()), o);
+      if(r !== 'ok') return toast(WEAR_ERR[r], {kind:'error'});
+      renderAll(); toast('„' + o.name + '“ für heute eingetragen', {action:{label:'Rückgängig', fn:undo}});
+    };
+    rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); state.data.plans = withoutOutfit(state.data.plans, o.id); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}}); };
     return d;
   }));
 }
