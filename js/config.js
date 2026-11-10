@@ -4,4 +4,4 @@
  * Leer lassen, solange kein Dienst eingerichtet ist: Dann bleibt die Funktion „Daten vom Link laden“ ausgeblendet.
  * Dieselbe Adresse muss in index.html bei connect-src stehen (ein Test prüft das).
  */
-export const WORKER_URL = '';
+export const WORKER_URL = 'https://anprobe.chris-wittenbecher.workers.dev';

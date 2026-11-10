@@ -11,6 +11,7 @@ try {
   console.log('--- ohne eingerichteten Dienst');
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   let p = await ctx.newPage();
+  await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: "export const WORKER_URL = '';" }));
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   ok(!(await p.isVisible('#shopLink')), 'das Feld „Produktlink“ ist ausgeblendet');
