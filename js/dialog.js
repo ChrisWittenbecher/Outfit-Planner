@@ -154,7 +154,7 @@ async function loadShopLink(){
     const d = await fetchProduct(Scraper.normalizeLinkInput(raw));
     if(my !== shopTok) return;
     await applyShopData(d);
-  }catch(e){ if(my === shopTok) status(e instanceof Error ? e.message : 'Das hat nicht geklappt.', true); }
+  }catch(e){ if(my === shopTok) status((e instanceof Error ? e.message : 'Das hat nicht geklappt.') + ' Du kannst ein Bild als Screenshot hinzufügen und Name und Preis selbst eintragen.', true); }
   finally{ if(my === shopTok) $('shopLinkGo').disabled = false; }
 }
 $('shopLinkGo').onclick = loadShopLink;

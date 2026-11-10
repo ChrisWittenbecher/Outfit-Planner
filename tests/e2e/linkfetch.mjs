@@ -43,6 +43,7 @@ try {
 
   await p.fill('#url', 'shop.example/p/mantel'); await p.click('#shopLinkGo');
   ok(await wait(async () => /Übernommen: .*Bild/.test(await p.textContent('#status'))), 'Rückmeldung: ' + (await p.textContent('#status')).trim());
+  ok(!/selbst eintragen/.test(await p.textContent('#status')), 'ohne Fehler kein Hinweis auf Handeingabe');
   ok(await p.inputValue('#name') === 'Wollmantel Oslo', 'Name ohne Markup');
   ok(await p.inputValue('#price') === '189,90' && await p.inputValue('#cat') === 'Jacke' && await p.inputValue('#color') === 'Blau', 'Preis, Kategorie und Farbe');
   ok(await p.inputValue('#url') === 'https://shop.example/p/mantel', 'Link übernommen');
@@ -66,6 +67,7 @@ try {
   ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'auch beim zweiten Mal ist kein Feld ausgewählt');
   await p.fill('#url', 'https://shop.example/weg'); await p.click('#shopLinkGo');
   ok(await wait(async () => /gibt es nicht/.test(await p.textContent('#status'))), 'Fehler wird verständlich gemeldet: ' + (await p.textContent('#status')).trim());
+  ok(/Screenshot hinzufügen und Name und Preis selbst eintragen/.test(await p.textContent('#status')), 'bei einem Fehler kommt der Hinweis auf Screenshot und Handeingabe');
   ok(await p.inputValue('#name') === '', 'bei Fehler bleibt das Formular unverändert');
   await p.fill('#url', 'http://127.0.0.1/x'); await p.click('#shopLinkGo');
   ok(await wait(async () => /ungültig/.test(await p.textContent('#status'))), 'unsichere Adresse wird gar nicht erst gesendet');
