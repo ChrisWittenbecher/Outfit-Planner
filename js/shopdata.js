@@ -3,12 +3,7 @@ import { normalizeCurrency, parsePrice, sanitizePrice, sanitizeText, validateUrl
 import { COLOR_NAMES } from './color.js';
 import { fold } from './search.js';
 
-/** Kennung in der ersten Zeile dessen, was der Kurzbefehl in die Zwischenablage legt. */
-export const MARK = 'ANPROBE1';
-export const CLIP_LIMITS = Object.freeze({ text: 36_000_000, json: 20_000, image: 25_000_000 });
-
-/** @typedef {{ mime: string, bytes: Uint8Array }} ClipImage */
-/** @typedef {{ ok: true, name: string, price: number | null, cur: string, link: string, imageUrl: string, color: string, cat: string, brand: string, image: ClipImage | null } | { ok: false, error: string }} ShopClip */
+/** @typedef {{ ok: true, name: string, price: number | null, cur: string, link: string, imageUrl: string, color: string, cat: string, brand: string } | { ok: false, error: string }} ShopData */
 
 /** @type {[string, RegExp][]} */
 const CAT_WORDS = [
@@ -43,67 +38,18 @@ export function guessColor(text) {
   return '';
 }
 
-/** @param {Uint8Array} b */
-function sniff(b) {
-  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
-  if (b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
-  if (b.length > 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
-  if (b.length > 6 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif';
-  if (b.length > 12 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'image/avif';   // ftyp: AVIF/HEIC, der Browser entscheidet beim Dekodieren
-  return '';
-}
-
-/** @param {string} b64 @returns {ClipImage | null} */
-function decodeImage(b64) {
-  const clean = b64.replace(/\s+/g, '');
-  if (!clean || clean.length > CLIP_LIMITS.image * 1.4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(clean)) return null;
-  let bin;
-  try { bin = atob(clean); } catch { return null; }
-  if (bin.length > CLIP_LIMITS.image) return null;
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const mime = sniff(bytes);
-  return mime ? { mime, bytes } : null;
-}
-
-/** Erkennt schnell, ob ein Text vom Kurzbefehl stammt. @param {unknown} text */
-export const isShopClip = text => typeof text === 'string' && text.slice(0, 40).trimStart().startsWith(MARK);
-
 /**
- * Liest, was der Kurzbefehl in die Zwischenablage gelegt hat. Alles wird wie fremde Eingabe behandelt und geprüft.
- * Aufbau: Zeile 1 „ANPROBE1“, Zeile 2 JSON mit name/price/currency/url/image/color/brand, danach optional das Bild als Base64.
- * @param {unknown} text
- * @returns {ShopClip}
- */
-export function parseShopClip(text) {
-  if (!isShopClip(text)) return { ok: false, error: 'In der Zwischenablage liegen keine Shop-Daten. Starte zuerst den Kurzbefehl auf der Produktseite.' };
-  const all = /** @type {string} */ (text);
-  if (all.length > CLIP_LIMITS.text) return { ok: false, error: 'Die Daten aus der Zwischenablage sind zu groß.' };
-  const body = all.trimStart().slice(MARK.length).replace(/^[ \t]*\r?\n/, '');
-  const nl = body.search(/\r?\n/);
-  const jsonLine = (nl < 0 ? body : body.slice(0, nl)).trim(), rest = nl < 0 ? '' : body.slice(nl);
-  if (!jsonLine || jsonLine.length > CLIP_LIMITS.json) return { ok: false, error: 'Die Shop-Daten sind unvollständig. Bitte den Kurzbefehl noch einmal ausführen.' };
-  /** @type {any} */
-  let raw;
-  try { raw = JSON.parse(jsonLine); } catch { return { ok: false, error: 'Die Shop-Daten sind nicht lesbar. Bitte den Kurzbefehl noch einmal ausführen.' }; }
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'Die Shop-Daten sind nicht lesbar. Bitte den Kurzbefehl noch einmal ausführen.' };
-  return normalizeShop(raw, rest);
-}
-
-/**
- * Prüft Produktdaten aus fremder Quelle (Zwischenablage oder Hilfsdienst) und macht daraus saubere Werte.
+ * Prüft Produktdaten aus dem Hilfsdienst und macht daraus saubere Werte.
  * @param {any} raw
- * @param {string} [imageB64]
- * @returns {ShopClip}
+ * @returns {ShopData}
  */
-export function normalizeShop(raw, imageB64 = '') {
+export function normalizeShop(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'Die Shop-Daten sind nicht lesbar.' };
   const str = (/** @type {unknown} */ v) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
   const url = (/** @type {unknown} */ v) => { const r = validateUrl(str(v)); return r.ok ? r.url : ''; };
   const name = sanitizeText(str(raw.name)), brand = sanitizeText(str(raw.brand), 30);
   const price = sanitizePrice(typeof raw.price === 'number' ? raw.price : parsePrice(str(raw.price)));
   const colorText = sanitizeText(str(raw.color), 60);
-  const image = decodeImage(imageB64);
   const imageUrl = url(raw.image);
   return {
     ok: true, name, brand, price,
@@ -112,6 +58,5 @@ export function normalizeShop(raw, imageB64 = '') {
     imageUrl: imageUrl.startsWith('https:') ? imageUrl : '',
     color: guessColor(colorText) || guessColor(name),
     cat: guessCat(name),
-    image,
   };
 }

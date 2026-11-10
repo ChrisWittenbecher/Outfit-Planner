@@ -52,7 +52,6 @@
   <link rel="modulepreload" href="js/thumbs.js">
   <link rel="modulepreload" href="js/wearlog.js">
   <link rel="modulepreload" href="js/shopdata.js">
-  <link rel="modulepreload" href="js/shopin.js">
   <link rel="modulepreload" href="js/config.js">
   <link rel="modulepreload" href="js/linkfetch.js">
   <link rel="modulepreload" href="js/stylist.js">
@@ -196,29 +195,6 @@
   </dialog>
 
   <!-- Kalender: getragene und geplante Outfits, Auswertung -->
-  <dialog id="shopHelp" aria-labelledby="shopHelpTitle">
-    <div class="grab" aria-hidden="true"></div>
-    <h2 id="shopHelpTitle" class="menu-title">Aus dem Shop übernehmen</h2>
-    <p class="hint">Webseiten dürfen fremde Shop-Seiten nicht auslesen. Ein Kurzbefehl auf deinem iPhone darf das: Er liest die Produktseite, die du gerade in Safari siehst, und legt Name, Preis, Farbe, Link und Bild in die Zwischenablage. Es wird nichts an Dritte gesendet.</p>
-    <h3>Einmal einrichten</h3>
-    <ol class="steps">
-      <li>App „Kurzbefehle“ öffnen, neuen Kurzbefehl anlegen und „An Anprobe senden“ nennen. In den Details „Im Share-Sheet anzeigen“ einschalten, als Eingabe nur „Safari-Webseiten“.</li>
-      <li>Aktion „JavaScript auf Webseite ausführen“ hinzufügen und das Skript einfügen: <button type="button" id="shopScript" class="small">Skript kopieren</button></li>
-      <li>Aktion „Wörterbuch aus Eingabe abrufen“, danach „Wörterbuchwert abrufen“ mit dem Schlüssel <code>image</code>.</li>
-      <li>Aktion „Inhalte von URL abrufen“, danach „Base64-codieren“ (Zeilenumbrüche: keine).</li>
-      <li>Aktion „Text“ mit drei Zeilen: <code>ANPROBE1</code>, darunter das Ergebnis des JavaScripts, darunter das Base64-Ergebnis.</li>
-      <li>Aktion „In die Zwischenablage kopieren“. Wer mag, hängt „URL öffnen“ mit der Adresse von Anprobe an.</li>
-    </ol>
-    <p class="hint">Unter „Einstellungen → Kurzbefehle → Erweitert“ muss „Ausführen von Skripten erlauben“ eingeschaltet sein.</p>
-    <h3>Danach jedes Mal</h3>
-    <ol class="steps">
-      <li>Im Shop in Safari auf „Teilen“ tippen und „An Anprobe senden“ wählen.</li>
-      <li>In Anprobe auf „+“ und „Aus Shop übernehmen“ tippen, das Einfügen erlauben.</li>
-    </ol>
-    <div id="shopHelpLive" class="sr-only" role="status" aria-live="polite"></div>
-    <div class="foot"><button type="button" id="shopHelpClose">Schließen</button></div>
-  </dialog>
-
   <dialog id="ideaDlg" aria-labelledby="ideaTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="ideaTitle" class="menu-title">Ideen</h2>
@@ -306,26 +282,17 @@
   <dialog id="dlg" aria-labelledby="dlgTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="dlgTitle">Neues Teil</h2>
-    <div id="linkIn" hidden>
-      <label for="shopLink">Produktlink einfügen – der Rest füllt sich von selbst</label>
+    <section class="sec sec--link">
+      <label for="url">Produktlink</label>
       <div class="row">
-        <input id="shopLink" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/produkt">
-        <button type="button" id="shopLinkGo" class="pri">Laden</button>
+        <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Link aus dem Shop einfügen">
+        <button type="button" id="shopLinkGo" class="pri" hidden>Laden</button>
       </div>
-    </div>
-    <div class="shop-in">
-      <button type="button" id="shopPaste">Aus Shop übernehmen</button>
-      <button type="button" id="shopHelpBtn" class="small" aria-haspopup="dialog">So geht’s</button>
-    </div>
-    <p class="hint">Füllt Name, Preis, Farbe, Link und Bild aus, nachdem du im Shop den Kurzbefehl „An Anprobe senden“ ausgeführt hast.</p>
-    <label for="imgUrl">Bild per Link laden (optional, direkter Link zum Bild)</label>
-    <div class="row">
-      <input id="imgUrl" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/bilder/hemd.jpg">
-      <button type="button" id="imgLoad">Laden</button>
-    </div>
-    <label for="url">Link zum Shop (wird immer beim Teil gespeichert)</label>
-    <input id="url" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/produkt">
-    <div id="status" role="status"></div>
+      <p class="hint" id="linkHint" hidden>Füge den Link ein. Name, Preis, Farbe und Bild füllen sich von selbst.</p>
+      <div id="status" role="status"></div>
+    </section>
+    <section class="sec">
+    <h3 class="sec-title">Bild</h3>
     <div id="panes">
       <div><div class="cap" id="capOrig">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0" role="button" aria-describedby="capOrig"></div></div>
       <div><div class="cap">Ergebnis</div><div id="res"><span>Noch kein Bild</span></div></div>
@@ -340,6 +307,9 @@
       <button type="button" id="rcrop">Ausschnitt zurücksetzen</button>
     </div>
     <label class="ck ck--spaced" id="mirrorRow" hidden><input type="checkbox" id="mirror"> Zweiten Schuh ergänzen (gespiegelt, wenn nur ein Schuh zu sehen ist)</label>
+    </section>
+    <section class="sec">
+    <h3 class="sec-title">Angaben</h3>
     <div class="g2">
       <div><label for="name">Name</label><input id="name" maxlength="120" autocomplete="off" placeholder="z. B. Beiger Trenchcoat"></div>
       <div><label for="cat">Kategorie</label><select id="cat" autocomplete="off"></select></div>
@@ -349,6 +319,9 @@
       <div><label for="tags">Tags (mit Komma trennen)</label><input id="tags" maxlength="200" autocomplete="off" autocapitalize="off" placeholder="z. B. Büro, Sommer"></div>
     </div>
     <p class="hint" id="colorNote">Die Farbe wird auf deinem Gerät aus dem Bild erkannt und lässt sich ändern.</p>
+    </section>
+    <section class="sec">
+    <h3 class="sec-title">Status und Preis</h3>
     <label for="itemState">Status</label>
     <select id="itemState" autocomplete="off"><option value="own">Besitze ich</option><option value="wish">Wunschliste (noch nicht gekauft)</option></select>
     <label for="price">Preis</label>
@@ -361,6 +334,7 @@
       <div class="cap">Preisverlauf</div>
       <ul id="priceList"></ul>
     </div>
+    </section>
     <div class="foot"><button type="button" id="cancel">Abbrechen</button><button type="button" class="pri" id="ok">Speichern</button></div>
   </dialog>
 

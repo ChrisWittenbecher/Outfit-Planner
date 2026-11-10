@@ -1,4 +1,4 @@
-const VERSION = '1.10.0';
+const VERSION = '1.11.0';
 const CACHE = 'anprobe-' + VERSION;
 const HOME = new URL('index.html', self.registration.scope).href;
 
@@ -6,7 +6,7 @@ async function appFiles() {
   const page = await fetch(HOME, { cache: 'reload', credentials: 'omit' });
   const html = (await page.text()).slice(0, 200000);
   const found = [...html.matchAll(/<(?:link|script)\b[^>]*?\s(?:href|src)="([^"]+)"/gi)].map(m => m[1]);
-  const extra = ['manifest.webmanifest', 'version.json', 'kurzbefehl/anprobe-seite-auslesen.js', 'assets/icons/icon192.png', 'assets/icons/icon512.png', 'assets/icons/apple-touch-180.png'];
+  const extra = ['manifest.webmanifest', 'version.json', 'assets/icons/icon192.png', 'assets/icons/icon512.png', 'assets/icons/apple-touch-180.png'];
   const urls = new Set([HOME]);
   for (const h of [...found, ...extra]) {
     let u;
