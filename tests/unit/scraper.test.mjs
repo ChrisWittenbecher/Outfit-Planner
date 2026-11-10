@@ -66,7 +66,7 @@ test('sanitizeImageSrc: nur eingebettete Raster-Bilder (data:image), keine entfe
 test('sanitizeItem: bereinigt Backup-Einträge', () => {
   const cats = ['Oberteil', 'Jacke', 'Hose/Rock', 'Schuhe', 'Accessoire'];
   const ok = s.sanitizeItem({ id: 'i1', name: '<b>Shirt</b>', cat: 'Jacke', img: 'data:image/png;base64,AAAA', link: 'https://a.de/x#h', price: 19.999, cur: 'usd', ean: '4006381333931', evil: 'x', cut: 1 }, cats);
-  assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', status: 'own', priceHistory: [], ean: '4006381333931' });
+  assert.deepEqual(ok, { id: 'i1', name: 'Shirt', cat: 'Jacke', img: 'data:image/png;base64,AAAA', alpha: false, cut: true, mirror: false, link: 'https://a.de/x', price: 20, cur: 'USD', status: 'own', priceHistory: [], tags: [], ean: '4006381333931' });
   const odd = s.sanitizeItem({ id: 'i2', cat: 'Hacker', img: 'data:image/png;base64,AAAA', link: 'javascript:alert(1)', price: 'viel', ean: '12' }, cats);
   assert.equal(odd.cat, 'Oberteil'); assert.equal(odd.link, ''); assert.equal(odd.price, null); assert.equal(odd.name, 'Ohne Namen'); assert.equal('ean' in odd, false);
   for (const bad of [null, 1, 'x', {}, { id: '', img: 'https://a.de/a.png' }, { id: 'a' }, { id: 'a', img: 'javascript:alert(1)' }, { id: 'x'.repeat(65), img: 'https://a.de/a.png' }]) assert.equal(s.sanitizeItem(bad, cats), null);

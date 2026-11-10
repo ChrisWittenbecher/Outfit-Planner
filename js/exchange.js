@@ -36,6 +36,6 @@ $('impf').onchange = async e => {
   try{ r = Scraper.parseBackup(await f.text(), CATS); }catch(err){ return bad('Diese Datei ist kein gültiges Anprobe-Backup.'); }
   if(!r.ok) return bad(r.error);
   if(!await confirmBox({title:'Backup einlesen', text:'Die aktuellen Daten werden durch das Backup ersetzt. Mit „Rückgängig“ holst du sie zurück.', ok:'Ersetzen', danger:true})) return;
-  step(); state.data = {items:r.items, outfits:r.outfits}; state.board = fixOrder(cleanPieces(r.board)); state.sel = null; state.fitted = false; renderAll();
+  step(); state.data = {items:r.items, outfits:r.outfits, wears:r.wears, plans:r.plans}; state.board = fixOrder(cleanPieces(r.board)); state.sel = null; state.fitted = false; renderAll();
   toast(r.skipped ? 'Backup eingelesen. ' + r.skipped + ' Teil(e) wurden übersprungen (ungültig, doppelt oder mit externem Bild).' : 'Backup eingelesen', {ms:r.skipped ? 10000 : 6000, action:{label:'Rückgängig', fn:undo}});
 };

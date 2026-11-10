@@ -11,7 +11,7 @@ const browser = await launch();
 const DAY = 86400000;
 const ready = p => p.waitForSelector('html[data-ready]', { state: 'attached' });
 const meta = (p, patch) => p.evaluate(async patch => {
-  const db = await new Promise((res, rej) => { const q = indexedDB.open('anprobe', 1); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+  const db = await new Promise((res, rej) => { const q = indexedDB.open('anprobe', 2); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
   const get = () => new Promise(r => { const g = db.transaction('kv').objectStore('kv').get('meta'); g.onsuccess = () => r(g.result || {}); });
   if (patch) {
     const merged = { ...(await get()), ...patch };
@@ -69,7 +69,7 @@ try {
   console.log('--- Neue Version erscheint (Service Worker darf nichts Altes festhalten)');
   {
     const dir = await mkdtemp(path.join(tmpdir(), 'anprobe-'));
-    for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'version.json', 'js', 'css', 'assets']) await cp(path.join(root, f), path.join(dir, f), { recursive: true });
+    for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'version.json', 'js', 'css', 'assets', 'kurzbefehl']) await cp(path.join(root, f), path.join(dir, f), { recursive: true });
     const srv = await startServer(8739, dir);
     const BASE2 = 'http://localhost:8739/index.html';
     const release = async v => {

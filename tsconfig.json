@@ -19,6 +19,10 @@
     "js/prices.js",
     "js/fit.js",
     "js/version.js",
-    "js/care.js"
+    "js/care.js",
+    "js/wear.js",
+    "js/color.js",
+    "js/search.js",
+    "js/model.js", "js/stylist.js", "js/packing.js", "js/sale.js", "js/shopdata.js"
   ]
 }

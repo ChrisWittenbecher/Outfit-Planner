@@ -27,7 +27,7 @@ const CHECKS = [
   ['mute', 'bg', 4.5, 'Nebentext auf Seite'], ['mute', 'panel', 4.5, 'Nebentext auf Bereich'], ['mute', 'raised', 4.5, 'Nebentext auf Karte'], ['mute', 'overlay', 4.5, 'Nebentext im Dialog'], ['mute', 'canvas', 4.5, 'Nebentext auf Arbeitsplatz'],
   ['on-ink', 'ink', 4.5, 'Schrift auf Schaltfläche (Hover)'],
   ['on-acc', 'acc', 4.5, 'Schrift auf Akzent-Schaltfläche'], ['on-acc', 'acc-strong', 4.5, 'Schrift auf Akzent (Hover)'],
-  ['acc', 'panel', 4.5, 'Akzent-Link auf Bereich'], ['acc', 'raised', 4.5, 'Akzent-Link auf Karte'], ['acc-strong', 'acc-soft', 4.5, 'Akzentschrift auf Akzentfläche'],
+  ['acc', 'panel', 4.5, 'Akzent-Link auf Bereich'], ['acc', 'raised', 4.5, 'Akzent-Link auf Karte'], ['acc', 'overlay', 4.5, 'Akzent im Dialog (Kalendermarkierung)'], ['sel-fg', 'sel-bg', 3, 'Markierung im gewählten Kalendertag'], ['acc-strong', 'acc-soft', 4.5, 'Akzentschrift auf Akzentfläche'],
   ['sel-fg', 'sel-bg', 4.5, 'gewählter Chip'],
   ['danger', 'panel', 4.5, 'Fehlerschrift'], ['danger', 'overlay', 4.5, 'Fehlerschrift im Dialog'], ['danger', 'danger-soft', 4.5, 'Fehlerschrift auf Fehlerfläche'], ['on-danger', 'danger', 4.5, 'Schrift auf Gefahr-Schaltfläche'],
   ['ok', 'panel', 4.5, 'Erfolgsschrift'], ['ok', 'ok-soft', 4.5, 'Erfolgsschrift auf Fläche'],

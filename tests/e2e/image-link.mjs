@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch, closed } from './helpers.mjs';
+import { checker, PNG, startServer, launch, closed, storedItems } from './helpers.mjs';
 
 const PORT = 8733, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -63,7 +63,7 @@ try {
     await p.waitForTimeout(500);
     await p.reload(); await p.waitForSelector('html[data-ready]', { state: 'attached' }); await p.waitForSelector('#grid .card');
     ok(await card.locator(`a[href="${SHOP}"]`).count() === 1, 'Shop-Link bleibt nach Neuladen erhalten');
-    const stored = await p.evaluate(() => new Promise((res, rej) => { const q = indexedDB.open('anprobe'); q.onsuccess = () => { const g = q.result.transaction('kv').objectStore('kv').get('s'); g.onsuccess = () => res(JSON.stringify(g.result)); g.onerror = () => rej(g.error); }; q.onerror = () => rej(q.error); }));
+    const stored = JSON.stringify(await storedItems(p));
     ok(!stored.includes('img.example.com') && stored.includes('data:image'), 'gespeichert wird nur die lokale Bildkopie, der Bildlink nicht');
     await card.scrollIntoViewIfNeeded();
     if (mobile) { await card.locator('.more').click(); await p.click('#menuEdit'); }
