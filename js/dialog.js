@@ -141,7 +141,7 @@ async function applyShopData(d){
   showPicker(d.images, files, got.includes('Bild') ? d.imageUrl : '');
   const noImg = !got.includes('Bild');
   if(!got.length) status('Auf dieser Seite wurden keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
-  else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.'), noImg);
+  else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.') + (d.outdated ? ' Hinweis: Der Hilfsdienst ist veraltet, deshalb fehlt die Bildauswahl. Bitte den Code in Cloudflare aktualisieren (worker/ANLEITUNG.md).' : ''), noImg);
   return true;
 }
 $('dlg').addEventListener('close', clearPicker);

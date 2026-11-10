@@ -73,6 +73,7 @@ try {
   await p.fill('#url', 'https://shop.example/kein-bild'); await p.click('#shopLinkGo');
   ok(await wait(async () => /Das Bild bitte/.test(await p.textContent('#status'))), 'ohne Bild: Hinweis auf Screenshot');
   ok(await p.inputValue('#name') === 'Sneaker Court' && seen.length === before + 1, 'Daten übernommen, kein Bildabruf');
+  ok(/veraltet/.test(await p.textContent('#status')), 'ein Dienst ohne Bilderliste wird als veraltet gemeldet');
   await p.click('#cancel'); await closed(p, 'dlg');
 
   console.log('--- Einfügen lädt sofort');
