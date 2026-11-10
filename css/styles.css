@@ -395,6 +395,15 @@
 }
 
 @layer modules {
+  /* Aus dem Shop übernehmen */
+  .shop-in { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+  .shop-in #shopPaste { flex: 1 1 auto; }
+  @media (min-width: 561px) { #shopHelp { width: min(560px, 94vw); } }
+  #shopHelp h3 { margin: 14px 0 4px; font-size: 14px; }
+  .steps { margin: 0; padding-left: 1.3em; }
+  .steps li { padding: 4px 0; }
+  .steps code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; padding: 1px 5px; border-radius: 5px; background: var(--tile); }
+
   /* Ideen: Vorschläge, Packliste, Verkaufstext */
   .head-act { display: flex; gap: 6px; }
   @media (min-width: 561px) { #ideaDlg, #saleDlg { width: min(520px, 94vw); } }

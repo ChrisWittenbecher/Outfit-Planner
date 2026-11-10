@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const FILES = ['add-flow', 'theme-undo', 'image-link', 'outfit-fit', 'double-tap', 'update-persist', 'design-motion', 'pwa', 'calendar', 'search', 'storage', 'ideas', 'security'];
+const FILES = ['add-flow', 'theme-undo', 'image-link', 'outfit-fit', 'double-tap', 'update-persist', 'design-motion', 'pwa', 'calendar', 'search', 'storage', 'ideas', 'shop', 'security'];
 const failed = [];
 for (const name of FILES) {
   console.log(`\n===== ${name} (${process.env.BROWSER || 'chromium'}) =====`);
