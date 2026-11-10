@@ -78,7 +78,7 @@ export function openDlg(it){
   $('color').value = it && it.color || '';
   if(it){ state.draft.colorTouched = !!it.color; if(!it.color) autoColor(it.img, !!it.cut); }
   $('multiTip').hidden = !!it;
-  $('shopLinkGo').disabled = false; shopTok++; $('shopLinkGo').hidden = !!it || !linkFetchEnabled(); $('linkHint').hidden = !!it || !linkFetchEnabled();
+  clearPicker(); $('shopLinkGo').disabled = false; shopTok++; $('shopLinkGo').hidden = !!it || !linkFetchEnabled(); $('linkHint').hidden = !!it || !linkFetchEnabled();
   status(''); showOrig(); syncOpts();
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
@@ -91,6 +91,36 @@ async function adopt(n){
 const setSource = async src => adopt(await norm(src));
 
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
+let pickTok = 0, pickUrls = [];
+function clearPicker(){
+  pickTok++; for(const u of pickUrls) URL.revokeObjectURL(u);
+  pickUrls = []; $('pickRow').replaceChildren(); $('imgPick').hidden = true;
+}
+/** Zeigt alle Produktbilder zur Auswahl; geladen wird nach und nach über den Hilfsdienst (höchstens zwei gleichzeitig). */
+async function showPicker(urls, files, current){
+  if(urls.length < 2) return;
+  const my = pickTok, row = $('pickRow');
+  $('imgPick').hidden = false;
+  const slots = urls.map(() => { const w = document.createElement('div'); w.className = 'wait'; row.append(w); return w; });
+  const mark = b => { for(const x of row.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b)); };
+  let next = 0;
+  const worker = async () => {
+    while(next < urls.length){
+      const i = next++, u = urls[i];
+      const f = files.get(u) || await fetchImage(u);
+      if(my !== pickTok) return;
+      if(!f){ slots[i].remove(); continue; }
+      const b = document.createElement('button'), img = document.createElement('img'), src = URL.createObjectURL(f);
+      pickUrls.push(src); img.src = src; img.alt = ''; img.decoding = 'async';
+      b.type = 'button'; b.setAttribute('aria-label', 'Bild ' + (i + 1) + ' von ' + urls.length + ' verwenden'); b.setAttribute('aria-pressed', String(u === current));
+      b.append(img);
+      b.onclick = async () => { mark(b); status('Bild wird übernommen …'); await takeFile(f); if(my === pickTok) status('Bild gewechselt. Bitte kurz prüfen und speichern.'); };
+      slots[i].replaceWith(b);
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  if(my === pickTok && !row.querySelector('button')) $('imgPick').hidden = true;
+}
 /** Füllt das Formular mit geprüften Shop-Daten und holt das Bild über den Hilfsdienst. */
 async function applyShopData(d){
   if(!$('dlg').open) openDlg();
@@ -102,15 +132,19 @@ async function applyShopData(d){
   if(d.cat){ $('cat').value = d.cat; syncMirror(); got.push('Kategorie'); }
   if(d.color){ $('color').value = d.color; state.draft.colorTouched = true; got.push('Farbe'); }
   if(d.brand){ const tags = parseTags($('tags').value + ',' + d.brand, Scraper.sanitizeText); $('tags').value = tags.join(', '); }
+  clearPicker();
+  const files = new Map();
   if(d.imageUrl){
     const f = await fetchImage(d.imageUrl);
-    if(f){ await takeFile(f); if(state.draft && state.draft.orig) got.push('Bild'); }
+    if(f){ files.set(d.imageUrl, f); await takeFile(f); if(state.draft && state.draft.orig) got.push('Bild'); }
   }
+  showPicker(d.images, files, got.includes('Bild') ? d.imageUrl : '');
   const noImg = !got.includes('Bild');
   if(!got.length) status('Auf dieser Seite wurden keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
   else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.'), noImg);
   return true;
 }
+$('dlg').addEventListener('close', clearPicker);
 let shopTok = 0;
 async function loadShopLink(){
   const raw = $('url').value.trim();

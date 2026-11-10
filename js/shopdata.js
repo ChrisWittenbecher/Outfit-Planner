@@ -3,7 +3,7 @@ import { normalizeCurrency, parsePrice, sanitizePrice, sanitizeText, validateUrl
 import { COLOR_NAMES } from './color.js';
 import { fold } from './search.js';
 
-/** @typedef {{ ok: true, name: string, price: number | null, cur: string, link: string, imageUrl: string, color: string, cat: string, brand: string } | { ok: false, error: string }} ShopData */
+/** @typedef {{ ok: true, name: string, price: number | null, cur: string, link: string, imageUrl: string, images: string[], color: string, cat: string, brand: string } | { ok: false, error: string }} ShopData */
 
 /** @type {[string, RegExp][]} */
 const CAT_WORDS = [
@@ -51,11 +51,14 @@ export function normalizeShop(raw) {
   const price = sanitizePrice(typeof raw.price === 'number' ? raw.price : parsePrice(str(raw.price)));
   const colorText = sanitizeText(str(raw.color), 60);
   const imageUrl = url(raw.image);
+  const listed = (Array.isArray(raw.images) ? raw.images.slice(0, 8) : []).map(url);
+  const images = [...new Set([imageUrl, ...listed].filter((/** @type {string} */ u) => u.startsWith('https:')))];
   return {
     ok: true, name, brand, price,
     cur: normalizeCurrency(str(raw.currency), 'EUR'),
     link: url(raw.url),
-    imageUrl: imageUrl.startsWith('https:') ? imageUrl : '',
+    imageUrl: imageUrl.startsWith('https:') ? imageUrl : images[0] || '',
+    images,
     color: guessColor(colorText) || guessColor(name),
     cat: guessCat(name),
   };

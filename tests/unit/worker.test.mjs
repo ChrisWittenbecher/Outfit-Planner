@@ -17,11 +17,22 @@ test('Zieladressen: nur https, nur Domainnamen', () => {
 
 test('Produktdaten aus JSON-LD und Meta', async () => {
   const a = extractProduct(await readFile(new URL('../fixtures/shop-jsonld.html', import.meta.url), 'utf8'), 'https://www.shop.example/p/x');
-  assert.deepEqual(a, { name: 'Wollmantel Oslo', price: '189.90', currency: 'EUR', url: 'https://www.shop.example/p/wollmantel-123', image: 'https://www.shop.example/img/mantel.jpg', color: 'Dark Navy', brand: 'Nordlys' });
+  assert.deepEqual(a, { name: 'Wollmantel Oslo', price: '189.90', currency: 'EUR', url: 'https://www.shop.example/p/wollmantel-123', image: 'https://www.shop.example/img/mantel.jpg', images: ['https://www.shop.example/img/mantel.jpg', 'https://cdn.shop.example/2.jpg'], color: 'Dark Navy', brand: 'Nordlys' });
   const b = extractProduct(await readFile(new URL('../fixtures/shop-meta.html', import.meta.url), 'utf8'), 'https://shop.example/s');
   assert.equal(b.name, 'Sneaker Court'); assert.equal(b.currency, 'CHF'); assert.equal(b.brand, 'Läufer');
   const c = extractProduct(await readFile(new URL('../fixtures/shop-leer.html', import.meta.url), 'utf8'), 'https://shop.example/e');
   assert.equal(c.name, 'Nur ein Titel'); assert.equal(c.price, ''); assert.equal(c.image, '');
+});
+
+test('Alle Produktbilder werden gesammelt: einmalig, https, höchstens acht', () => {
+  const ld = JSON.stringify({ '@type': 'Product', name: 'X', image: ['/a.jpg', { url: 'https://c.example/b.jpg' }, 'http://unsicher.example/c.jpg', '/a.jpg', 'javascript:alert(1)'] });
+  const metas = Array.from({ length: 12 }, (_, i) => `<meta property="og:image" content="/m${i}.jpg">`).join('');
+  const o = extractProduct(`<script type="application/ld+json">${ld}</script>${metas}`, 'https://s.example/p');
+  assert.equal(o.image, 'https://s.example/a.jpg');
+  assert.equal(o.images.length, 8);
+  assert.equal(new Set(o.images).size, 8);
+  assert.ok(o.images.every(u => u.startsWith('https://')));
+  assert.deepEqual(o.images.slice(0, 2), ['https://s.example/a.jpg', 'https://c.example/b.jpg']);
 });
 
 test('Texte werden bereinigt und gekürzt', () => {
