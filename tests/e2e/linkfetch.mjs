@@ -38,7 +38,7 @@ try {
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   ok(await p.isVisible('#shopLinkGo') && await p.isVisible('#linkHint'), 'Knopf „Laden“ und Hinweis sind da');
-  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', 'beim Öffnen steht der Cursor im Linkfeld');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'beim Öffnen ist kein Feld ausgewählt');
   ok(!(await p.locator('#imgUrl, #shopPaste, #shopHelpBtn').count()), 'Kurzbefehl-Knöpfe und „Bild per Link“ sind weg');
 
   await p.fill('#url', 'shop.example/p/mantel'); await p.click('#shopLinkGo');
@@ -54,7 +54,7 @@ try {
 
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   ok(await p.inputValue('#url') === '', 'neues Teil beginnt leer');
-  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', 'auch beim zweiten Mal im Linkfeld');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'auch beim zweiten Mal ist kein Feld ausgewählt');
   await p.fill('#url', 'https://shop.example/weg'); await p.click('#shopLinkGo');
   ok(await wait(async () => /gibt es nicht/.test(await p.textContent('#status'))), 'Fehler wird verständlich gemeldet: ' + (await p.textContent('#status')).trim());
   ok(await p.inputValue('#name') === '', 'bei Fehler bleibt das Formular unverändert');

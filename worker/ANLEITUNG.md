@@ -36,7 +36,7 @@ Bei einer neuen Version von `anprobe-worker.js` den Code in Cloudflare unter **E
 ## Prüfen in der App
 
 1. App öffnen (als Home-Bildschirm-App ganz schließen und neu öffnen, bis unten die neue Version steht).
-2. Auf „+“ tippen. Der Cursor steht im Feld „Produktlink“.
+2. Auf „+“ tippen und in das Feld „Produktlink“ tippen.
 3. Einen Produktlink einfügen. Er lädt sofort. Am PC „Laden“ oder Enter.
 4. Name, Preis, Farbe, Kategorie und Bild sind ausgefüllt. Kurz prüfen und speichern.
 

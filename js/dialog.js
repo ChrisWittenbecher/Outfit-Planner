@@ -83,7 +83,6 @@ export function openDlg(it){
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
   showDialog($('dlg'));
-  if(!it) $('url').focus({preventScroll:true});   // neues Teil: gleich den Link einfügen können
 }
 async function adopt(n){
   if(!state.draft) state.draft = blank();
