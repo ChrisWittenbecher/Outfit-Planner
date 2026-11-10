@@ -23,6 +23,6 @@
     "js/wear.js",
     "js/color.js",
     "js/search.js",
-    "js/model.js", "js/stylist.js", "js/packing.js", "js/sale.js", "js/shopdata.js"
+    "js/model.js", "js/stylist.js", "js/packing.js", "js/sale.js", "js/shopdata.js", "js/config.js", "js/linkfetch.js"
   ]
 }

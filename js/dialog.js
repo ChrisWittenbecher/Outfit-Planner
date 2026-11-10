@@ -8,6 +8,7 @@ import { parseTags } from './search.js';
 import { addMany } from './batch.js';
 import { MAX_BATCH } from './intake.js';
 import { isShopClip, parseShopClip } from './shopdata.js';
+import { fetchImage, fetchProduct, linkFetchEnabled } from './linkfetch.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
 import { confirmBox } from './ui.js';
@@ -66,6 +67,7 @@ function showHistory(it){
     return li;
   }));
 }
+let shopTok = 0;
 export function openDlg(it){
   state.editing = it || null;
   state.draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
@@ -79,6 +81,7 @@ export function openDlg(it){
   $('color').value = it && it.color || '';
   if(it){ state.draft.colorTouched = !!it.color; if(!it.color) autoColor(it.img, !!it.cut); }
   $('multiTip').hidden = !!it;
+  $('shopLink').value = ''; $('shopLinkGo').disabled = false; shopTok++; $('linkIn').hidden = !!it || !linkFetchEnabled();
   status(''); showOrig(); syncOpts();
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
@@ -119,7 +122,10 @@ $('imgUrl').oninput = () => $('imgUrl').removeAttribute('aria-invalid');
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
 /** Übernimmt, was der Kurzbefehl in die Zwischenablage gelegt hat. */
 export async function applyShop(text){
-  const d = parseShopClip(text);
+  return applyShopData(parseShopClip(text));
+}
+/** Füllt das Formular mit geprüften Shop-Daten; `loadImg` holt ein fehlendes Bild über den Hilfsdienst. */
+async function applyShopData(d, loadImg){
   if(!$('dlg').open) openDlg();
   if(!d.ok){ status(d.error, true); return false; }
   const got = [];
@@ -132,9 +138,12 @@ export async function applyShop(text){
   if(d.image){
     await takeFile(new File([d.image.bytes], 'shop', {type:d.image.mime}));
     if(state.draft && state.draft.orig) got.push('Bild');
+  } else if(d.imageUrl && loadImg){
+    const f = await fetchImage(d.imageUrl);
+    if(f){ await takeFile(f); if(state.draft && state.draft.orig) got.push('Bild'); }
   } else if(d.imageUrl){ $('imgUrl').value = d.imageUrl; await loadFromLink(); if(state.draft && state.draft.orig) got.push('Bild'); }
   const noImg = !got.includes('Bild');
-  if(!got.length) status('Auf dieser Seite hat der Kurzbefehl keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
+  if(!got.length) status('Auf dieser Seite wurden keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
   else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.'), noImg);
   return true;
 }
@@ -144,6 +153,20 @@ $('shopPaste').onclick = async () => {
   catch(e){ status('Die Zwischenablage lässt sich hier nicht direkt lesen. Tippe lange in das Feld „Name“ und wähle „Einfügen“.', true); return; }
   applyShop(text);
 };
+
+async function loadShopLink(){
+  const raw = $('shopLink').value.trim();
+  if(!raw){ status('Bitte einen Produktlink einfügen.', true); return; }
+  const my = ++shopTok; $('shopLinkGo').disabled = true; status('Produktdaten werden geladen …');
+  try{
+    const d = await fetchProduct(Scraper.normalizeLinkInput(raw));
+    if(my !== shopTok) return;
+    await applyShopData(d, true);
+  }catch(e){ if(my === shopTok) status(e instanceof Error ? e.message : 'Das hat nicht geklappt.', true); }
+  finally{ if(my === shopTok) $('shopLinkGo').disabled = false; }
+}
+$('shopLinkGo').onclick = loadShopLink;
+$('shopLink').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadShopLink(); } };
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
 $('cancel').onclick = () => closeDialog($('dlg'));
