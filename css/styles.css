@@ -224,6 +224,12 @@
   #dlg .g2 + .g2, #dlg .g2 + .hint { margin-top: 12px; }
   #dlg .sec-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--mute); margin-bottom: 8px; font-family: inherit; }
   #dlg .sec .hint { margin-top: 6px; }
+  #imgPick { margin-top: 12px; }
+  #pickRow { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; padding: 3px; margin-inline: -3px; scroll-snap-type: x proximity; }
+  #pickRow button { flex: none; width: 68px; height: 84px; min-height: 0; padding: 0; overflow: hidden; border-radius: var(--radius-sm); border: 2px solid var(--line); background: var(--tile); scroll-snap-align: start; }
+  #pickRow button[aria-pressed="true"] { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-wash); }
+  #pickRow img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  #pickRow .wait { flex: none; width: 68px; height: 84px; border-radius: var(--radius-sm); background: var(--tile); opacity: .6; }
   #dlg .sec--link #status { margin-top: 4px; }
   #dlg .sec--link #status:empty { min-height: 0; margin: 0; }
   #dlg .row input { flex: 1 1 auto; min-width: 0; }

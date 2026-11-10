@@ -17,6 +17,14 @@ test('Vollständige Daten werden übernommen und geprüft', () => {
   assert.equal(d.brand, 'Nordlys');
 });
 
+test('Bilderliste: nur sichere Adressen, Hauptbild vorn, höchstens acht', () => {
+  const d = normalizeShop({ ...full, images: ['https://cdn.shop.example/b.jpg', 'http://cdn.shop.example/c.jpg', 'javascript:1', 'https://cdn.shop.example/a.jpg', ...Array.from({ length: 20 }, (_, i) => `https://cdn.shop.example/x${i}.jpg`)] });
+  assert.equal(d.images[0], 'https://cdn.shop.example/a.jpg');
+  assert.ok(d.images.length <= 9 && d.images.every(u => u.startsWith('https://')));
+  assert.equal(new Set(d.images).size, d.images.length);
+  assert.deepEqual(normalizeShop({ ...full, images: 'kein array' }).images, ['https://cdn.shop.example/a.jpg']);
+});
+
 test('Kein Objekt: abgelehnt', () => {
   for (const bad of [null, undefined, 'text', 5, [1, 2]]) {
     const d = normalizeShop(bad);
@@ -60,5 +68,5 @@ test('Farbe aus der Shop-Angabe, sonst aus dem Namen', () => {
 });
 
 test('Leeres Objekt ist gültig, liefert aber nichts', () => {
-  assert.deepEqual({ ...normalizeShop({}) }, { ok: true, name: '', brand: '', price: null, cur: 'EUR', link: '', imageUrl: '', color: '', cat: '' });
+  assert.deepEqual({ ...normalizeShop({}) }, { ok: true, name: '', brand: '', price: null, cur: 'EUR', link: '', imageUrl: '', images: [], color: '', cat: '' });
 });

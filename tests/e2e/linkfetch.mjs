@@ -32,7 +32,7 @@ try {
     if (u.pathname === '/image') return r.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': ORIGIN }, body: PNG });
     if (target.includes('weg')) return r.fulfill(json({ error: 'not_found' }, 502));
     if (target.includes('kein-bild')) return r.fulfill(json({ name: 'Sneaker Court', price: '79,95', currency: 'CHF', url: target, image: '', color: '', brand: '' }));
-    return r.fulfill(json({ name: '<b>Wollmantel</b> Oslo', price: '189.90', currency: 'EUR', url: target, image: 'https://cdn.shop.example/mantel.jpg', color: 'Dark Navy', brand: 'Nordlys' }));
+    return r.fulfill(json({ name: '<b>Wollmantel</b> Oslo', price: '189.90', currency: 'EUR', url: target, image: 'https://cdn.shop.example/mantel.jpg', images: target.includes('mantel') ? ['https://cdn.shop.example/mantel.jpg', 'https://cdn.shop.example/mantel-2.jpg', 'https://cdn.shop.example/mantel-3.jpg'] : [], color: 'Dark Navy', brand: 'Nordlys' }));
   });
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
@@ -47,13 +47,22 @@ try {
   ok(await p.inputValue('#price') === '189,90' && await p.inputValue('#cat') === 'Jacke' && await p.inputValue('#color') === 'Blau', 'Preis, Kategorie und Farbe');
   ok(await p.inputValue('#url') === 'https://shop.example/p/mantel', 'Link übernommen');
   ok(await p.locator('#res img').count() === 1, 'Bild kommt über den Dienst und ist verarbeitet');
-  ok(seen.length === 2 && seen[0].startsWith('/product https://shop.example/p/mantel') && seen[1].startsWith('/image https://cdn.shop.example/mantel.jpg'), 'zwei Anfragen: Daten, Bild – ' + seen.join(' | '));
+  ok(seen[0].startsWith('/product https://shop.example/p/mantel') && seen[1].startsWith('/image https://cdn.shop.example/mantel.jpg'), 'erst Daten, dann das Hauptbild');
+  ok(await wait(async () => await p.locator('#pickRow button').count() === 3), 'alle drei Produktbilder stehen zur Auswahl');
+  ok(await p.isVisible('#imgPick') && await p.locator('#pickRow button[aria-pressed="true"]').count() === 1 && await p.getAttribute('#pickRow button:first-child', 'aria-pressed') === 'true', 'das übernommene Bild ist markiert');
+  ok(seen.length === 4 && seen.filter(x => x.includes('mantel.jpg')).length === 1, 'das Hauptbild wird nicht doppelt geladen – ' + seen.join(' | '));
+  const resBefore = await p.locator('#res img, #res canvas').count();
+  await p.click('#pickRow button:nth-child(2)');
+  ok(await wait(async () => /Bild gewechselt/.test(await p.textContent('#status'))), 'Wechsel wird gemeldet');
+  ok(await p.getAttribute('#pickRow button:nth-child(2)', 'aria-pressed') === 'true' && await p.getAttribute('#pickRow button:first-child', 'aria-pressed') === 'false', 'die Markierung wechselt');
+  ok(seen.length === 4, 'der Wechsel braucht keine neue Anfrage');
+  ok(await p.locator('#res img').count() === 1, 'das gewählte Bild ist verarbeitet');
   ok(seen.every(s => s.endsWith(' undefined')), 'keine Cookies an den Dienst');
   await p.click('#ok'); await closed(p, 'dlg');
   ok(await persisted(p, 1) && (await storedItems(p))[0].name === 'Wollmantel Oslo', 'gespeichert');
 
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
-  ok(await p.inputValue('#url') === '', 'neues Teil beginnt leer');
+  ok(await p.inputValue('#url') === '' && !(await p.isVisible('#imgPick')), 'neues Teil beginnt leer, ohne Bildauswahl');
   ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'auch beim zweiten Mal ist kein Feld ausgewählt');
   await p.fill('#url', 'https://shop.example/weg'); await p.click('#shopLinkGo');
   ok(await wait(async () => /gibt es nicht/.test(await p.textContent('#status'))), 'Fehler wird verständlich gemeldet: ' + (await p.textContent('#status')).trim());
@@ -71,7 +80,7 @@ try {
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'https://shop.example/p/hemd'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });
   ok(await wait(async () => /Übernommen: .*Bild/.test(await p.textContent('#status'))), 'ein eingefügter Link lädt ohne weiteren Tipp');
-  ok(seen.length === n0 + 2, 'Daten und Bild geholt');
+  ok(seen.length === n0 + 2 && !(await p.isVisible('#imgPick')), 'Daten und Bild geholt; bei nur einem Bild keine Auswahl');
   await p.click('#cancel'); await closed(p, 'dlg');
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'kein link'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });

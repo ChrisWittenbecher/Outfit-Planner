@@ -34,7 +34,7 @@ const attrs = tag => {
 };
 
 const text = v => v == null ? '' : String(typeof v === 'object' ? (v.name || v['@id'] || '') : v).trim();
-const firstImage = v => !v ? '' : Array.isArray(v) ? firstImage(v[0]) : typeof v === 'object' ? firstImage(v.url || v.contentUrl) : String(v);
+const imagesOf = (v, depth = 0) => !v || depth > 3 ? [] : Array.isArray(v) ? v.flatMap(x => imagesOf(x, depth + 1)) : typeof v === 'object' ? imagesOf(v.url || v.contentUrl, depth + 1) : [String(v)];
 const isProduct = n => { const t = n && n['@type']; return t === 'Product' || t === 'ProductGroup' || (Array.isArray(t) && (t.includes('Product') || t.includes('ProductGroup'))); };
 function findProduct(n, depth = 0) {
   if (!n || typeof n !== 'object' || depth > 6) return null;
@@ -45,11 +45,12 @@ function findProduct(n, depth = 0) {
 /** Liest Produktdaten aus dem HTML einer Seite (JSON-LD zuerst, dann Meta-Angaben). */
 export function extractProduct(html, pageUrl) {
   const out = { name: '', price: '', currency: '', url: pageUrl, image: '', color: '', brand: '' };
-  const meta = {};
+  const meta = {}, metaAll = {};
+  let found = [];
   let canonical = '';
   for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
     const a = attrs(m[0]), k = (a.property || a.name || a.itemprop || '').toLowerCase();
-    if (k && a.content && !(k in meta)) meta[k] = a.content.trim();
+    if (k && a.content) { if (!(k in meta)) meta[k] = a.content.trim(); (metaAll[k] ||= []).push(a.content.trim()); }
   }
   for (const m of html.matchAll(/<link\b[^>]*>/gi)) { const a = attrs(m[0]); if (!canonical && /(^|\s)canonical(\s|$)/i.test(a.rel || '') && a.href) canonical = a.href; }
   const pick = names => { for (const n of names) if (meta[n]) return meta[n]; return ''; };
@@ -64,7 +65,8 @@ export function extractProduct(html, pageUrl) {
     if (Array.isArray(offer)) offer = offer[0];
     out.name = text(product.name); out.brand = text(product.brand);
     out.color = text(product.color || (variant && variant.color));
-    out.image = firstImage(product.image || (variant && variant.image));
+    found = [...imagesOf(product.image), ...imagesOf(variant && variant.image)];
+    out.image = found[0] || '';
     if (offer) {
       const spec = Array.isArray(offer.priceSpecification) ? offer.priceSpecification[0] : offer.priceSpecification;
       out.price = text(offer.price != null ? offer.price : offer.lowPrice != null ? offer.lowPrice : spec ? spec.price : '');
@@ -72,7 +74,8 @@ export function extractProduct(html, pageUrl) {
     }
   }
   if (!out.name) out.name = pick(['og:title', 'twitter:title']) || decode((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [, ''])[1]).trim();
-  if (!out.image) out.image = pick(['og:image:secure_url', 'og:image', 'twitter:image']);
+  const social = ['og:image:secure_url', 'og:image', 'twitter:image'].flatMap(k => metaAll[k] || []);
+  if (!out.image) out.image = social[0] || '';
   if (!out.price) out.price = pick(['product:price:amount', 'og:price:amount', 'price']);
   if (!out.currency) out.currency = pick(['product:price:currency', 'og:price:currency', 'pricecurrency']);
   if (!out.brand) out.brand = pick(['product:brand', 'og:brand']);
@@ -80,8 +83,10 @@ export function extractProduct(html, pageUrl) {
   const abs = u => { try { return new URL(u, pageUrl).href; } catch { return ''; } };
   if (canonical) out.url = abs(canonical) || pageUrl;
   out.image = out.image ? abs(out.image) : '';
+  const images = [];
+  for (const u of [out.image, ...found, ...social]) { const a = u ? abs(u) : ''; if (a.startsWith('https://') && a.length <= LIMITS.url && !images.includes(a)) images.push(a); if (images.length === 8) break; }
   const cut = (v, n) => String(v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
-  return { name: cut(out.name, 200), price: cut(out.price, 30), currency: cut(out.currency, 8), url: cut(out.url, LIMITS.url), image: cut(out.image, LIMITS.url), color: cut(out.color, 60), brand: cut(out.brand, 60) };
+  return { name: cut(out.name, 200), price: cut(out.price, 30), currency: cut(out.currency, 8), url: cut(out.url, LIMITS.url), image: cut(out.image, LIMITS.url), images, color: cut(out.color, 60), brand: cut(out.brand, 60) };
 }
 
 /** Erkennt Bildformate an den ersten Bytes. SVG und alles andere wird abgelehnt. */
