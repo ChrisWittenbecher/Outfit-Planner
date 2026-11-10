@@ -65,7 +65,7 @@ try {
 
   ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
   ok((await p.evaluate(() => window.__csp)).length === 0, 'keine CSP-Verstöße ' + (await p.evaluate(() => window.__csp)).join(' | '));
-  ok(external.every(u => u.startsWith(W)), 'außer dem Dienst keine Verbindung nach außen ' + external.join(' | '));
+  ok(external.every(u => new URL(u).origin === W), 'außer dem Dienst keine Verbindung nach außen ' + external.join(' | '));
   await ctx.close();
 } finally {
   await browser.close(); server.close();
