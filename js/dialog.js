@@ -7,6 +7,7 @@ import { COLOR_NAMES } from './color.js';
 import { parseTags } from './search.js';
 import { addMany } from './batch.js';
 import { MAX_BATCH } from './intake.js';
+import { isShopClip, parseShopClip } from './shopdata.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
 import { confirmBox } from './ui.js';
@@ -116,6 +117,33 @@ $('imgLoad').onclick = loadFromLink;
 $('imgUrl').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadFromLink(); } };
 $('imgUrl').oninput = () => $('imgUrl').removeAttribute('aria-invalid');
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
+/** Übernimmt, was der Kurzbefehl in die Zwischenablage gelegt hat. */
+export async function applyShop(text){
+  const d = parseShopClip(text);
+  if(!$('dlg').open) openDlg();
+  if(!d.ok){ status(d.error, true); return false; }
+  const got = [];
+  if(d.name){ $('name').value = d.name; got.push('Name'); }
+  if(d.price != null){ $('price').value = d.price.toFixed(2).replace('.', ','); $('cur').value = d.cur; got.push('Preis'); }
+  if(d.link){ $('url').value = d.link; $('url').removeAttribute('aria-invalid'); got.push('Link'); }
+  if(d.cat){ $('cat').value = d.cat; syncMirror(); got.push('Kategorie'); }
+  if(d.color){ $('color').value = d.color; state.draft.colorTouched = true; got.push('Farbe'); }
+  if(d.brand){ const tags = parseTags($('tags').value + ',' + d.brand, Scraper.sanitizeText); $('tags').value = tags.join(', '); }
+  if(d.image){
+    await takeFile(new File([d.image.bytes], 'shop', {type:d.image.mime}));
+    if(state.draft && state.draft.orig) got.push('Bild');
+  } else if(d.imageUrl){ $('imgUrl').value = d.imageUrl; await loadFromLink(); if(state.draft && state.draft.orig) got.push('Bild'); }
+  const noImg = !got.includes('Bild');
+  if(!got.length) status('Auf dieser Seite hat der Kurzbefehl keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
+  else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.'), noImg);
+  return true;
+}
+$('shopPaste').onclick = async () => {
+  let text = '';
+  try{ text = await navigator.clipboard.readText(); }
+  catch(e){ status('Die Zwischenablage lässt sich hier nicht direkt lesen. Tippe lange in das Feld „Name“ und wähle „Einfügen“.', true); return; }
+  applyShop(text);
+};
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
 $('cancel').onclick = () => closeDialog($('dlg'));
@@ -130,7 +158,7 @@ $('file').onchange = e => { const files = [...e.target.files]; e.target.value = 
 ['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => { const files = [...e.dataTransfer.files]; if(files.length) intake(files); });
-document.addEventListener('paste', e => { const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
+document.addEventListener('paste', e => { const t = e.clipboardData?.getData('text/plain') || ''; if(isShopClip(t)){ e.preventDefault(); applyShop(t); return; } const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
 $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) process(); };
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };
 $('rm').onchange = () => { state.draft.rm = $('rm').checked; state.draft.ai = false; syncOpts(); process(); };

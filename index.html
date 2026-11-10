@@ -51,6 +51,8 @@
   <link rel="modulepreload" href="js/model.js">
   <link rel="modulepreload" href="js/thumbs.js">
   <link rel="modulepreload" href="js/wearlog.js">
+  <link rel="modulepreload" href="js/shopdata.js">
+  <link rel="modulepreload" href="js/shopin.js">
   <link rel="modulepreload" href="js/stylist.js">
   <link rel="modulepreload" href="js/packing.js">
   <link rel="modulepreload" href="js/sale.js">
@@ -192,6 +194,29 @@
   </dialog>
 
   <!-- Kalender: getragene und geplante Outfits, Auswertung -->
+  <dialog id="shopHelp" aria-labelledby="shopHelpTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="shopHelpTitle" class="menu-title">Aus dem Shop übernehmen</h2>
+    <p class="hint">Webseiten dürfen fremde Shop-Seiten nicht auslesen. Ein Kurzbefehl auf deinem iPhone darf das: Er liest die Produktseite, die du gerade in Safari siehst, und legt Name, Preis, Farbe, Link und Bild in die Zwischenablage. Es wird nichts an Dritte gesendet.</p>
+    <h3>Einmal einrichten</h3>
+    <ol class="steps">
+      <li>App „Kurzbefehle“ öffnen, neuen Kurzbefehl anlegen und „An Anprobe senden“ nennen. In den Details „Im Share-Sheet anzeigen“ einschalten, als Eingabe nur „Safari-Webseiten“.</li>
+      <li>Aktion „JavaScript auf Webseite ausführen“ hinzufügen und das Skript einfügen: <button type="button" id="shopScript" class="small">Skript kopieren</button></li>
+      <li>Aktion „Wörterbuch aus Eingabe abrufen“, danach „Wörterbuchwert abrufen“ mit dem Schlüssel <code>image</code>.</li>
+      <li>Aktion „Inhalte von URL abrufen“, danach „Base64-codieren“ (Zeilenumbrüche: keine).</li>
+      <li>Aktion „Text“ mit drei Zeilen: <code>ANPROBE1</code>, darunter das Ergebnis des JavaScripts, darunter das Base64-Ergebnis.</li>
+      <li>Aktion „In die Zwischenablage kopieren“. Wer mag, hängt „URL öffnen“ mit der Adresse von Anprobe an.</li>
+    </ol>
+    <p class="hint">Unter „Einstellungen → Kurzbefehle → Erweitert“ muss „Ausführen von Skripten erlauben“ eingeschaltet sein.</p>
+    <h3>Danach jedes Mal</h3>
+    <ol class="steps">
+      <li>Im Shop in Safari auf „Teilen“ tippen und „An Anprobe senden“ wählen.</li>
+      <li>In Anprobe auf „+“ und „Aus Shop übernehmen“ tippen, das Einfügen erlauben.</li>
+    </ol>
+    <div id="shopHelpLive" class="sr-only" role="status" aria-live="polite"></div>
+    <div class="foot"><button type="button" id="shopHelpClose">Schließen</button></div>
+  </dialog>
+
   <dialog id="ideaDlg" aria-labelledby="ideaTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="ideaTitle" class="menu-title">Ideen</h2>
@@ -279,6 +304,11 @@
   <dialog id="dlg" aria-labelledby="dlgTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="dlgTitle">Neues Teil</h2>
+    <div class="shop-in">
+      <button type="button" id="shopPaste">Aus Shop übernehmen</button>
+      <button type="button" id="shopHelpBtn" class="small" aria-haspopup="dialog">So geht’s</button>
+    </div>
+    <p class="hint">Füllt Name, Preis, Farbe, Link und Bild aus, nachdem du im Shop den Kurzbefehl „An Anprobe senden“ ausgeführt hast.</p>
     <label for="imgUrl">Bild per Link laden (optional, direkter Link zum Bild)</label>
     <div class="row">
       <input id="imgUrl" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/bilder/hemd.jpg">
