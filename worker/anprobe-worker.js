@@ -4,7 +4,7 @@
 // Der Dienst speichert nichts, setzt keine Cookies und leitet keine Anmeldedaten weiter.
 
 /** Webseiten, die den Dienst aufrufen dürfen. Weitere Adressen (z. B. zum Testen) über die Variable EXTRA_ORIGIN. */
-const ALLOWED_ORIGINS = ['https://chriswittenbecher.github.io'];
+const ALLOWED_ORIGINS = ['https://chriswittenbecher.github.io', 'https://outfit-planner.org', 'https://www.outfit-planner.org'];
 const LIMITS = { html: 1_500_000, image: 8_000_000, redirects: 3, waitMs: 8000, url: 2048 };
 const BLOCKED_SUFFIX = ['.local', '.localhost', '.internal', '.lan', '.home', '.corp', '.intranet', '.workers.dev', '.pages.dev'];
 
