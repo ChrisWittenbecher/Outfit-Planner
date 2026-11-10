@@ -67,6 +67,9 @@ test('nur die eigene App darf den Dienst nutzen', async () => {
   const f = async () => html('<title>Hemd</title>');
   assert.equal((await handle(req('/product?u=https://s.example/a', ''), {}, f)).status, 403);
   assert.equal((await handle(req('/product?u=https://s.example/a', 'https://boese.example'), {}, f)).status, 403);
+  assert.equal((await handle(req('/product?u=https://s.example/a', 'https://outfit-planner.org.boese.example'), {}, f)).status, 403);
+  for (const o of ['https://outfit-planner.org', 'https://www.outfit-planner.org']) assert.equal((await handle(req('/product?u=https://s.example/a', o), {}, f)).status, 200, o);
+  assert.equal((await handle(req('/product?u=https://s.example/a', 'http://outfit-planner.org'), {}, f)).status, 403);
   const ok = await handle(req('/product?u=' + encodeURIComponent('https://s.example/a')), {}, f);
   assert.equal(ok.status, 200);
   assert.equal(ok.headers.get('access-control-allow-origin'), ORIGIN);
