@@ -48,7 +48,7 @@ export async function fetchProduct(link) {
   const d = normalizeShop(raw);
   if (!d.ok) throw new Error(d.error);
   if (!d.link) d.link = v.url;
-  return d;
+  return { ...d, outdated: !Array.isArray(raw.images) };   // ältere Dienst-Versionen kennen keine Bildauswahl
 }
 
 /** Holt das Produktbild über den Hilfsdienst; null, wenn es sich nicht laden lässt. @param {string} imageUrl */
