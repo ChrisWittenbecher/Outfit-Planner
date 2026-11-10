@@ -33,38 +33,16 @@ Unter **Settings → Bindings → Add → Rate limiting** eine Bindung mit dem N
 
 Bei einer neuen Version von `anprobe-worker.js` den Code in Cloudflare unter **Edit code** ersetzen und erneut **Deploy** drücken.
 
----
+## Prüfen in der App
 
-# Kurzbefehl auf dem iPhone testen (Checkliste)
+1. App öffnen (als Home-Bildschirm-App ganz schließen und neu öffnen, bis unten die neue Version steht).
+2. Auf „+“ tippen. Der Cursor steht im Feld „Produktlink“.
+3. Einen Produktlink einfügen. Er lädt sofort. Am PC „Laden“ oder Enter.
+4. Name, Preis, Farbe, Kategorie und Bild sind ausgefüllt. Kurz prüfen und speichern.
 
-Das ist der Weg ohne Dienst. Einmal durchgehen; die Schritte stehen auch in der App unter „Neues Teil → So geht’s“.
-
-**Vorbereitung**
-1. iPhone: **Einstellungen → Kurzbefehle → Erweitert** → „Ausführen von Skripten erlauben“ einschalten.
-2. Anprobe im Safari öffnen, „+“ antippen, „So geht’s“ öffnen und **Skript kopieren** antippen. Es erscheint „Skript kopiert“.
-
-**Kurzbefehl bauen** (App „Kurzbefehle“, „+“)
-1. Name: `An Anprobe senden`. Oben auf den Namen tippen, **Details**: „Im Share-Sheet anzeigen“ an, Eingabetypen nur **Safari-Webseiten**.
-2. Aktion **JavaScript auf Webseite ausführen** hinzufügen. Den vorgegebenen Text löschen, das kopierte Skript einfügen.
-3. Aktion **Wörterbuch aus Eingabe abrufen** (Eingabe: Ergebnis des JavaScripts).
-4. Aktion **Wörterbuchwert abrufen**, Schlüssel `image`.
-5. Aktion **Inhalte von URL abrufen** (Eingabe: der Wert aus Schritt 4).
-6. Aktion **Base64-codieren** (Zeilenumbrüche: Keine).
-7. Aktion **Text** mit drei Zeilen: `ANPROBE1`, darunter die Variable „Ergebnis des JavaScripts“, darunter die Variable „Base64-codierter Text“.
-8. Aktion **In die Zwischenablage kopieren**.
-
-**Testen**
-1. Im Safari eine Produktseite öffnen (zum Beispiel von Zalando, About You oder Zara), dann **Teilen → An Anprobe senden**. Beim ersten Mal „Erlauben“ wählen.
-2. Prüfpunkt: Der Kurzbefehl läuft ohne Fehlermeldung durch (ein kurzer Haken oben).
-3. Anprobe öffnen, „+“ und **Aus Shop übernehmen** antippen, „Einfügen erlauben“ bestätigen.
-4. Prüfpunkt: Die Meldung nennt, was übernommen wurde. Name, Preis, Link, Kategorie und Farbe sind ausgefüllt, das Bild erscheint freigestellt.
-
-**Wenn etwas nicht klappt**
-
-| Beobachtung | Ursache und Lösung |
+| Meldung | Ursache |
 |---|---|
-| Kurzbefehl meldet, Skripte seien nicht erlaubt | Schritt „Vorbereitung 1“ nachholen. |
-| Anprobe sagt „keine Shop-Daten“ | Die Zwischenablage wurde überschrieben oder der Kurzbefehl lief nicht durch. Erneut ausführen, danach nichts anderes kopieren. |
-| Felder bleiben leer, nur der Titel steht da | Die Seite hat keine Produktdaten im Quelltext (kommt vor). Von Hand ergänzen. |
-| Alles da, nur das Bild fehlt | Das Bild hat eine Adresse, die der Kurzbefehl nicht laden konnte. Als Screenshot hinzufügen. |
-| „Einfügen erlauben“ erscheint nicht | Lange in das Feld „Name“ tippen und „Einfügen“ wählen; die App erkennt die Daten auch dann. |
+| „Der Shop lässt das automatische Auslesen nicht zu“ | Der Shop blockt Abrufe aus Rechenzentren. Screenshot verwenden. |
+| „Der Hilfsdienst ist nicht erreichbar“ | Worker nicht veröffentlicht oder die Adresse in `js/config.js` stimmt nicht. |
+| Felder bleiben leer | Die Seite enthält keine Produktdaten im Quelltext. Von Hand ergänzen. |
+| Alles da, nur das Bild fehlt | Das Bild ließ sich nicht abrufen. Als Screenshot hinzufügen. |

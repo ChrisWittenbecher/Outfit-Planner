@@ -7,7 +7,6 @@ import { COLOR_NAMES } from './color.js';
 import { parseTags } from './search.js';
 import { addMany } from './batch.js';
 import { MAX_BATCH } from './intake.js';
-import { isShopClip, parseShopClip } from './shopdata.js';
 import { fetchImage, fetchProduct, linkFetchEnabled } from './linkfetch.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
@@ -67,12 +66,10 @@ function showHistory(it){
     return li;
   }));
 }
-let shopTok = 0;
 export function openDlg(it){
   state.editing = it || null;
   state.draft = it ? {...blank(), orig:it.orig || it.img, alpha:!!it.alpha, rm:it.orig ? !!it.cut : true, img:it.img, cut:!!it.cut, mirror:!!it.mirror, mirrorTouched:true} : blank();
   $('dlgTitle').textContent = it ? 'Teil bearbeiten' : 'Neues Teil';
-  $('imgUrl').value = ''; $('imgUrl').removeAttribute('aria-invalid'); $('imgLoad').disabled = false; linkTok++;
   $('url').value = it ? it.link || '' : ''; $('url').removeAttribute('aria-invalid'); $('name').value = it ? it.name : ''; $('cat').value = it ? it.cat : CATS[0];
   $('price').value = it && it.price != null ? it.price.toFixed(2).replace('.', ',') : ''; $('cur').value = it && it.cur || 'EUR';
   $('itemState').value = it ? (it.status === 'wish' ? 'wish' : 'own') : (state.statusFilter === 'wish' ? 'wish' : 'own');
@@ -81,11 +78,12 @@ export function openDlg(it){
   $('color').value = it && it.color || '';
   if(it){ state.draft.colorTouched = !!it.color; if(!it.color) autoColor(it.img, !!it.cut); }
   $('multiTip').hidden = !!it;
-  $('shopLink').value = ''; $('shopLinkGo').disabled = false; shopTok++; $('linkIn').hidden = !!it || !linkFetchEnabled();
+  $('shopLinkGo').disabled = false; shopTok++; $('shopLinkGo').hidden = !!it || !linkFetchEnabled(); $('linkHint').hidden = !!it || !linkFetchEnabled();
   status(''); showOrig(); syncOpts();
   if(it){ const r = new Image(); r.src = it.img; r.alt = ''; $('res').replaceChildren(r); if(!it.orig) process(); }
   else $('res').replaceChildren(Object.assign(document.createElement('span'), {textContent:'Noch kein Bild'}));
   showDialog($('dlg'));
+  if(!it) $('url').focus({preventScroll:true});   // neues Teil: gleich den Link einfügen können
 }
 async function adopt(n){
   if(!state.draft) state.draft = blank();
@@ -93,39 +91,9 @@ async function adopt(n){
 }
 const setSource = async src => adopt(await norm(src));
 
-let linkTok = 0;
-const LINK_WAIT = 20000;   // ms, danach gilt das Laden als gescheitert
-async function loadFromLink(){
-  const raw = $('imgUrl').value.trim();
-  if(!raw){ status('Bitte einen Bildlink einfügen.', true); return; }
-  const v = Scraper.validateUrl(Scraper.normalizeLinkInput(raw));
-  if(!v.ok){ status('Der Bildlink ist ungültig: ' + v.error, true); $('imgUrl').setAttribute('aria-invalid', 'true'); return; }
-  $('imgUrl').removeAttribute('aria-invalid');
-  const my = ++linkTok; $('imgLoad').disabled = true; status('Bild wird geladen …');
-  try{
-    const n = await Promise.race([norm(v.url), new Promise((_, rej) => setTimeout(() => rej(new Error('Zeit')), LINK_WAIT))]);
-    if(my !== linkTok) return;
-    await adopt(n); if(my === linkTok) status('');
-  }catch(e){
-    if(my !== linkTok) return;
-    const page = !Scraper.looksLikeImageUrl(v.url);
-    if(page && !$('url').value.trim()){
-      $('url').value = v.url; $('url').removeAttribute('aria-invalid');
-      status('Das ist ein Link zu einer Seite, nicht zu einem Bild. Er wurde als Shop-Link übernommen. Das Bild bitte als Screenshot oder Datei hinzufügen.', true);
-    } else if(page) status('Das ist ein Link zu einer Seite, nicht zu einem Bild. Dein Shop-Link bleibt unverändert. Bitte den Bildlink verwenden oder das Bild als Screenshot hinzufügen.', true);
-    else status('Dieses Bild lässt sich nicht direkt laden, der Server erlaubt es nicht. Speichere das Bild oder mache einen Screenshot und füge ihn hinzu. Der Shop-Link bleibt erhalten.', true);
-  }finally{ if(my === linkTok) $('imgLoad').disabled = false; }
-}
-$('imgLoad').onclick = loadFromLink;
-$('imgUrl').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadFromLink(); } };
-$('imgUrl').oninput = () => $('imgUrl').removeAttribute('aria-invalid');
 async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
-/** Übernimmt, was der Kurzbefehl in die Zwischenablage gelegt hat. */
-export async function applyShop(text){
-  return applyShopData(parseShopClip(text));
-}
-/** Füllt das Formular mit geprüften Shop-Daten; `loadImg` holt ein fehlendes Bild über den Hilfsdienst. */
-async function applyShopData(d, loadImg){
+/** Füllt das Formular mit geprüften Shop-Daten und holt das Bild über den Hilfsdienst. */
+async function applyShopData(d){
   if(!$('dlg').open) openDlg();
   if(!d.ok){ status(d.error, true); return false; }
   const got = [];
@@ -135,38 +103,31 @@ async function applyShopData(d, loadImg){
   if(d.cat){ $('cat').value = d.cat; syncMirror(); got.push('Kategorie'); }
   if(d.color){ $('color').value = d.color; state.draft.colorTouched = true; got.push('Farbe'); }
   if(d.brand){ const tags = parseTags($('tags').value + ',' + d.brand, Scraper.sanitizeText); $('tags').value = tags.join(', '); }
-  if(d.image){
-    await takeFile(new File([d.image.bytes], 'shop', {type:d.image.mime}));
-    if(state.draft && state.draft.orig) got.push('Bild');
-  } else if(d.imageUrl && loadImg){
+  if(d.imageUrl){
     const f = await fetchImage(d.imageUrl);
     if(f){ await takeFile(f); if(state.draft && state.draft.orig) got.push('Bild'); }
-  } else if(d.imageUrl){ $('imgUrl').value = d.imageUrl; await loadFromLink(); if(state.draft && state.draft.orig) got.push('Bild'); }
+  }
   const noImg = !got.includes('Bild');
   if(!got.length) status('Auf dieser Seite wurden keine Produktdaten gefunden. Bitte die Felder selbst ausfüllen.', true);
   else status('Übernommen: ' + got.join(', ') + '.' + (noImg ? ' Das Bild bitte als Screenshot oder Datei hinzufügen.' : ' Bitte kurz prüfen und speichern.'), noImg);
   return true;
 }
-$('shopPaste').onclick = async () => {
-  let text = '';
-  try{ text = await navigator.clipboard.readText(); }
-  catch(e){ status('Die Zwischenablage lässt sich hier nicht direkt lesen. Tippe lange in das Feld „Name“ und wähle „Einfügen“.', true); return; }
-  applyShop(text);
-};
-
+let shopTok = 0;
 async function loadShopLink(){
-  const raw = $('shopLink').value.trim();
+  const raw = $('url').value.trim();
   if(!raw){ status('Bitte einen Produktlink einfügen.', true); return; }
   const my = ++shopTok; $('shopLinkGo').disabled = true; status('Produktdaten werden geladen …');
   try{
     const d = await fetchProduct(Scraper.normalizeLinkInput(raw));
     if(my !== shopTok) return;
-    await applyShopData(d, true);
+    await applyShopData(d);
   }catch(e){ if(my === shopTok) status(e instanceof Error ? e.message : 'Das hat nicht geklappt.', true); }
   finally{ if(my === shopTok) $('shopLinkGo').disabled = false; }
 }
 $('shopLinkGo').onclick = loadShopLink;
-$('shopLink').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); loadShopLink(); } };
+$('url').onkeydown = e => { if(e.key === 'Enter' && !state.editing && linkFetchEnabled()){ e.preventDefault(); loadShopLink(); } };
+// Ein eingefügter Link lädt sofort; getippte Links laden erst auf „Laden“ oder Enter.
+$('url').addEventListener('paste', () => { if(state.editing || !linkFetchEnabled()) return; setTimeout(() => { if(/^https?:\/\/\S+$/i.test($('url').value.trim())) loadShopLink(); }, 0); });
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
 $('cancel').onclick = () => closeDialog($('dlg'));
@@ -181,7 +142,7 @@ $('file').onchange = e => { const files = [...e.target.files]; e.target.value = 
 ['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
 $('drop').addEventListener('drop', e => { const files = [...e.dataTransfer.files]; if(files.length) intake(files); });
-document.addEventListener('paste', e => { const t = e.clipboardData?.getData('text/plain') || ''; if(isShopClip(t)){ e.preventDefault(); applyShop(t); return; } const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
+document.addEventListener('paste', e => { if(e.target === $('url')) return; const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
 $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) process(); };
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };
 $('rm').onchange = () => { state.draft.rm = $('rm').checked; state.draft.ai = false; syncOpts(); process(); };

@@ -14,7 +14,7 @@ try {
   await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: "export const WORKER_URL = '';" }));
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
-  ok(!(await p.isVisible('#shopLink')), 'das Feld „Produktlink“ ist ausgeblendet');
+  ok(await p.isVisible('#url') && !(await p.isVisible('#shopLinkGo')) && !(await p.isVisible('#linkHint')), 'ohne Dienst: nur das gewöhnliche Linkfeld, kein „Laden“-Knopf');
   await ctx.close();
 
   console.log('--- mit Dienst (nachgestellt)');
@@ -37,9 +37,11 @@ try {
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
-  ok(await p.isVisible('#shopLink'), 'das Feld „Produktlink“ ist da');
+  ok(await p.isVisible('#shopLinkGo') && await p.isVisible('#linkHint'), 'Knopf „Laden“ und Hinweis sind da');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', 'beim Öffnen steht der Cursor im Linkfeld');
+  ok(!(await p.locator('#imgUrl, #shopPaste, #shopHelpBtn').count()), 'Kurzbefehl-Knöpfe und „Bild per Link“ sind weg');
 
-  await p.fill('#shopLink', 'shop.example/p/mantel'); await p.click('#shopLinkGo');
+  await p.fill('#url', 'shop.example/p/mantel'); await p.click('#shopLinkGo');
   ok(await wait(async () => /Übernommen: .*Bild/.test(await p.textContent('#status'))), 'Rückmeldung: ' + (await p.textContent('#status')).trim());
   ok(await p.inputValue('#name') === 'Wollmantel Oslo', 'Name ohne Markup');
   ok(await p.inputValue('#price') === '189,90' && await p.inputValue('#cat') === 'Jacke' && await p.inputValue('#color') === 'Blau', 'Preis, Kategorie und Farbe');
@@ -51,16 +53,30 @@ try {
   ok(await persisted(p, 1) && (await storedItems(p))[0].name === 'Wollmantel Oslo', 'gespeichert');
 
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
-  ok(await p.inputValue('#shopLink') === '', 'neues Teil beginnt leer');
-  await p.fill('#shopLink', 'https://shop.example/weg'); await p.click('#shopLinkGo');
+  ok(await p.inputValue('#url') === '', 'neues Teil beginnt leer');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', 'auch beim zweiten Mal im Linkfeld');
+  await p.fill('#url', 'https://shop.example/weg'); await p.click('#shopLinkGo');
   ok(await wait(async () => /gibt es nicht/.test(await p.textContent('#status'))), 'Fehler wird verständlich gemeldet: ' + (await p.textContent('#status')).trim());
   ok(await p.inputValue('#name') === '', 'bei Fehler bleibt das Formular unverändert');
-  await p.fill('#shopLink', 'http://127.0.0.1/x'); await p.click('#shopLinkGo');
+  await p.fill('#url', 'http://127.0.0.1/x'); await p.click('#shopLinkGo');
   ok(await wait(async () => /ungültig/.test(await p.textContent('#status'))), 'unsichere Adresse wird gar nicht erst gesendet');
   const before = seen.length;
-  await p.fill('#shopLink', 'https://shop.example/kein-bild'); await p.click('#shopLinkGo');
+  await p.fill('#url', 'https://shop.example/kein-bild'); await p.click('#shopLinkGo');
   ok(await wait(async () => /Das Bild bitte/.test(await p.textContent('#status'))), 'ohne Bild: Hinweis auf Screenshot');
   ok(await p.inputValue('#name') === 'Sneaker Court' && seen.length === before + 1, 'Daten übernommen, kein Bildabruf');
+  await p.click('#cancel'); await closed(p, 'dlg');
+
+  console.log('--- Einfügen lädt sofort');
+  const n0 = seen.length;
+  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'https://shop.example/p/hemd'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });
+  ok(await wait(async () => /Übernommen: .*Bild/.test(await p.textContent('#status'))), 'ein eingefügter Link lädt ohne weiteren Tipp');
+  ok(seen.length === n0 + 2, 'Daten und Bild geholt');
+  await p.click('#cancel'); await closed(p, 'dlg');
+  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'kein link'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });
+  await p.waitForTimeout(300);
+  ok(seen.length === n0 + 2, 'Text, der kein Link ist, löst nichts aus');
   await p.click('#cancel'); await closed(p, 'dlg');
 
   ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));

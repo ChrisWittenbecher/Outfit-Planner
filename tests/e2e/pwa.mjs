@@ -69,7 +69,7 @@ try {
   console.log('--- Neue Version erscheint (Service Worker darf nichts Altes festhalten)');
   {
     const dir = await mkdtemp(path.join(tmpdir(), 'anprobe-'));
-    for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'version.json', 'js', 'css', 'assets', 'kurzbefehl']) await cp(path.join(root, f), path.join(dir, f), { recursive: true });
+    for (const f of ['index.html', 'sw.js', 'manifest.webmanifest', 'version.json', 'js', 'css', 'assets']) await cp(path.join(root, f), path.join(dir, f), { recursive: true });
     const srv = await startServer(8739, dir);
     const BASE2 = 'http://localhost:8739/index.html';
     const release = async v => {
