@@ -53,6 +53,8 @@
   <link rel="modulepreload" href="js/wearlog.js">
   <link rel="modulepreload" href="js/shopdata.js">
   <link rel="modulepreload" href="js/shopin.js">
+  <link rel="modulepreload" href="js/config.js">
+  <link rel="modulepreload" href="js/linkfetch.js">
   <link rel="modulepreload" href="js/stylist.js">
   <link rel="modulepreload" href="js/packing.js">
   <link rel="modulepreload" href="js/sale.js">
@@ -304,6 +306,13 @@
   <dialog id="dlg" aria-labelledby="dlgTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="dlgTitle">Neues Teil</h2>
+    <div id="linkIn" hidden>
+      <label for="shopLink">Produktlink einfügen – der Rest füllt sich von selbst</label>
+      <div class="row">
+        <input id="shopLink" type="url" inputmode="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://shop.de/produkt">
+        <button type="button" id="shopLinkGo" class="pri">Laden</button>
+      </div>
+    </div>
     <div class="shop-in">
       <button type="button" id="shopPaste">Aus Shop übernehmen</button>
       <button type="button" id="shopHelpBtn" class="small" aria-haspopup="dialog">So geht’s</button>

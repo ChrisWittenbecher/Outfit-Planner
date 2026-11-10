@@ -87,12 +87,23 @@ export function parseShopClip(text) {
   let raw;
   try { raw = JSON.parse(jsonLine); } catch { return { ok: false, error: 'Die Shop-Daten sind nicht lesbar. Bitte den Kurzbefehl noch einmal ausführen.' }; }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'Die Shop-Daten sind nicht lesbar. Bitte den Kurzbefehl noch einmal ausführen.' };
+  return normalizeShop(raw, rest);
+}
+
+/**
+ * Prüft Produktdaten aus fremder Quelle (Zwischenablage oder Hilfsdienst) und macht daraus saubere Werte.
+ * @param {any} raw
+ * @param {string} [imageB64]
+ * @returns {ShopClip}
+ */
+export function normalizeShop(raw, imageB64 = '') {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'Die Shop-Daten sind nicht lesbar.' };
   const str = (/** @type {unknown} */ v) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
   const url = (/** @type {unknown} */ v) => { const r = validateUrl(str(v)); return r.ok ? r.url : ''; };
   const name = sanitizeText(str(raw.name)), brand = sanitizeText(str(raw.brand), 30);
   const price = sanitizePrice(typeof raw.price === 'number' ? raw.price : parsePrice(str(raw.price)));
   const colorText = sanitizeText(str(raw.color), 60);
-  const image = decodeImage(rest);
+  const image = decodeImage(imageB64);
   const imageUrl = url(raw.image);
   return {
     ok: true, name, brand, price,
