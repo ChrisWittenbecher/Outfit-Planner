@@ -6,6 +6,7 @@ const { ok, state: result } = checker();
 const server = await startServer(PORT);
 const browser = await launch();
 const open = p => p.evaluate(() => document.querySelectorAll('dialog[open]').length);
+const userScroll = (p, y) => p.evaluate(v => { dispatchEvent(new Event('touchmove')); scrollTo(0, v); }, y);
 const vis = (p, sel) => p.locator(sel).first().isVisible();
 
 try {
@@ -48,9 +49,9 @@ try {
 
     // Plus-Button weicht beim Runterscrollen aus und kommt zurück
     await p.evaluate(() => { document.body.style.minHeight = '3000px'; });
-    await p.mouse.move(200, 400); await p.mouse.wheel(0, 600); await p.waitForTimeout(500);
+    await userScroll(p, 600); await p.waitForTimeout(500);
     ok(await p.locator('#fab.away').count() === 1, 'Plus-Button weicht beim Runterscrollen aus');
-    await p.mouse.wheel(0, -300); await p.waitForTimeout(500);
+    await userScroll(p, 300); await p.waitForTimeout(500);
     ok(await p.locator('#fab.away').count() === 0, 'Plus-Button kommt beim Hochscrollen zurück');
     // Sprung der Seite ohne Nutzereingabe (z. B. nach dem Speichern) versteckt den Button nicht
     await p.waitForTimeout(1700); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);
