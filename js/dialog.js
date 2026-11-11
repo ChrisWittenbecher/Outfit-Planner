@@ -163,6 +163,21 @@ $('url').onkeydown = e => { if(e.key === 'Enter' && !state.editing && linkFetchE
 $('url').addEventListener('paste', () => { if(state.editing || !linkFetchEnabled()) return; setTimeout(() => { if(/^https?:\/\/\S+$/i.test($('url').value.trim())) loadShopLink(); }, 0); });
 $('addBtn').onclick = () => openDlg();
 $('fab').onclick = () => openDlg();
+// Der Plus-Button weicht beim Runterscrollen aus und kommt beim Hochscrollen zurück, damit er keine Bedienelemente verdeckt
+{
+  let y = scrollY, ticking = false, touched = -1e9;
+  // Nur Scrollen durch den Nutzer zählt, nicht Sprünge der Seite selbst (z. B. nach dem Speichern)
+  for (const ev of ['touchmove', 'wheel', 'keydown']) addEventListener(ev, () => { touched = performance.now(); }, { passive: true });
+  addEventListener('scroll', () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const now = scrollY, atEnd = innerHeight + now >= document.documentElement.scrollHeight - 8;
+      if (Math.abs(now - y) > 8) { if (performance.now() - touched < 1500) $('fab').classList.toggle('away', now > y && now > 120 && !atEnd); y = now; }
+      if (now < 120 || atEnd) $('fab').classList.remove('away');
+    });
+  }, { passive: true });
+}
 $('cancel').onclick = () => closeDialog($('dlg'));
 $('drop').onclick = () => { if(!state.draft || !state.draft.orig) $('file').click(); };
 $('drop').onkeydown = e => { if(e.key === 'Enter' && (!state.draft || !state.draft.orig)) $('file').click(); };

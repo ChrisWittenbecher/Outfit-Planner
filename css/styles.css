@@ -189,6 +189,8 @@
   @media (prefers-reduced-motion: no-preference) { #board.snap .p { transition: left .3s ease, top .3s ease, width .3s ease, transform .3s ease; } }
   .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; justify-content: center; }
   .sub { color: var(--mute); font-size: 13px; margin-top: 8px; text-align: center; }
+  .sub .touch { display: none; }
+  @media (hover: none) and (pointer: coarse) { .sub .fine { display: none; } .sub .touch { display: inline; } }
   .ver { color: var(--mute); font-size: 12px; text-align: center; padding: 4px 16px calc(84px + env(safe-area-inset-bottom)); }
   .ver button { background: none; border: 0; padding: 10px 6px; font: inherit; color: var(--acc-strong); text-decoration: underline; cursor: pointer; min-height: var(--tap); }
 
@@ -328,6 +330,7 @@
     .topbar .actions button:not(.pri) { padding-inline: 10px; font-size: 13px; }
     #addBtn { display: none; }
     .fab { display: grid; place-items: center; position: fixed; z-index: 6; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; font-size: 30px; line-height: 1; box-shadow: 0 6px 18px var(--shade-lg); }
+    .fab.away { transform: translateY(calc(100% + 32px)); opacity: 0; visibility: hidden; }
     .layout { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
     .panel { padding: 14px; }
 
@@ -377,6 +380,7 @@
     button { transition: background-color var(--t-press) ease, color var(--t-press) ease, border-color var(--t-press) ease, transform var(--t-press) var(--ease-out); }
     button:active:not(:disabled) { transform: scale(.97); }
     .ibtn:active:not(:disabled) { transform: scale(.92); }
+    .fab { transition: transform var(--t-fade) var(--ease-sheet), opacity var(--t-fade) ease, visibility var(--t-fade); }
     .fab:active { transform: scale(.94); }
     .card { transition: border-color .15s ease, transform var(--t-press) var(--ease-out); }
     .card:active { transform: scale(.98); }
