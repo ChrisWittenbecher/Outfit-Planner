@@ -8,10 +8,43 @@ const STALE = 100;       // ms: eine ältere Bewegung zählt nicht mehr als Schw
 const SHEET_EASE = 'cubic-bezier(.32, .72, 0, 1)';
 const pending = new WeakMap();
 
+// Zurück-Taste, Zurück-Wischen und Browser-Zurück schließen zuerst den obersten Dialog, statt die Seite zu verlassen.
+// Jeder geöffnete Dialog legt einen Verlaufseintrag an; schließt er anders (Button, Wischen, Esc), wird dieser wieder entfernt.
+const stack = [];          // Dialoge mit eigenem Verlaufseintrag, oberster zuletzt
+let undoing = 0;           // ausstehende history.back()-Aufrufe, die wir selbst ausgelöst haben
+const waiting = [];        // Dialoge, deren Eintrag erst nach dem ausstehenden Zurück angelegt wird
+
+function track(d) {
+  if (stack.includes(d) || waiting.includes(d)) return;
+  if (undoing) { waiting.push(d); return; }
+  try { history.pushState({ anprobeDialog: stack.length + 1 }, ''); stack.push(d); } catch { /* ohne Verlauf bleibt es beim bisherigen Verhalten */ }
+}
+
 export function showDialog(d) {
   pending.get(d)?.(false);
-  if (!d.open) d.showModal();
+  if (!d.open) { d.showModal(); track(d); }
 }
+
+// 'close' sprudelt nicht nach oben, wird aber in der Capture-Phase gesehen
+document.addEventListener('close', e => {
+  const d = e.target;
+  const w = waiting.indexOf(d);
+  if (w >= 0) waiting.splice(w, 1);
+  const i = stack.indexOf(d);
+  if (i < 0) return;
+  stack.splice(i, 1);
+  if (i === stack.length) { undoing++; history.back(); }   // war der oberste: eigenen Eintrag wieder entfernen
+}, true);
+
+window.addEventListener('popstate', () => {
+  if (undoing) {
+    undoing--;
+    if (!undoing) while (waiting.length) { const d = waiting.shift(); if (d.open) track(d); }
+    return;
+  }
+  const d = stack.pop();           // Nutzer ist zurückgegangen: Eintrag ist schon weg
+  if (d?.open) closeDialog(d);
+});
 
 /** Schließt mit kurzer Ausblendung. Bei reduzierter Bewegung sofort. */
 export function closeDialog(d, how = '', anim = null) {

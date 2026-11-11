@@ -33,7 +33,9 @@ export const DEF = {'Oberteil':[100,30,200,2],'Jacke':[8,50,150,4],'Hose/Rock':[
 export const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
 export const state = {data:{items:[], outfits:[], wears:[], plans:{}}, board:[], filter:'Alle', statusFilter:'Alle', query:'', tag:'', fresh:null, fitted:false, draft:null, sel:null, editing:null, K:1};
-export const DROP = 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
+/** Handy und Tablet: Touch ohne Maus. Dort passen Hinweise zu Maus und Tastatur nicht. */
+export const TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+export const DROP = TOUCH ? 'Tippen, um einen Screenshot oder ein Foto auszuwählen' : 'Screenshot hierher ziehen, einfügen (Strg/Cmd + V) oder klicken zum Auswählen';
 export const item = id => state.data.items.find(i => i.id === id);
 export const imgOf = id => item(id)?.img;
 /** Vorschaubilder (id → {k, d}); k sagt, zu welchem Bild d gehört. Fehlt eins oder passt es nicht mehr, gilt das volle Bild. */
