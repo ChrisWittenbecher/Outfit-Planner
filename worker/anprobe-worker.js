@@ -1,7 +1,8 @@
 // Anprobe-Hilfsdienst für Cloudflare Workers.
 // Holt auf Wunsch der App eine Produktseite und gibt nur Name, Preis, Währung, Farbe, Marke, Link und Bildadresse zurück.
 // Dazu liefert er das Produktbild aus, weil Browser fremde Bilder nicht direkt lesen dürfen.
-// Der Dienst speichert nichts, setzt keine Cookies und leitet keine Anmeldedaten weiter.
+// Außerdem tauscht er für die Google-Anmeldung den Code gegen Tokens, weil das Client-Geheimnis nicht in die App darf.
+// Der Dienst speichert nichts, setzt keine Cookies und schreibt keine Tokens in Protokolle.
 
 /** Webseiten, die den Dienst aufrufen dürfen. Weitere Adressen (z. B. zum Testen) über die Variable EXTRA_ORIGIN. */
 const ALLOWED_ORIGINS = ['https://chriswittenbecher.github.io', 'https://outfit-planner.org', 'https://www.outfit-planner.org'];
@@ -163,6 +164,61 @@ export async function loadImage(url, fetcher = fetch) {
   return { bytes, mime };
 }
 
+// ---- Google-Anmeldung (Autorisierungscode mit PKCE) ----
+const GOOGLE_TOKEN = 'https://oauth2.googleapis.com/token', GOOGLE_REVOKE = 'https://oauth2.googleapis.com/revoke';
+const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const AUTH_BODY_MAX = 4096;
+const RE = { code: /^[A-Za-z0-9\-._~/%+]{10,512}$/, verifier: /^[A-Za-z0-9\-._~]{43,128}$/, token: /^[A-Za-z0-9\-._~/+%]{10,2048}$/ };
+
+async function readJson(request) {
+  const len = Number(request.headers.get('content-length') || 0);
+  if (len > AUTH_BODY_MAX) throw new Refuse('too_large', 413);
+  if (!/^application\/json\b/i.test(request.headers.get('content-type') || '')) throw new Refuse('bad_request', 400);
+  const text = await request.text();
+  if (text.length > AUTH_BODY_MAX) throw new Refuse('too_large', 413);
+  try { const v = JSON.parse(text); if (v && typeof v === 'object' && !Array.isArray(v)) return v; } catch { /* fällt unten durch */ }
+  throw new Refuse('bad_request', 400);
+}
+
+/** Fragt Google und gibt nur zurück, was die App braucht. */
+async function google(url, params, fetcher) {
+  let res;
+  try { res = await fetcher(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params), redirect: 'error', signal: AbortSignal.timeout(LIMITS.waitMs) }); }
+  catch { throw new Refuse('unreachable', 502); }
+  let data = {};
+  try { data = await res.json(); } catch { /* Revoke antwortet teils ohne Inhalt */ }
+  return { ok: res.ok, data: data && typeof data === 'object' ? data : {} };
+}
+
+export async function handleAuth(path, request, env, allowed, fetcher = fetch) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) throw new Refuse('not_configured', 503);
+  const body = await readJson(request);
+  const id = env.GOOGLE_CLIENT_ID, secret = env.GOOGLE_CLIENT_SECRET;
+  if (path === '/auth/token') {
+    if (typeof body.code !== 'string' || !RE.code.test(body.code) || typeof body.verifier !== 'string' || !RE.verifier.test(body.verifier)) throw new Refuse('bad_request', 400);
+    const redirects = allowed.map(o => o + '/');
+    if (typeof body.redirect !== 'string' || !redirects.includes(body.redirect)) throw new Refuse('bad_request', 400);
+    const r = await google(GOOGLE_TOKEN, { grant_type: 'authorization_code', code: body.code, code_verifier: body.verifier, redirect_uri: body.redirect, client_id: id, client_secret: secret }, fetcher);
+    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502);
+    const d = r.data;
+    if (typeof d.access_token !== 'string' || !String(d.scope || '').split(' ').includes(SCOPE)) throw new Refuse('scope', 403);
+    return { access_token: d.access_token, expires_in: Math.min(Number(d.expires_in) || 3600, 3600), refresh_token: typeof d.refresh_token === 'string' ? d.refresh_token : '', scope: SCOPE };
+  }
+  if (path === '/auth/refresh') {
+    if (typeof body.refresh_token !== 'string' || !RE.token.test(body.refresh_token)) throw new Refuse('bad_request', 400);
+    const r = await google(GOOGLE_TOKEN, { grant_type: 'refresh_token', refresh_token: body.refresh_token, client_id: id, client_secret: secret }, fetcher);
+    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502);
+    if (typeof r.data.access_token !== 'string') throw new Refuse('upstream', 502);
+    return { access_token: r.data.access_token, expires_in: Math.min(Number(r.data.expires_in) || 3600, 3600) };
+  }
+  if (path === '/auth/revoke') {
+    if (typeof body.token !== 'string' || !RE.token.test(body.token)) throw new Refuse('bad_request', 400);
+    await google(GOOGLE_REVOKE, { token: body.token }, fetcher);
+    return { ok: true };
+  }
+  throw new Refuse('not_found', 404);
+}
+
 const base = origin => ({
   'access-control-allow-origin': origin, vary: 'origin', 'cache-control': 'no-store',
   'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'cross-origin-resource-policy': 'cross-origin',
@@ -173,15 +229,17 @@ export async function handle(request, env = {}, fetcher = fetch) {
   const allowed = [...ALLOWED_ORIGINS, ...(env.EXTRA_ORIGIN ? [env.EXTRA_ORIGIN] : [])];
   const origin = request.headers.get('origin') || '';
   if (!allowed.includes(origin)) return new Response('Forbidden', { status: 403, headers: { 'cache-control': 'no-store' } });
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...base(origin), 'access-control-allow-methods': 'GET', 'access-control-max-age': '600' } });
-  if (request.method !== 'GET') return json({ error: 'method' }, 405, origin);
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...base(origin), 'access-control-allow-methods': 'GET, POST', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '600' } });
   const route = new URL(request.url);
+  const isAuth = route.pathname.startsWith('/auth/');
+  if (request.method !== (isAuth ? 'POST' : 'GET')) return json({ error: 'method' }, 405, origin);
   if (env.LIMITER && typeof env.LIMITER.limit === 'function') {
     const { success } = await env.LIMITER.limit({ key: request.headers.get('cf-connecting-ip') || 'anon' });
     if (!success) return json({ error: 'rate' }, 429, origin);
   }
   const target = route.searchParams.get('u') || '';
   try {
+    if (isAuth) return json(await handleAuth(route.pathname, request, env, allowed, fetcher), 200, origin);
     if (route.pathname === '/product') return json(await loadProduct(target, fetcher), 200, origin);
     if (route.pathname === '/image') {
       const { bytes, mime } = await loadImage(target, fetcher);

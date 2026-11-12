@@ -11,7 +11,7 @@ try {
   console.log('--- ohne eingerichteten Dienst');
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   let p = await ctx.newPage();
-  await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: "export const WORKER_URL = '';" }));
+  await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: "export const WORKER_URL = ''; export const GOOGLE_CLIENT_ID = '';" }));
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
   await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
   ok(await p.isVisible('#url') && !(await p.isVisible('#shopLinkGo')) && !(await p.isVisible('#linkHint')), 'ohne Dienst: nur das gewöhnliche Linkfeld, kein „Laden“-Knopf');
@@ -23,7 +23,7 @@ try {
   const seen = [], errors = [], external = [];
   p.on('pageerror', e => errors.push(e.message));
   p.on('request', r => { if (!r.url().startsWith(ORIGIN) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) external.push(r.url()); });
-  await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: `export const WORKER_URL = '${W}';` }));
+  await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: `export const WORKER_URL = '${W}'; export const GOOGLE_CLIENT_ID = '';` }));
   await p.route(`${ORIGIN}/index.html`, async r => { const res = await r.fetch(); r.fulfill({ response: res, body: (await res.text()).replace("connect-src 'self'", `connect-src 'self' ${W}`) }); });
   await p.route(`${W}/**`, r => {
     const u = new URL(r.request().url());

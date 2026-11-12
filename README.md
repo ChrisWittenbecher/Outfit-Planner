@@ -44,6 +44,7 @@ Der typische Ablauf:
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. Das Format bleibt über alle Versionen lesbar; Vorschaubilder gehören nicht hinein, sie entstehen beim Einlesen neu. |
 | **Schnelle Karten** | Der Kleiderschrank zeigt kleine Vorschaubilder (längste Seite 480 Pixel) statt der vollen Bilder. Sie entstehen nach und nach im Hintergrund, bleiben gespeichert und werden ersetzt, wenn sich das Bild ändert. Board und PNG-Export nutzen weiter das volle Bild. Gespeichert wird jedes Teil einzeln: Wer ein Teil umbenennt, schreibt nicht mehr den ganzen Schrank neu. |
 | **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. Bewegung wird bei „Bewegung reduzieren“ des Systems abgeschaltet. Die Zurück-Taste und -Geste schließt zuerst den offenen Dialog. |
+| **Google-Sicherung** | Optional: Anmeldung mit Google, danach liegt dein Stand automatisch in einer versteckten Datei im App-Ordner deines Google Drive (nur Anprobe sieht sie) und ist auf jedem angemeldeten Gerät aktuell. Bei Unterschieden fragt die App: zusammenführen, Google übernehmen oder diesen Stand behalten. Das Backup bleibt zusätzlich möglich. Einrichtung: [worker/GOOGLE.md](worker/GOOGLE.md). |
 | **Haptisches Feedback** | Auf Handy und Tablet: leichtes Tippen bei Bedienelementen und Auswahl, Muster bei Speichern (Erfolg), Löschen (Warnung) und Fehlern. Android über die Vibration API, iPhone (Safari ab 17.4) über einen unsichtbaren Schalter. Ein- und ausschaltbar unter „Mehr“, am Desktop nicht vorhanden. |
 | **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Anprobe senden“) gibt es auf dem iPhone nicht. |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
@@ -101,6 +102,9 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── rotation.js         Drehen und Positionieren (Griff, Regler)
 │   ├── gestures.js         Zwei-Finger-Geste (Touch)
 │   ├── haptics.js          Haptisches Feedback (Android, iPhone)
+│   ├── cloud.js            Google-Sicherung (Abgleich mit Google Drive, Anmeldung)
+│   ├── cloudauth.js        Bausteine der Anmeldung (PKCE, Adressen)
+│   ├── syncmerge.js        Zusammenführen zweier Stände
 │   ├── exchange.js         PNG-Export, Backup, Wiederherstellen
 │   ├── outfits.js          Preise, Ebenenliste, gespeicherte Outfits
 │   ├── render.js           alles neu zeichnen

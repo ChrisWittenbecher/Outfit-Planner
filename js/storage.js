@@ -138,7 +138,7 @@ export function flush(){
     for(const id of deletes) it.delete(id);
     for(const id of dropThumbs) th.delete(id);
     tx.objectStore('kv').put(rec, 's');
-  }).then(() => { if(failed){ failed = ''; status(''); } return true; }, e => {
+  }).then(() => { if(failed){ failed = ''; status(''); } document.dispatchEvent(new Event('anprobe:saved')); return true; }, e => {
     for(const [id, old] of before){ if(old) persisted.set(id, old); else persisted.delete(id); }   // beim nächsten Mal erneut versuchen
     lastRec = '';
     failed = failText(e); status(failed);
