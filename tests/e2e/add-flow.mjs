@@ -120,6 +120,7 @@ try {
     await sc('Alle').click();
     if (await p.locator('#board img.p').count() === 0) await card1().locator('img').first().click();
     ok(/29,90/.test(await p.textContent('#sum .t--buy')) && /Noch zu kaufen/.test(await p.textContent('#sum .t--buy')), '„Noch zu kaufen“-Summe im Outfit');
+    ok(await noOverflow(), 'kein horizontaler Überlauf mit Wunschteil, Preis und Link in der Ebenenliste');
     await openEdit();
     ok(await p.inputValue('#itemState') === 'wish', 'Status bleibt gespeichert');
     ok(await p.locator('#priceHistory').isVisible() && await p.locator('#priceList li').count() === 2 && /29,90/.test(await p.locator('#priceList li').first().innerText()), 'Preisverlauf mit zwei Einträgen, neuester zuerst');

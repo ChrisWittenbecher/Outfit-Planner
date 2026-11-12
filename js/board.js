@@ -39,11 +39,19 @@ export const centerOf = p => ({x:p.x + p.w / 2, y:p.y + heightOf(p) / 2});
 
 export function stylePiece(p, im){ Object.assign(im.style, {left:p.x + 'px', top:p.y + 'px', width:p.w + 'px', transform:`rotate(${p.r || 0}deg)`}); }
 
+/** Zeile über den Buttons: sagt, welches Teil die Buttons gerade bedienen */
+export function showSelInfo(){
+  const el = $('selInfo'), it = state.sel && state.board.some(k => k.id === state.sel) ? item(state.sel) : null;
+  el.classList.toggle('on', !!it);
+  el.textContent = it ? 'Ausgewählt: ' + it.name : (state.board.length ? 'Tippe ein Teil an, um es zu ändern' : '');
+}
+
 function select(id){
   if(state.sel === id) return; state.sel = id;
   pieceEls.forEach((el, k) => el.classList.toggle('sel', k === id));
+  $('board').classList.add('has-sel');
   ['bigger','smaller','front','back'].forEach(b => $(b).disabled = false);
-  drawKnob(); syncBench(); renderSum();
+  drawKnob(); syncBench(); renderSum(); showSelInfo();
 }
 export function setRotation(p, deg){ p.r = Geo.normalizeAngle(deg); applyLive(p); }
 export function moveCenter(p, cx, cy){
@@ -75,6 +83,7 @@ export function renderBoard(){
   $('hint').style.display = state.board.length ? 'none' : 'grid';
   ['bigger','smaller','front','back'].forEach(id => $(id).disabled = !state.sel);
   $('fit').disabled = !state.board.length;
+  $('board').classList.toggle('has-sel', !!state.sel); showSelInfo();
   state.board.forEach((p, idx) => {
     const im = new Image(); im.src = imgOf(p.id); im.className = 'p' + (p.id === state.sel ? ' sel' : '') + mb(item(p.id)); im.draggable = false; im.alt = '';
     stylePiece(p, im); im.style.zIndex = String(idx + 1); pieceEls.set(p.id, im);
