@@ -147,14 +147,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 - **Nur zwei Einstellungen in `localStorage`:** die Wahl von Design und Bühne (damit sie vor dem ersten Zeichnen bereitsteht). Alles andere liegt in IndexedDB.
 - **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt: Ein Backup wird nur mit eingebetteten Bildern gelesen (keine Adressen, kein SVG), Größe und Menge sind begrenzt, ungültige oder doppelte Teile werden übersprungen und gemeldet. Bilder über 25 MB werden abgelehnt.
 - **Kein Backend:** Es gibt keinen Server, der angegriffen werden könnte.
-- **Fremder Code nur mit Zustimmung:** Das optionale KI-Freistellen lädt Code von jsDelivr erst, nachdem du es bestätigt hast.
+- **Fremder Code nur mit Zustimmung und abgeschottet:** Das optionale KI-Freistellen lädt Code von jsDelivr erst, nachdem du es bestätigt hast. Er läuft in einem eigenen Rahmen ohne Zugriff auf deine Daten; die Regeln der App selbst bleiben streng (kein `eval`, keine fremden Skripte).
 - **Lieferkette:** GitHub-Actions auf festen Commits, Lockfile mit Prüfsummen, Dependabot, CodeQL und `npm audit`.
 
 Alle Maßnahmen, die Einstellungen auf GitHub (Branch-Schutz, Secret Scanning, …) und die Meldung von Schwachstellen stehen in [SECURITY.md](SECURITY.md).
 
 ### Externe Dienste
 
-Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Dabei werden keine deiner Daten gesendet. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
+Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Es läuft in einem abgeschotteten Rahmen (`ai/`) ohne Zugriff auf deine Daten; die strengen Regeln der App bleiben unverändert. Dabei werden keine deiner Daten gesendet. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
 
 ## Entwicklung
 
