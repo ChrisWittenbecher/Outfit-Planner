@@ -100,3 +100,75 @@ test('Adresse des Dienstes steht in der Inhaltsrichtlinie (oder die Funktion ist
   else assert.ok(!connect.some(c => c.includes('workers.dev')), 'ohne Dienst keine workers.dev-Freigabe');
   assert.ok(!connect.includes('*') && !connect.some(c => c.startsWith('https://*')), 'keine Platzhalter in connect-src');
 });
+
+// ---- Google-Anmeldung ----
+const ENV = { GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'geheim-geheim' };
+const VERIFIER = 'a'.repeat(43), CODE = '4/0AbCdEfGhIj-klmno';
+const post = (path, body, { origin = 'https://outfit-planner.org', type = 'application/json' } = {}) =>
+  new Request('https://w.example' + path, { method: 'POST', headers: { origin, 'content-type': type }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const google = (data, status = 200) => { const calls = []; const f = async (url, init) => { calls.push({ url, body: init.body.toString() }); return new Response(JSON.stringify(data), { status }); }; f.calls = calls; return f; };
+
+test('Anmeldung: Code wird gegen Tokens getauscht, nur Nötiges kommt zurück', async () => {
+  const f = google({ access_token: 'ya29.token-1234567', expires_in: 3599, refresh_token: '1//refresh-token-123', scope: 'https://www.googleapis.com/auth/drive.appdata', id_token: 'GEHEIM', extra: 1 });
+  const r = await handle(post('/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://outfit-planner.org/' }), ENV, f);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { access_token: 'ya29.token-1234567', expires_in: 3599, refresh_token: '1//refresh-token-123', scope: 'https://www.googleapis.com/auth/drive.appdata' });
+  assert.equal(r.headers.get('cache-control'), 'no-store');
+  assert.equal(r.headers.get('access-control-allow-origin'), 'https://outfit-planner.org');
+  const sent = new URLSearchParams(f.calls[0].body);
+  assert.equal(f.calls[0].url, 'https://oauth2.googleapis.com/token');
+  assert.equal(sent.get('grant_type'), 'authorization_code'); assert.equal(sent.get('client_secret'), 'geheim-geheim'); assert.equal(sent.get('code_verifier'), VERIFIER);
+  assert.equal(sent.get('redirect_uri'), 'https://outfit-planner.org/');
+});
+
+test('Anmeldung: Auffrischen und Abmelden', async () => {
+  let f = google({ access_token: 'ya29.neu-12345678', expires_in: 7200 });
+  let r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, f);
+  assert.deepEqual(await r.json(), { access_token: 'ya29.neu-12345678', expires_in: 3600 });   // höchstens eine Stunde
+  assert.equal(new URLSearchParams(f.calls[0].body).get('grant_type'), 'refresh_token');
+  f = google({});
+  r = await handle(post('/auth/revoke', { token: '1//refresh-token-123' }), ENV, f);
+  assert.deepEqual(await r.json(), { ok: true }); assert.equal(f.calls[0].url, 'https://oauth2.googleapis.com/revoke');
+});
+
+test('Anmeldung: unbrauchbare Eingaben werden abgewiesen, bevor Google gefragt wird', async () => {
+  const f = google({ access_token: 'x' });
+  const cases = [
+    ['/auth/token', { code: CODE, verifier: 'kurz', redirect: 'https://outfit-planner.org/' }],
+    ['/auth/token', { code: '<script>', verifier: VERIFIER, redirect: 'https://outfit-planner.org/' }],
+    ['/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://evil.example/' }],
+    ['/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://outfit-planner.org' }],
+    ['/auth/token', { code: CODE, verifier: VERIFIER }],
+    ['/auth/refresh', { refresh_token: 'a b' }], ['/auth/refresh', {}], ['/auth/revoke', { token: 5 }],
+  ];
+  for (const [path, body] of cases) assert.equal((await handle(post(path, body), ENV, f)).status, 400, path + JSON.stringify(body));
+  assert.equal((await handle(post('/auth/refresh', '[1]'), ENV, f)).status, 400);
+  assert.equal((await handle(post('/auth/refresh', 'kein json'), ENV, f)).status, 400);
+  assert.equal((await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }, { type: 'text/plain' }), ENV, f)).status, 400);
+  assert.equal((await handle(post('/auth/refresh', 'x'.repeat(5000)), ENV, f)).status, 413);
+  assert.equal(f.calls.length, 0);
+});
+
+test('Anmeldung: Herkunft, Methode und Einrichtung', async () => {
+  const f = google({ access_token: 'x' });
+  assert.equal((await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }, { origin: 'https://evil.example' }), ENV, f)).status, 403);
+  assert.equal((await handle(req('/auth/refresh', 'https://outfit-planner.org'), ENV, f)).status, 405);   // GET nicht erlaubt
+  assert.equal((await handle(post('/product?u=https://a.de/', {}), ENV, f)).status, 405);                    // POST nur für /auth
+  const pre = await handle(new Request('https://w.example/auth/token', { method: 'OPTIONS', headers: { origin: 'https://outfit-planner.org' } }), ENV, f);
+  assert.equal(pre.status, 204); assert.match(pre.headers.get('access-control-allow-methods'), /POST/); assert.match(pre.headers.get('access-control-allow-headers'), /content-type/i);
+  const none = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), {}, f);
+  assert.equal(none.status, 503); assert.deepEqual(await none.json(), { error: 'not_configured' });
+  assert.equal((await handle(post('/auth/unbekannt', {}), ENV, f)).status, 404);
+  assert.equal(f.calls.length, 0);
+});
+
+test('Anmeldung: Fehler von Google werden eingeordnet, Geheimnisse tauchen nicht auf', async () => {
+  let r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'invalid_grant', error_description: 'Token has been revoked' }, 400));
+  assert.equal(r.status, 400); assert.deepEqual(await r.json(), { error: 'invalid_grant' });
+  r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'server_error' }, 500));
+  assert.equal(r.status, 502); assert.deepEqual(await r.json(), { error: 'upstream' });
+  r = await handle(post('/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://outfit-planner.org/' }), ENV, google({ access_token: 'ya29.token-1234567', scope: 'https://www.googleapis.com/auth/drive' }));
+  assert.equal(r.status, 403); assert.deepEqual(await r.json(), { error: 'scope' });   // nur der App-Ordner ist erlaubt
+  r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, async () => { throw new Error('offline geheim-geheim'); });
+  assert.equal(r.status, 502); assert.doesNotMatch(await r.text(), /geheim/);
+});

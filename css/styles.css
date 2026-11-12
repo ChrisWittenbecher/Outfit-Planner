@@ -310,6 +310,10 @@
   .menu-title { font-size: 18px; margin-bottom: 12px; overflow-wrap: anywhere; }
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
+  .cloud-text { color: var(--mute); font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
+  .cloud-state { font-size: 14px; margin: 0 0 14px; min-height: 1.4em; }
+  .cloud-state[data-kind="error"] { color: var(--danger); }
+  .cloud-state[data-kind="ok"] { color: var(--acc-strong); }
   .menu-list .danger { color: var(--danger); border-color: var(--danger); }
   .menu-list .danger:active:not(:disabled) { background: var(--danger); color: var(--on-danger); }
   @media (hover: hover) and (pointer: fine) { .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); } }
@@ -368,7 +372,7 @@
   #uiOk.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 
   @media (max-width: 560px) {
-    #exp, #imp { display: none; }
+    #exp, #imp, #cloudBtn { display: none; }
     .more-btn { display: grid; }
     #toasts { bottom: calc(88px + env(safe-area-inset-bottom)); }
     .topbar .actions { flex-wrap: nowrap; }

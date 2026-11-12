@@ -19,6 +19,7 @@ import './calendar.js';
 import './ideas.js';
 import { startCare } from './pwa.js';
 import { startHistory } from './history.js';
+import { startCloud } from './cloud.js';
 
 load().then(async ok => {
   setReady(ok);
@@ -27,5 +28,6 @@ load().then(async ok => {
   renderAll();
   startHistory();
   startCare();
+  startCloud();
   document.documentElement.dataset.ready = '1'; // Signal für Tests und die Fallback-Meldung
 });

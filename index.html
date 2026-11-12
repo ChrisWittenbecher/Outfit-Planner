@@ -9,7 +9,7 @@
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net https://anprobe.chris-wittenbecher.workers.dev; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://staticimgly.com https://cdn.jsdelivr.net https://anprobe.chris-wittenbecher.workers.dev https://www.googleapis.com; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -22,6 +22,9 @@
   <link rel="modulepreload" href="js/main.js">
   <link rel="modulepreload" href="js/core.js">
   <link rel="modulepreload" href="js/haptics.js">
+  <link rel="modulepreload" href="js/cloud.js">
+  <link rel="modulepreload" href="js/cloudauth.js">
+  <link rel="modulepreload" href="js/syncmerge.js">
   <link rel="modulepreload" href="js/storage.js">
   <link rel="modulepreload" href="js/history.js">
   <link rel="modulepreload" href="js/ui.js">
@@ -79,6 +82,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="light" hidden><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="dark" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
+      <button type="button" id="cloudBtn" title="Dein Stand automatisch in Google Drive sichern" hidden>Google</button>
       <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
       <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
       <input type="file" id="impf" accept="application/json" hidden>
@@ -182,10 +186,36 @@
       <button type="button" id="mIdea">Ideen: Vorschläge &amp; Packliste</button>
       <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mHaptic" hidden>Haptik: An</button>
+      <button type="button" id="mCloud" hidden>Google-Sicherung</button>
       <button type="button" id="mExp">Backup speichern</button>
       <button type="button" id="mImp">Backup einlesen</button>
       <button type="button" id="mClose">Schließen</button>
     </div>
+  </dialog>
+
+  <!-- Google-Sicherung -->
+  <dialog id="cloudDlg" data-dismiss="backdrop" aria-labelledby="cloudTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="cloudTitle" class="menu-title">Google-Sicherung</h2>
+    <p id="cloudText" class="cloud-text"></p>
+    <p id="cloudState" class="cloud-state" role="status"></p>
+    <div class="menu-list">
+      <button type="button" id="cloudIn" class="pri">Mit Google anmelden</button>
+      <button type="button" id="cloudSync" hidden>Jetzt abgleichen</button>
+      <button type="button" id="cloudOut" class="danger" hidden>Abmelden</button>
+      <button type="button" id="cloudClose">Schließen</button>
+    </div>
+  </dialog>
+  <dialog id="cloudConflict" aria-labelledby="ccTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="ccTitle" class="menu-title">Zwei verschiedene Stände</h2>
+    <p class="cloud-text">Auf diesem Gerät und in Google Drive gibt es unterschiedliche Daten. Was soll gelten?</p>
+    <div class="menu-list">
+      <button type="button" id="ccMerge" class="pri">Beides zusammenführen (empfohlen)</button>
+      <button type="button" id="ccRemote">Stand von Google übernehmen</button>
+      <button type="button" id="ccLocal">Diesen Stand behalten</button>
+    </div>
+    <p class="cloud-text">Nach „Übernehmen“ und „Zusammenführen“ holt dich „Rückgängig“ zum bisherigen Stand zurück.</p>
   </dialog>
 
   <dialog id="uiDlg" aria-labelledby="uiTitle">

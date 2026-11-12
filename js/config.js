@@ -5,3 +5,9 @@
  * Dieselbe Adresse muss in index.html bei connect-src stehen (ein Test prüft das).
  */
 export const WORKER_URL = 'https://anprobe.chris-wittenbecher.workers.dev';
+
+/**
+ * Client-ID der Google-Anmeldung (öffentlich, kein Geheimnis). Anleitung: worker/GOOGLE.md
+ * Leer lassen, solange nichts eingerichtet ist: Dann bleibt „Google-Sicherung“ ausgeblendet.
+ */
+export const GOOGLE_CLIENT_ID = '';
