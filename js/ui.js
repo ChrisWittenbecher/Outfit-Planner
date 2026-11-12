@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { $ } from './core.js';
 import { closeDialog, showDialog } from './sheet.js';
+import { haptic } from './haptics.js';
 
 let timer = 0, leaving = 0;
 const wipe = () => { clearTimeout(timer); clearTimeout(leaving); $('toasts').replaceChildren(); };
@@ -12,6 +13,7 @@ const leave = () => {
 };
 export function toast(msg, opt = {}) {
   wipe();
+  if (opt.kind === 'error') haptic('error'); else if (opt.haptic) haptic(opt.haptic);
   const t = document.createElement('div'); t.className = 'toast' + (opt.kind === 'error' ? ' toast--err' : '');
   const s = document.createElement('span'); s.textContent = msg; t.append(s);
   if (opt.action) {

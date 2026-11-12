@@ -10,6 +10,7 @@ import { MAX_BATCH } from './intake.js';
 import { fetchImage, fetchProduct, linkFetchEnabled } from './linkfetch.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
+import { haptic } from './haptics.js';
 import { confirmBox } from './ui.js';
 import { closeDialog, showDialog } from './sheet.js';
 
@@ -213,5 +214,5 @@ $('ok').onclick = () => {
   const f = {img:state.draft.img, orig:state.draft.orig, alpha:state.draft.alpha, cut:state.draft.cut, mirror:!!state.draft.mirror, name:Scraper.sanitizeText($('name').value) || 'Ohne Namen', cat:$('cat').value, link:v ? v.url : '', price, cur, status:$('itemState').value === 'wish' ? 'wish' : 'own', priceHistory:recordPrice(prev, price), tags:parseTags($('tags').value, Scraper.sanitizeText)};
   if(COLOR_NAMES.includes($('color').value)) f.color = $('color').value;
   if(state.editing){ Object.assign(state.editing, f); if(!f.color) delete state.editing.color; } else { const n = {id:newId(), ...f}; state.data.items.unshift(n); state.fresh = n.id; }
-  renderAll(); state.fresh = null; flush(); closeDialog($('dlg'));
+  renderAll(); state.fresh = null; flush(); closeDialog($('dlg')); haptic('success');
 };

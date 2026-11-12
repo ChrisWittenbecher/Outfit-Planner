@@ -29,7 +29,7 @@ function toBoard(ids) {
   renderAll(); flush();
   closeDialog(dlg);
   fitBoard();
-  toast('Vorschlag liegt auf dem Board', { action: { label: 'Rückgängig', fn: undo } });
+  toast('Vorschlag liegt auf dem Board', { haptic: 'success', action: { label: 'Rückgängig', fn: undo } });
   announce('Vorschlag aufs Board gelegt');
 }
 

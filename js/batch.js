@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { haptic } from './haptics.js';
 import * as Scraper from './scraper.js';
 import { CATS, newId, readFile, state } from './core.js';
 import { detectColor, makeImage, norm } from './image.js';
@@ -40,5 +41,6 @@ export async function addMany(files){
   step(); state.data.items.unshift(...made); renderAll(); flush();
   const skipped = failed + notImage + tooMany;
   const why = [failed + notImage ? (failed + notImage) + ' nicht lesbar' : '', tooMany ? tooMany + ' über dem Limit von ' + MAX_BATCH : ''].filter(Boolean).join(', ');
+  haptic('success');
   toast(made.length + (made.length === 1 ? ' Teil' : ' Teile') + ' hinzugefügt (Kategorie ' + cat + (wish ? ', Wunschliste' : '') + ')' + (skipped ? '. Übersprungen: ' + why : '') + '. Namen und Angaben änderst du mit ✎.', {ms:skipped ? 14000 : 10000, action:{label:'Rückgängig', fn:undo}});
 }

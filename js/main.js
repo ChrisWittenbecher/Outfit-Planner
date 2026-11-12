@@ -12,6 +12,7 @@ import './exchange.js';
 import './outfits.js';
 import './fitter.js';
 import './ui.js';
+import './haptics.js';
 import './theme.js';
 import './update.js';
 import './calendar.js';

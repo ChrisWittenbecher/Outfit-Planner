@@ -2,6 +2,7 @@
 import { $, hostOf, item, mb, money, showThumb, state } from './core.js';
 import { cleanPieces, fixOrder, moveLayer, renderBoard } from './board.js';
 import { sumPrices } from './prices.js';
+import { haptic } from './haptics.js';
 import { flush } from './storage.js';
 import { renderAll } from './render.js';
 import { askText, toast } from './ui.js';
@@ -43,7 +44,7 @@ $('save').onclick = async () => {
   if(!state.board.length) return;
   const name = await askText({title:'Outfit speichern', label:'Name des Outfits', value:'Outfit ' + (state.data.outfits.length + 1), ok:'Speichern'}); if(name === null) return;
   state.data.outfits.unshift({id:'o'+Date.now(), name:name || 'Outfit', pieces:JSON.parse(JSON.stringify(state.board))});
-  renderOuts(); flush();
+  renderOuts(); flush(); haptic('success');
 };
 
 export function renderOuts(){
@@ -58,9 +59,9 @@ export function renderOuts(){
     wr.onclick = () => {
       const r = logWear(dayKey(new Date()), o);
       if(r !== 'ok') return toast(WEAR_ERR[r], {kind:'error'});
-      renderAll(); toast('„' + o.name + '“ für heute eingetragen', {action:{label:'Rückgängig', fn:undo}});
+      renderAll(); toast('„' + o.name + '“ für heute eingetragen', {haptic:'success', action:{label:'Rückgängig', fn:undo}});
     };
-    rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); state.data.plans = withoutOutfit(state.data.plans, o.id); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}}); };
+    rm.onclick = () => { step(); state.data.outfits = state.data.outfits.filter(k => k !== o); state.data.plans = withoutOutfit(state.data.plans, o.id); renderOuts(); flush(); toast('Outfit „' + o.name + '“ gelöscht', {haptic:'warn', action:{label:'Rückgängig', fn:undo}}); };
     return d;
   }));
 }
