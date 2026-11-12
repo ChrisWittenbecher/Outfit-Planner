@@ -57,8 +57,19 @@ function trim(cv){ // schneidet transparenten Rand weg
   const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
   o.getContext('2d').drawImage(cv, x0, y0, o.width, o.height, 0, 0, o.width, o.height); return o;
 }
+/** Sagt ehrlich, woran das KI-Freistellen scheiterte, statt immer „Internet nötig“ zu behaupten. */
+export function aiFailure(e, blocked){
+  if(blocked.length) return 'KI-Freistellen: von den Sicherheitsregeln blockiert (' + blocked.slice(0, 2).join(', ') + ').';
+  if(typeof navigator !== 'undefined' && navigator.onLine === false) return 'KI-Freistellen nicht verfügbar: kein Internet.';
+  const why = String(e && (e.message || e.name) || e).replace(/\s+/g, ' ').slice(0, 90);
+  return 'KI-Freistellen konnte nicht starten (' + why + ').';
+}
+let aiBlocked = [];
+if(typeof document !== 'undefined') document.addEventListener('securitypolicyviolation', e => { if(aiBlocked.length < 4) aiBlocked.push(e.violatedDirective + ' ' + (e.blockedURI || '').slice(0, 40)); });
+export const aiBlockedList = () => aiBlocked;
 async function aiCut(cv, say = () => {}){ // optional: genaues KI-Freistellen im Browser (lädt Modell von jsDelivr/imgly)
   say('KI-Modell wird geladen … (einmalig ca. 40 MB)');
+  aiBlocked = [];
   const m = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
   const blob = await m.removeBackground(cv.toDataURL('image/png'), {progress:(k, c, t) => { if(t) say('KI: ' + Math.round(c / t * 100) + ' %'); }});
   const im = await loadImg(URL.createObjectURL(blob)), o = document.createElement('canvas'); o.width = im.width; o.height = im.height; o.getContext('2d').drawImage(im, 0, 0); return o;
@@ -94,7 +105,7 @@ export async function makeImage(d, cat, say = () => {}){
   if(d.rm){
     cut = true;
     if(d.alpha) out = cv;
-    else if(d.ai){ try{ out = await aiCut(cv, say); say(''); }catch(e){ d.ai = false; say('KI-Freistellen nicht verfügbar (Internet nötig). Nutze die normale Freistellung.', true); out = cutout(cv, d.tol); } }
+    else if(d.ai){ try{ out = await aiCut(cv, say); say(''); }catch(e){ d.ai = false; console.error('KI-Freistellen', e); say(aiFailure(e, aiBlocked) + ' Es gilt die normale Freistellung.', true); out = cutout(cv, d.tol); } }
     else out = cutout(cv, d.tol);
     out = trim(out);
   }
