@@ -100,7 +100,9 @@ export function sniffImage(b) {
   return '';
 }
 
-class Refuse extends Error { constructor(code, status) { super(code); this.code = code; this.status = status; } }
+class Refuse extends Error { constructor(code, status, detail = '') { super(code); this.code = code; this.status = status; this.detail = detail; } }
+/** Fehlercode von Google (z. B. invalid_client) für die Fehlersuche; nur kurze Kleinbuchstaben, nie Text von Google. */
+const reason = d => (d && typeof d.error === 'string' && /^[a-z_]{1,40}$/.test(d.error) && d.error !== 'invalid_grant') ? d.error : '';
 
 /** Liest höchstens `max` Bytes; bei mehr wird abgebrochen, statt alles zu laden. */
 async function readLimited(res, max) {
@@ -201,7 +203,7 @@ export async function handleAuth(path, request, env, allowed, fetcher = fetch) {
     const redirects = allowed.map(o => o + '/');
     if (typeof body.redirect !== 'string' || !redirects.includes(body.redirect)) throw new Refuse('bad_request', 400);
     const r = await google(GOOGLE_TOKEN, { grant_type: 'authorization_code', code: body.code, code_verifier: body.verifier, redirect_uri: body.redirect, client_id: id, client_secret: secret }, fetcher);
-    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502);
+    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502, reason(r.data));
     const d = r.data;
     if (typeof d.access_token !== 'string' || !String(d.scope || '').split(' ').includes(SCOPE)) throw new Refuse('scope', 403);
     return { access_token: d.access_token, expires_in: Math.min(Number(d.expires_in) || 3600, 3600), refresh_token: typeof d.refresh_token === 'string' ? d.refresh_token : '', scope: SCOPE };
@@ -209,7 +211,7 @@ export async function handleAuth(path, request, env, allowed, fetcher = fetch) {
   if (path === '/auth/refresh') {
     if (typeof body.refresh_token !== 'string' || !RE.token.test(body.refresh_token)) throw new Refuse('bad_request', 400);
     const r = await google(GOOGLE_TOKEN, { grant_type: 'refresh_token', refresh_token: body.refresh_token, client_id: id, client_secret: secret }, fetcher);
-    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502);
+    if (!r.ok) throw new Refuse(r.data.error === 'invalid_grant' ? 'invalid_grant' : 'upstream', r.data.error === 'invalid_grant' ? 400 : 502, reason(r.data));
     if (typeof r.data.access_token !== 'string') throw new Refuse('upstream', 502);
     return { access_token: r.data.access_token, expires_in: Math.min(Number(r.data.expires_in) || 3600, 3600) };
   }
@@ -249,7 +251,7 @@ export async function handle(request, env = {}, fetcher = fetch) {
     }
     return json({ error: 'not_found' }, 404, origin);
   } catch (e) {
-    if (e instanceof Refuse) return json({ error: e.code }, e.status, origin);
+    if (e instanceof Refuse) return json(e.detail ? { error: e.code, detail: e.detail } : { error: e.code }, e.status, origin);
     return json({ error: 'failed' }, 500, origin);
   }
 }

@@ -122,6 +122,17 @@ test('Anmeldung: Code wird gegen Tokens getauscht, nur Nötiges kommt zurück', 
   assert.equal(f.calls[0].redirect, 'manual', 'Cloudflare kennt nur follow und manual (error wirft einen Fehler)');
 });
 
+test('Anmeldung: Fehlercode von Google erscheint kurz in der Antwort, Texte nie', async () => {
+  const f = async () => new Response(JSON.stringify({ error: 'invalid_client', error_description: 'GEHEIM client_secret=abc' }), { status: 401 });
+  const r = await handle(post('/auth/refresh', { refresh_token: 'x'.repeat(40) }), ENV, f);
+  assert.equal(r.status, 502);
+  const t = await r.text();
+  assert.deepEqual(JSON.parse(t), { error: 'upstream', detail: 'invalid_client' });
+  assert.ok(!/GEHEIM|abc/.test(t));
+  const g = async () => new Response(JSON.stringify({ error: '<script>alert(1)</script>' }), { status: 400 });
+  assert.deepEqual(await (await handle(post('/auth/refresh', { refresh_token: 'x'.repeat(40) }), ENV, g)).json(), { error: 'upstream' });
+});
+
 test('Anmeldung: Weiterleitung von Google wird nicht verfolgt und gilt als Fehler', async () => {
   const f = async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/' } });
   const r = await handle(post('/auth/refresh', { refresh_token: 'x'.repeat(40) }), ENV, f);
@@ -174,7 +185,7 @@ test('Anmeldung: Fehler von Google werden eingeordnet, Geheimnisse tauchen nicht
   let r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'invalid_grant', error_description: 'Token has been revoked' }, 400));
   assert.equal(r.status, 400); assert.deepEqual(await r.json(), { error: 'invalid_grant' });
   r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'server_error' }, 500));
-  assert.equal(r.status, 502); assert.deepEqual(await r.json(), { error: 'upstream' });
+  assert.equal(r.status, 502); assert.deepEqual(await r.json(), { error: 'upstream', detail: 'server_error' });
   r = await handle(post('/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://outfit-planner.org/' }), ENV, google({ access_token: 'ya29.token-1234567', scope: 'https://www.googleapis.com/auth/drive' }));
   assert.equal(r.status, 403); assert.deepEqual(await r.json(), { error: 'scope' });   // nur der App-Ordner ist erlaubt
   r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, async () => { throw new Error('offline geheim-geheim'); });
