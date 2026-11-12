@@ -102,7 +102,7 @@ export function sniffImage(b) {
 
 class Refuse extends Error { constructor(code, status, detail = '') { super(code); this.code = code; this.status = status; this.detail = detail; } }
 /** Fehlercode von Google (z. B. invalid_client) für die Fehlersuche; nur kurze Kleinbuchstaben, nie Text von Google. */
-const reason = d => (d && typeof d.error === 'string' && /^[a-z_]{1,40}$/.test(d.error)) ? d.error : '';
+const reason = d => (d && typeof d.error === 'string' && /^[a-z_]{1,40}$/.test(d.error) && d.error !== 'invalid_grant') ? d.error : '';
 
 /** Liest höchstens `max` Bytes; bei mehr wird abgebrochen, statt alles zu laden. */
 async function readLimited(res, max) {

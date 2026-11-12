@@ -185,7 +185,7 @@ test('Anmeldung: Fehler von Google werden eingeordnet, Geheimnisse tauchen nicht
   let r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'invalid_grant', error_description: 'Token has been revoked' }, 400));
   assert.equal(r.status, 400); assert.deepEqual(await r.json(), { error: 'invalid_grant' });
   r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, google({ error: 'server_error' }, 500));
-  assert.equal(r.status, 502); assert.deepEqual(await r.json(), { error: 'upstream' });
+  assert.equal(r.status, 502); assert.deepEqual(await r.json(), { error: 'upstream', detail: 'server_error' });
   r = await handle(post('/auth/token', { code: CODE, verifier: VERIFIER, redirect: 'https://outfit-planner.org/' }), ENV, google({ access_token: 'ya29.token-1234567', scope: 'https://www.googleapis.com/auth/drive' }));
   assert.equal(r.status, 403); assert.deepEqual(await r.json(), { error: 'scope' });   // nur der App-Ordner ist erlaubt
   r = await handle(post('/auth/refresh', { refresh_token: '1//refresh-token-123' }), ENV, async () => { throw new Error('offline geheim-geheim'); });
