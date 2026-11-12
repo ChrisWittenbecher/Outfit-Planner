@@ -70,7 +70,7 @@ export const aiBlockedList = () => aiBlocked;
 async function aiCut(cv, say = () => {}){ // optional: genaues KI-Freistellen im Browser (lädt Modell von jsDelivr/imgly)
   say('KI-Modell wird geladen … (einmalig ca. 40 MB)');
   aiBlocked = [];
-  const m = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+  const m = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
   const blob = await m.removeBackground(cv.toDataURL('image/png'), {progress:(k, c, t) => { if(t) say('KI: ' + Math.round(c / t * 100) + ' %'); }});
   const im = await loadImg(URL.createObjectURL(blob)), o = document.createElement('canvas'); o.width = im.width; o.height = im.height; o.getContext('2d').drawImage(im, 0, 0); return o;
 }
