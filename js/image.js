@@ -61,7 +61,7 @@ function trim(cv){ // schneidet transparenten Rand weg
 export function aiFailure(e, blocked){
   if(blocked.length) return 'KI-Freistellen: von den Sicherheitsregeln blockiert (' + blocked.slice(0, 2).join(', ') + ').';
   if(typeof navigator !== 'undefined' && navigator.onLine === false) return 'KI-Freistellen nicht verfügbar: kein Internet.';
-  const why = String(e && (e.message || e.name) || e).replace(/\s+/g, ' ').slice(0, 90);
+  const why = String(e && (e.message || e.name) || e).replace(/\s+/g, ' ').slice(-170);
   return 'KI-Freistellen konnte nicht starten (' + why + ').';
 }
 /** Das KI-Modell läuft in einem abgeschotteten Rahmen (ai/frame.html, mit sandbox und ohne Ursprungsrecht), damit die App selbst keine Ausnahmen von ihren strengen Regeln braucht. */
