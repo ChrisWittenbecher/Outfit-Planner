@@ -75,7 +75,7 @@ function deleteItem(i){
   state.data.outfits.forEach(o => { o.pieces = o.pieces.filter(p => p.id !== i.id); });
   state.data.wears = withoutItem(state.data.wears, i.id);
   renderAll(); flush();
-  toast('„' + i.name + '“ gelöscht', {action:{label:'Rückgängig', fn:undo}});
+  toast('„' + i.name + '“ gelöscht', {haptic:'warn', action:{label:'Rückgängig', fn:undo}});
 }
 let menuItem = null;
 function openMenu(i){

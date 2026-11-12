@@ -65,6 +65,6 @@ function apply(parts){
 $('fit').onclick = async () => {
   step();
   const done = await fitBoard();
-  if(done === true){ announce('Teile passend angeordnet'); toast('Teile passend angeordnet', {action:{label:'Rückgängig', fn:undo}}); }
+  if(done === true){ announce('Teile passend angeordnet'); toast('Teile passend angeordnet', {haptic:'success', action:{label:'Rückgängig', fn:undo}}); }
   else if(done === false) toast('Anordnen hat nicht geklappt. Bitte versuche es noch einmal.', {kind:'error'});
 };

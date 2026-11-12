@@ -2,6 +2,7 @@
 import * as Geo from './geometry.js';
 import { $, DEF, announce, imgOf, item, mb, state } from './core.js';
 import { toast } from './ui.js';
+import { haptic } from './haptics.js';
 import { step, undo } from './history.js';
 import { fitBoard } from './fitter.js';
 import { renderAll } from './render.js';
@@ -47,7 +48,7 @@ export function showSelInfo(){
 }
 
 function select(id){
-  if(state.sel === id) return; state.sel = id;
+  if(state.sel === id) return; state.sel = id; haptic('select');
   pieceEls.forEach((el, k) => el.classList.toggle('sel', k === id));
   $('board').classList.add('has-sel');
   ['bigger','smaller','front','back'].forEach(b => $(b).disabled = false);
@@ -69,7 +70,7 @@ function takeOff(p){
   const it = item(p.id);
   if(it) toggle(it);
   else { state.board = state.board.filter(k => k !== p); if(state.sel === p.id) state.sel = null; renderAll(); }
-  toast('„' + (it ? it.name : 'Teil') + '“ vom Board genommen', {action:{label:'Rückgängig', fn:undo}});
+  toast('„' + (it ? it.name : 'Teil') + '“ vom Board genommen', {haptic:'warn', action:{label:'Rückgängig', fn:undo}});
 }
 function tapped(p, e){
   const now = performance.now();
