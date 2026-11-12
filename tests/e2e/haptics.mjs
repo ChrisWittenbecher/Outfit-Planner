@@ -9,7 +9,7 @@ const browser = await launch();
 // Android: Vibration API wird mitgeschrieben; iPhone: Schalter-Umlegen wird gezählt
 const spy = () => {
   window.__v = [];
-  if ('vibrate' in navigator) navigator.vibrate = p => { window.__v.push(p); return true; };
+  if (window.__android) Object.defineProperty(navigator, 'vibrate', { value: p => { window.__v.push(p); return true; }, configurable: true });
   window.__sw = 0;
   document.addEventListener('change', e => { if (e.target instanceof HTMLInputElement && e.target.hasAttribute('switch')) window.__sw++; }, true);
 };
@@ -21,6 +21,7 @@ try {
     console.log('--- ' + name);
     const ctx = await browser.newContext(opts);
     const p = await ctx.newPage();
+    await p.addInitScript(a => { window.__android = a; }, android);
     await p.addInitScript(spy);
     if (!android) await p.addInitScript(() => { Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true }); });
     const errors = []; p.on('pageerror', e => errors.push(e.message));
