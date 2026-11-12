@@ -106,7 +106,7 @@ const ENV = { GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com', GOOGLE_CLIENT_S
 const VERIFIER = 'a'.repeat(43), CODE = '4/0AbCdEfGhIj-klmno';
 const post = (path, body, { origin = 'https://outfit-planner.org', type = 'application/json' } = {}) =>
   new Request('https://w.example' + path, { method: 'POST', headers: { origin, 'content-type': type }, body: typeof body === 'string' ? body : JSON.stringify(body) });
-const google = (data, status = 200) => { const calls = []; const f = async (url, init) => { calls.push({ url, body: init.body.toString() }); return new Response(JSON.stringify(data), { status }); }; f.calls = calls; return f; };
+const google = (data, status = 200) => { const calls = []; const f = async (url, init) => { calls.push({ url, body: init.body.toString(), redirect: init.redirect }); return new Response(JSON.stringify(data), { status }); }; f.calls = calls; return f; };
 
 test('Anmeldung: Code wird gegen Tokens getauscht, nur Nötiges kommt zurück', async () => {
   const f = google({ access_token: 'ya29.token-1234567', expires_in: 3599, refresh_token: '1//refresh-token-123', scope: 'https://www.googleapis.com/auth/drive.appdata', id_token: 'GEHEIM', extra: 1 });
@@ -119,6 +119,14 @@ test('Anmeldung: Code wird gegen Tokens getauscht, nur Nötiges kommt zurück', 
   assert.equal(f.calls[0].url, 'https://oauth2.googleapis.com/token');
   assert.equal(sent.get('grant_type'), 'authorization_code'); assert.equal(sent.get('client_secret'), 'geheim-geheim'); assert.equal(sent.get('code_verifier'), VERIFIER);
   assert.equal(sent.get('redirect_uri'), 'https://outfit-planner.org/');
+  assert.equal(f.calls[0].redirect, 'manual', 'Cloudflare kennt nur follow und manual (error wirft einen Fehler)');
+});
+
+test('Anmeldung: Weiterleitung von Google wird nicht verfolgt und gilt als Fehler', async () => {
+  const f = async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/' } });
+  const r = await handle(post('/auth/refresh', { refresh_token: 'x'.repeat(40) }), ENV, f);
+  assert.equal(r.status, 502);
+  assert.deepEqual(await r.json(), { error: 'unreachable' });
 });
 
 test('Anmeldung: Auffrischen und Abmelden', async () => {

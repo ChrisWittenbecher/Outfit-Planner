@@ -183,8 +183,10 @@ async function readJson(request) {
 /** Fragt Google und gibt nur zurück, was die App braucht. */
 async function google(url, params, fetcher) {
   let res;
-  try { res = await fetcher(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params), redirect: 'error', signal: AbortSignal.timeout(LIMITS.waitMs) }); }
+  try { res = await fetcher(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params), redirect: 'manual', signal: AbortSignal.timeout(LIMITS.waitMs) }); }
   catch { throw new Refuse('unreachable', 502); }
+  // Cloudflare kennt nur „follow“ und „manual“. Eine Weiterleitung wird nie verfolgt und zählt als Fehler.
+  if (res.status >= 300 && res.status < 400) throw new Refuse('unreachable', 502);
   let data = {};
   try { data = await res.json(); } catch { /* Revoke antwortet teils ohne Inhalt */ }
   return { ok: res.ok, data: data && typeof data === 'object' ? data : {} };
