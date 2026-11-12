@@ -64,14 +64,39 @@ export function aiFailure(e, blocked){
   const why = String(e && (e.message || e.name) || e).replace(/\s+/g, ' ').slice(0, 90);
   return 'KI-Freistellen konnte nicht starten (' + why + ').';
 }
-let aiBlocked = [];
-if(typeof document !== 'undefined') document.addEventListener('securitypolicyviolation', e => { if(aiBlocked.length < 4) aiBlocked.push(e.violatedDirective + ' ' + (e.blockedURI || '').slice(0, 40)); });
-export const aiBlockedList = () => aiBlocked;
-async function aiCut(cv, say = () => {}){ // optional: genaues KI-Freistellen im Browser (lädt Modell von jsDelivr/imgly)
+/** Das KI-Modell läuft in einem abgeschotteten Rahmen (ai/frame.html, mit sandbox und ohne Ursprungsrecht), damit die App selbst keine Ausnahmen von ihren strengen Regeln braucht. */
+let frame = null, ready = null, nextId = 1;
+const jobs = new Map();
+if (typeof window !== 'undefined') window.addEventListener('message', e => {
+  if (!frame || e.source !== frame.contentWindow || !e.data || typeof e.data !== 'object') return;
+  const m = e.data, job = jobs.get(m.id);
+  if (m.type === 'ready') { jobs.get('ready')?.(); return; }
+  if (!job) return;
+  if (m.type === 'progress') job.say('KI: ' + (Number(m.pct) || 0) + ' %');
+  else if (m.type === 'done' && m.png instanceof ArrayBuffer) { jobs.delete(m.id); job.res(new Blob([m.png], { type: 'image/png' })); }
+  else if (m.type === 'error') { jobs.delete(m.id); job.rej(Object.assign(new Error(String(m.message || 'Fehler')), { blocked: Array.isArray(m.blocked) ? m.blocked.map(String).slice(0, 4) : [] })); }
+});
+function aiFrame(){
+  if(ready) return ready;
+  frame = document.createElement('iframe');
+  frame.setAttribute('sandbox', 'allow-scripts'); frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1; frame.hidden = true;
+  ready = new Promise((res, rej) => {
+    const t = setTimeout(() => { ready = null; frame.remove(); rej(new Error('Das KI-Fenster startet nicht')); }, 20000);
+    jobs.set('ready', () => { clearTimeout(t); jobs.delete('ready'); res(frame); });
+  });
+  frame.src = 'ai/frame.html'; document.body.append(frame);
+  return ready;
+}
+async function aiCut(cv, say = () => {}){ // optional: genaues KI-Freistellen (lädt Programm und Modell von jsDelivr und staticimgly.com)
   say('KI-Modell wird geladen … (einmalig ca. 40 MB)');
-  aiBlocked = [];
-  const m = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
-  const blob = await m.removeBackground(cv.toDataURL('image/png'), {progress:(k, c, t) => { if(t) say('KI: ' + Math.round(c / t * 100) + ' %'); }});
+  const f = await aiFrame();
+  const png = await (await new Promise(r => cv.toBlob(r, 'image/png'))).arrayBuffer();
+  const id = nextId++;
+  const blob = await new Promise((res, rej) => {
+    const t = setTimeout(() => { jobs.delete(id); rej(new Error('Zeitüberschreitung')); }, 180000);
+    jobs.set(id, { say, res: v => { clearTimeout(t); res(v); }, rej: e => { clearTimeout(t); rej(e); } });
+    f.contentWindow.postMessage({ type: 'cut', id, png }, '*', [png]);
+  });
   const im = await loadImg(URL.createObjectURL(blob)), o = document.createElement('canvas'); o.width = im.width; o.height = im.height; o.getContext('2d').drawImage(im, 0, 0); return o;
 }
 function countParts(cv){ // zählt getrennte Teile (z. B. Schuhpaar = 2)
@@ -105,7 +130,7 @@ export async function makeImage(d, cat, say = () => {}){
   if(d.rm){
     cut = true;
     if(d.alpha) out = cv;
-    else if(d.ai){ try{ out = await aiCut(cv, say); say(''); }catch(e){ d.ai = false; console.error('KI-Freistellen', e); say(aiFailure(e, aiBlocked) + ' Es gilt die normale Freistellung.', true); out = cutout(cv, d.tol); } }
+    else if(d.ai){ try{ out = await aiCut(cv, say); say(''); }catch(e){ d.ai = false; console.error('KI-Freistellen', e); say(aiFailure(e, e.blocked || []) + ' Es gilt die normale Freistellung.', true); out = cutout(cv, d.tol); } }
     else out = cutout(cv, d.tol);
     out = trim(out);
   }

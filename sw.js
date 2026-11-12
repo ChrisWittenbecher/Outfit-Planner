@@ -1,4 +1,4 @@
-const VERSION = '1.15.2';
+const VERSION = '1.15.3';
 const CACHE = 'anprobe-' + VERSION;
 const HOME = new URL('index.html', self.registration.scope).href;
 
@@ -51,7 +51,7 @@ async function fresh(req) {
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin || !url.href.startsWith(self.registration.scope)) return;
-  if (req.mode === 'navigate') {
+  if (req.mode === 'navigate' && !url.pathname.includes('/ai/')) {
     e.respondWith(caches.match(HOME).then(hit => hit || fetch(req)));
     return;
   }

@@ -32,9 +32,25 @@ test('CSP: externe Quellen sind genau die bekannte, geprüfte Liste (jede Erweit
   const c = csp();
   const external = [...c].flatMap(([k, v]) => v.filter(s => /^https:\/\/[^/]+$/.test(s)).map(s => k + ' ' + s)).sort();
   assert.deepEqual(external, [
-    'connect-src https://anprobe.chris-wittenbecher.workers.dev', 'connect-src https://cdn.jsdelivr.net', 'connect-src https://staticimgly.com', 'connect-src https://www.googleapis.com',
-    'script-src https://cdn.jsdelivr.net',
+    'connect-src https://anprobe.chris-wittenbecher.workers.dev', 'connect-src https://www.googleapis.com',
   ]);
+  assert.deepEqual(c.get('frame-src'), ["'self'"], 'Rahmen nur vom eigenen Ursprung');
+});
+
+test('KI-Rahmen: eigene gelockerte Regeln nur dort, abgeschottet, ohne Zugriff auf die App', async () => {
+  const f = await read('ai/frame.html');
+  const m = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(f);
+  assert.ok(m, 'Regeln im KI-Rahmen fehlen');
+  const c = new Map(m[1].split(';').map(s => s.trim()).filter(Boolean).map(d => { const [k, ...v] = d.split(/\s+/); return [k, v]; }));
+  assert.deepEqual(c.get('default-src'), ["'none'"]);
+  assert.deepEqual(c.get('connect-src').filter(s => s.startsWith('https:')).sort(), ['https://cdn.jsdelivr.net', 'https://staticimgly.com']);
+  assert.ok(!c.get('script-src').includes("'unsafe-inline'"));
+  assert.ok(!f.includes('<script>'), 'keine Inline-Skripte im KI-Rahmen');
+  const img = await read('js/image.js');
+  assert.match(img, /setAttribute\('sandbox', 'allow-scripts'\)/, 'Rahmen ist abgeschottet');
+  assert.ok(!/allow-same-origin/.test(img), 'kein allow-same-origin: sonst hebelt der Rahmen die Abschottung aus');
+  const fj = await read('ai/frame.js');
+  assert.match(fj, /e\.source !== window\.parent/, 'KI-Rahmen hört nur auf die App');
 });
 
 test('HTML: keine Inline-Skripte, keine Ereignis-Attribute, keine style-Attribute', () => {
