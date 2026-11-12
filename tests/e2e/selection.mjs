@@ -47,6 +47,7 @@ try {
     const bx = bb.x + 6, by = bb.y + bb.height - 6;
     await (mobile ? p.touchscreen.tap(bx, by) : p.mouse.click(bx, by)); await p.waitForTimeout(400);
     ok(/Tippe ein Teil an/.test(await info()) && await p.locator('#board.has-sel').count() === 0, 'leere Fläche hebt die Auswahl auf');
+    ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'kein horizontaler Überlauf mit Auswahl');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();
   }

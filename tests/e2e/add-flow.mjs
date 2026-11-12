@@ -120,12 +120,11 @@ try {
     await sc('Alle').click();
     if (await p.locator('#board img.p').count() === 0) await card1().locator('img').first().click();
     ok(/29,90/.test(await p.textContent('#sum .t--buy')) && /Noch zu kaufen/.test(await p.textContent('#sum .t--buy')), '„Noch zu kaufen“-Summe im Outfit');
+    ok(await noOverflow(), 'kein horizontaler Überlauf mit Wunschteil, Preis und Link in der Ebenenliste');
     await openEdit();
     ok(await p.inputValue('#itemState') === 'wish', 'Status bleibt gespeichert');
     ok(await p.locator('#priceHistory').isVisible() && await p.locator('#priceList li').count() === 2 && /29,90/.test(await p.locator('#priceList li').first().innerText()), 'Preisverlauf mit zwei Einträgen, neuester zuerst');
-    await p.click('#cancel', { timeout: 6000 }).catch(async e => {
-      console.log('DIAG', e.message.split('\n').slice(0, 14).join(' | '), JSON.stringify(await p.evaluate(async () => { const samples = []; for (let i = 0; i < 6; i++) { const q = document.getElementById('cancel').getBoundingClientRect(); samples.push([Math.round(q.x * 10) / 10, Math.round(q.y * 10) / 10, document.getElementById('dlg').scrollTop, scrollY]); await new Promise(r => requestAnimationFrame(r)); } const c = document.getElementById('cancel'), d = document.getElementById('dlg'), r = c.getBoundingClientRect(); const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { cancel: [r.x, r.y, r.width, r.height].map(Math.round), dlg: (q => [q.x, q.y, q.width, q.height].map(Math.round))(d.getBoundingClientRect()), top: t && (t.id || t.className || t.tagName), dlgScroll: d.scrollTop, anims: document.getAnimations().map(a => (a.effect?.target?.id || a.effect?.target?.className || a.effect?.target?.tagName) + ':' + a.playState + ':' + (a.effect?.getTiming().iterations)), vv: [innerWidth, innerHeight, scrollY], samples, fab: document.getElementById('fab').className }; })));
-      throw e; });
+    await p.click('#cancel');
     if (mobile) { await card1().locator('.more').click(); ok(await p.locator('#menuBought').isVisible(), 'Menü bietet „Als gekauft markieren“ bei Wunschteilen'); await p.click('#menuBought'); }
     else { await card1().hover(); await card1().locator('.acts button[aria-label="Als gekauft markieren"]').click(); }
     ok(await card1().locator('.badge').count() === 0 && await p.locator('#sum .t--buy').count() === 0, 'Als gekauft markiert: keine Marke, keine „Noch zu kaufen“-Summe');
