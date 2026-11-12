@@ -123,7 +123,9 @@ try {
     await openEdit();
     ok(await p.inputValue('#itemState') === 'wish', 'Status bleibt gespeichert');
     ok(await p.locator('#priceHistory').isVisible() && await p.locator('#priceList li').count() === 2 && /29,90/.test(await p.locator('#priceList li').first().innerText()), 'Preisverlauf mit zwei Einträgen, neuester zuerst');
-    await p.click('#cancel');
+    await p.click('#cancel', { timeout: 6000 }).catch(async e => {
+      console.log('DIAG', JSON.stringify(await p.evaluate(() => { const c = document.getElementById('cancel'), d = document.getElementById('dlg'), r = c.getBoundingClientRect(); const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { cancel: [r.x, r.y, r.width, r.height].map(Math.round), dlg: (q => [q.x, q.y, q.width, q.height].map(Math.round))(d.getBoundingClientRect()), top: t && (t.id || t.className || t.tagName), dlgScroll: d.scrollTop, anims: document.getAnimations().map(a => (a.effect?.target?.id || a.effect?.target?.className || a.effect?.target?.tagName) + ':' + a.playState + ':' + (a.effect?.getTiming().iterations)), vv: [innerWidth, innerHeight, scrollY] }; })));
+      throw e; });
     if (mobile) { await card1().locator('.more').click(); ok(await p.locator('#menuBought').isVisible(), 'Menü bietet „Als gekauft markieren“ bei Wunschteilen'); await p.click('#menuBought'); }
     else { await card1().hover(); await card1().locator('.acts button[aria-label="Als gekauft markieren"]').click(); }
     ok(await card1().locator('.badge').count() === 0 && await p.locator('#sum .t--buy').count() === 0, 'Als gekauft markiert: keine Marke, keine „Noch zu kaufen“-Summe');
