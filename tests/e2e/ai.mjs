@@ -8,7 +8,7 @@ const server = await startServer(PORT);
 const browser = await launch();
 const MOCK = `
   let evalOk = false; try { evalOk = new Function('return 7')() === 7; } catch {}
-  export async function removeBackground(blob, o) { o.progress('x', 1, 2); o.progress('x', 2, 2); if (!evalOk) throw new Error('eval im Rahmen gesperrt'); return blob; }`;
+  export async function removeBackground(blob, o) { if (o.proxyToWorker !== false) throw new Error('mit Arbeitsprozess'); o.progress('x', 1, 2); o.progress('x', 2, 2); if (!evalOk) throw new Error('eval im Rahmen gesperrt'); return blob; }`;
 
 try {
   const ctx = await browser.newContext(devices['iPhone 13']);

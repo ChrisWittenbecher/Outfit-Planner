@@ -13,6 +13,10 @@ async function probes() {
   await t('blob-fetch', async () => { await (await fetch(url())).text(); });
   await t('blob-import', async () => { await import(url()); });
   await t('blob-worker', () => new Promise((res, no) => { const w = new Worker(URL.createObjectURL(new Blob(['postMessage(1)'], { type: 'text/javascript' }))); w.onmessage = () => { w.terminate(); res(); }; w.onerror = () => no(new Error('Fehler')); }));
+  await t('worker-blob-fetch', () => new Promise((res, no) => {
+    const u = url(), w = new Worker(URL.createObjectURL(new Blob(['onmessage=e=>fetch(e.data).then(r=>r.text()).then(()=>postMessage(1),()=>postMessage(0))'], { type: 'text/javascript' })));
+    w.onmessage = e => { w.terminate(); e.data ? res() : no(new Error('Fehler')); }; w.onerror = () => no(new Error('Fehler')); w.postMessage(u);
+  }));
   await t('wasm', async () => { await WebAssembly.instantiate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); });
   return r.join(', ');
 }
@@ -26,9 +30,14 @@ window.addEventListener('message', async e => {
   if (!m || m.type !== 'cut' || typeof m.id !== 'number' || !(m.png instanceof ArrayBuffer) || m.png.byteLength > MAX) return;
   try {
     lib = lib || await import(LIB);
-    const out = await lib.removeBackground(new Blob([m.png], { type: 'image/png' }), {
-      progress: (_key, cur, total) => { if (total) up({ type: 'progress', id: m.id, pct: Math.round(cur / total * 100) }); },
-    });
+    const progress = (_key, cur, total) => { if (total) up({ type: 'progress', id: m.id, pct: Math.round(cur / total * 100) }); };
+    // Ohne eigenen Arbeitsprozess: Ein blob:-Link aus diesem Rahmen (ohne eigenen Ursprung) ist in einem Arbeitsprozess für Safari nicht abrufbar.
+    // Zur Sicherheit folgt ein zweiter Versuch mit den Standardeinstellungen.
+    let out, first = '';
+    for (const extra of [{ proxyToWorker: false }, {}]) {
+      try { out = await lib.removeBackground(new Blob([m.png], { type: 'image/png' }), { progress, ...extra }); break; }
+      catch (e) { if (extra.proxyToWorker === false) first = String((e && e.message) || e).replace(/\s+/g, ' ').slice(-90); else { e.message = first + ' || ' + (e && e.message || e); throw e; } }
+    }
     const png = await out.arrayBuffer();
     up({ type: 'done', id: m.id, png }, [png]);
   } catch (err) {
