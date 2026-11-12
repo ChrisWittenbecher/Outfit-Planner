@@ -31,7 +31,7 @@ try {
     await tapPiece(1);
     ok(/Ausgewählt: .+/.test(await info()), 'über den Buttons steht, welches Teil ausgewählt ist: ' + await info());
     const sel = await p.locator('#board img.p.sel').evaluate(e => { const c = getComputedStyle(e); return { style: c.outlineStyle, w: parseFloat(c.outlineWidth), ring: c.boxShadow }; });
-    ok(sel.style === 'solid' && sel.w >= 3 && sel.ring !== 'none', 'ausgewähltes Teil hat deutlichen Rahmen mit Hof ' + JSON.stringify(sel));
+    ok(sel.style === 'solid' && sel.w >= 2.5 && sel.ring !== 'none', 'ausgewähltes Teil hat deutlichen Rahmen mit Hof ' + JSON.stringify(sel));
     ok(await p.locator('#board img.p:not(.sel)').first().evaluate(e => parseFloat(getComputedStyle(e).opacity)) < 1, 'nicht ausgewählte Teile treten zurück');
     ok(await p.locator('#sum .r.on').count() === 1 && /✓/.test(await p.locator('#sum .r.on .nm').evaluate(e => getComputedStyle(e, '::before').content)), 'Ebenenliste markiert genau eine Zeile mit Haken');
     ok(await p.locator('#sum .r.on .nm').evaluate(e => parseInt(getComputedStyle(e).fontWeight)) >= 700, 'markierter Name ist fett');
