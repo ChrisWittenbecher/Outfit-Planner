@@ -82,7 +82,12 @@ try {
     const shown = p => p.textContent('#ver');
     const open = async () => {
       const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'allow' });
-      const p = await ctx.newPage(); await p.goto(BASE2); await ready(p);
+      const p = await ctx.newPage();
+      const trail = p.trail = []; const t0 = Date.now(), note = m => trail.push(((Date.now() - t0) / 1000).toFixed(2) + ' ' + m);   // Ablauf der Seite, nur für die Diagnose
+      p.on('framenavigated', f => { if (f === p.mainFrame()) note('navigiert ' + f.url()); });
+      p.on('console', m => note('console ' + m.type() + ' ' + m.text().slice(0, 140)));
+      p.on('request', r => { if (r.isNavigationRequest() || /index\.html|version\.js|sw\.js/.test(r.url())) note('Anfrage ' + new URL(r.url()).pathname); });
+      await p.goto(BASE2); await ready(p);
       await p.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 15000 });
       return { ctx, p };
     };
@@ -111,7 +116,9 @@ try {
       for (let i = 0; i < 60 && !took; i++) { const s = await probe(); took = s.caches.includes('anprobe-8.8.8') && !s.caches.includes('anprobe-7.7.7') && s.viaWorker === '8.8.8'; if (!took) await b.p.waitForTimeout(250); }
       ok(took, 'der neue Service Worker lädt die neue Version im Hintergrund vor, übernimmt und räumt den alten Cache auf ' + (took ? '' : JSON.stringify(await probe())));
       await b.p.reload(); await ready(b.p);
-      const timing = await b.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/version\.js/.test(e.name)).map(e => ({ worker: e.workerStart > 0, size: e.transferSize, delivery: e.deliveryType, status: e.responseStatus })));
+      let timing;
+      try { timing = await b.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/version\.js/.test(e.name)).map(e => ({ worker: e.workerStart > 0, size: e.transferSize, delivery: e.deliveryType, status: e.responseStatus }))); }
+      catch (e) { console.log('INFO  Ablauf der Seite:\n' + b.p.trail.slice(-40).join('\n')); throw e; }
       console.log('Hinweis: nach dem Neuladen zeigt die Seite ' + await shown(b.p) + ' ' + JSON.stringify(timing) + ' ' + JSON.stringify(await probe()));
       // „Nächster Start“ heißt: die App wird neu geöffnet (neues Dokument im selben Browserprofil), nicht per Neuladen aktualisiert
       await b.p.close();

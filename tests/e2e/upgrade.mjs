@@ -21,10 +21,20 @@ const { ok, state: result } = checker();
 // prüfen cloud.mjs (ohne Service Worker, beide Engines) und dieser Test in Chromium.
 const GOOGLE = engine === 'chromium' && !process.env.NO_GOOGLE;   // NO_GOOGLE=1 probiert den Weg der Safari-Engine auch in Chromium
 const seen = new WeakMap();   // Seite → Fehlermeldungen, für die Diagnose, wenn die App nicht startet
+const trail = new WeakMap();   // Seite → Ablauf (Navigationen, Anfragen der Seite), ebenfalls nur für die Diagnose
+const note = (p, m) => { const t = trail.get(p); if (t) { t.push(((Date.now() - t.t0) / 1000).toFixed(2) + ' ' + m); if (t.length > 400) t.shift(); } };
 const ready = async p => {
   try { await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: 20000 }); }
   catch (e) {
-    console.log('INFO  App wurde nicht bereit: ' + JSON.stringify(await p.evaluate(() => ({ url: location.href, ver: document.getElementById('ver')?.textContent, body: document.body.innerText.slice(0, 160), state: document.readyState })).catch(x => String(x))) + ' Fehler: ' + (seen.get(p) || []).join(' | '));
+    const info = await p.evaluate(async () => {
+      const metaOf = t => (t.match(/<meta name="app-version" content="([^"]*)"/) || [])[1] || '(keins)';
+      const out = { url: location.href, ver: document.getElementById('ver')?.textContent, body: document.body.innerText.slice(0, 160), state: document.readyState, meta: document.querySelector('meta[name="app-version"]')?.content || '(keins)', heal: sessionStorage.getItem('anprobe-heal'), caches: {} };
+      try { for (const k of await caches.keys()) { const c = await caches.open(k), h = await c.match('/index.html'); out.caches[k] = { n: (await c.keys()).length, meta: h ? metaOf(await h.text()) : '(kein index.html)' }; } } catch (x) { out.caches = String(x); }
+      try { const r = await navigator.serviceWorker.getRegistration(); out.sw = r ? ['installing', 'waiting', 'active'].map(k => k + ':' + (r[k] ? r[k].state : '-')).join(' ') + ' controller:' + !!navigator.serviceWorker.controller : 'keine'; } catch (x) { out.sw = String(x); }
+      return out;
+    }).catch(x => String(x));
+    console.log('INFO  App wurde nicht bereit: ' + JSON.stringify(info) + ' Fehler: ' + (seen.get(p) || []).join(' | '));
+    console.log('INFO  Ablauf der Seite:\n' + (trail.get(p) || []).slice(-60).join('\n'));
     throw e;
   }
 };
@@ -104,7 +114,16 @@ const remote = () => { const f = [...fake.files.values()][0]; return f ? JSON.pa
 const goTab = async (p, id) => { await p.click('#tab-' + id); await p.waitForFunction(i => !document.getElementById('view-' + i).hidden, id); };
 
 /** Fehlermeldungen der Seite für die Diagnose sammeln (Skriptfehler kommen schon aus setup, hier kommen Konsolenfehler dazu). */
-const track = g => { seen.set(g.p, g.errors); g.p.on('console', m => { if (m.type() === 'error') g.errors.push('console: ' + m.text().slice(0, 160)); }); return g; };
+const track = g => {
+  seen.set(g.p, g.errors);
+  const t = []; t.t0 = Date.now(); trail.set(g.p, t);
+  g.p.on('console', m => { if (m.type() === 'error') g.errors.push('console: ' + m.text().slice(0, 160)); note(g.p, 'console ' + m.type() + ' ' + m.text().slice(0, 140)); });
+  g.p.on('framenavigated', f => { if (f === g.p.mainFrame()) note(g.p, 'navigiert ' + f.url()); });
+  g.p.on('request', r => { const u = new URL(r.url()); if (u.origin === ORIGIN && (r.isNavigationRequest() || /index\.html|\/js\/(main|guard|version|ui)\.js|sw\.js/.test(u.pathname))) note(g.p, 'Anfrage ' + r.method() + ' ' + u.pathname + ' ' + (r.isNavigationRequest() ? '(Navigation)' : '')); });
+  g.p.on('requestfailed', r => note(g.p, 'Anfrage fehlgeschlagen ' + r.url().slice(0, 80) + ' ' + (r.failure()?.errorText || '')));
+  g.p.on('pageerror', e => note(g.p, 'Skriptfehler ' + e.message.slice(0, 160)));
+  return g;
+};
 const cachesNow = p => p.evaluate(async () => {
   const out = {};
   for (const k of await caches.keys()) out[k] = (await (await caches.open(k)).keys()).length;
