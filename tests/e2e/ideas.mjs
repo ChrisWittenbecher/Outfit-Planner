@@ -46,8 +46,10 @@ try {
 
     const openIdeas = async () => { await p.click('#tab-vorschlaege'); await p.waitForFunction(() => !document.getElementById('view-vorschlaege').hidden); await p.click('#sugModeOut'); };
     const names = () => p.locator('#sugCards .sug-try').evaluateAll(bs => bs.map(b => (b.getAttribute('aria-label').match(/\((.*)\)$/) || [, ''])[1].replace(/, /g, ' · ')));
-    const w = label => p.locator(`.sug-w button:visible:has-text("${label}")`).first().click();
-    const wNow = () => p.locator('.sug-w button[aria-pressed="true"]:visible').first().textContent();
+    // Am Handy stecken die Wetter-Knöpfe im aufklappbaren Block „Anpassen“
+    const openCtl = async () => { const sum = p.locator('#sugDet summary'); if (await sum.isVisible() && !(await p.locator('#sugDet').evaluate(d => d.open))) await sum.click(); };
+    const w = async label => { await openCtl(); await p.locator(`.sug-w button:visible:has-text("${label}")`).first().click(); };
+    const wNow = async () => { await openCtl(); return p.locator('.sug-w button[aria-pressed="true"]:visible').first().textContent(); };
 
     console.log('--- Leerer Schrank');
     await openIdeas();

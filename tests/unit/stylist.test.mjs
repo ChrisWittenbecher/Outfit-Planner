@@ -74,7 +74,7 @@ test('Fehlende Pflichtkategorien werden gemeldet, der Rest wird trotzdem vorgesc
 });
 
 test('Ohne Teile gibt es nichts vorzuschlagen', () => {
-  assert.deepEqual(suggest([], [], { weather: 'mild', today: TODAY }), { suggestions: [], missing: ['Oberteil', 'Hose/Rock', 'Schuhe'] });
+  assert.deepEqual(suggest([], [], { weather: 'mild', today: TODAY }), { suggestions: [], missing: ['Oberteil', 'Hose/Rock', 'Schuhe'], tagged: 0 });
 });
 
 test('Wunschlisten-Teile kommen nicht vor', () => {
