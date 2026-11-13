@@ -18,7 +18,8 @@ export const cloudEnabled = !!(WORKER_URL && GOOGLE_CLIENT_ID);
 
 const KEY = 'anprobe-cloud', OAUTH = 'anprobe-oauth';
 const DRIVE = 'https://www.googleapis.com', FILE = 'anprobe-data.json';
-const DELAY = 12000, RECHECK = 120000, OAUTH_MAX_AGE = 15 * 60000;
+// Änderungen gehen fast sofort nach Google (kurz gebündelt); fremde Änderungen holt die App alle paar Sekunden, solange sie offen ist.
+const DELAY = 1500, POLL = 15000, OAUTH_MAX_AGE = 15 * 60000;
 
 // ---- gespeicherter Zustand (kein Zugriffstoken, nur der Auffrisch-Schlüssel und der Abgleichstand) ----
 /** @returns {{rt?: string, base?: string, dirty?: boolean, last?: number, name?: string, mail?: string, photo?: string, pt?: number}} */
@@ -90,7 +91,7 @@ async function upload(remote, text) {
 
 // ---- Abgleich ----
 const exportText = () => { state.data.board = state.board; return JSON.stringify(state.data); };
-let applying = false, chain = Promise.resolve(), timer = 0, lastCheck = 0, info = { kind: 'idle', text: '' };
+let applying = false, chain = Promise.resolve(), timer = 0, lastCheck = 0, parked = false, info = { kind: 'idle', text: '' };
 
 function setInfo(kind, text) { info = { kind, text }; paint(); }
 
@@ -158,7 +159,7 @@ async function run() {
   else if (choice === 'merge') {
     await apply({ ...r, ...mergeData({ ...state.data, board: state.board }, r) }, 'Beide Stände zusammengeführt');
     const up = await upload(remote, exportText()); save({ base: up.md5, dirty: false });
-  } else { setInfo('warn', 'Abgleich offen: Dieser Stand und Google unterscheiden sich.'); return; }
+  } else { parked = true; setInfo('warn', 'Abgleich offen: Dieser Stand und Google unterscheiden sich. Er wird bei der nächsten Änderung erneut angeboten.'); return; }
   stamp();
 }
 
@@ -250,7 +251,7 @@ function paint() {
   const m = meta(), btn = $('mCloud'); if (!btn) return;
   btn.textContent = 'Google-Sicherung' + (on ? ' · an' : '');
   paintAccount(on, m);
-  $('cloudIn').hidden = on; $('cloudSync').hidden = !on; $('cloudOut').hidden = !on;
+  $('cloudIn').hidden = on; $('cloudOut').hidden = !on;
   $('cloudText').textContent = on
     ? 'Dein Stand wird automatisch in einer versteckten Datei in deinem Google Drive gesichert und auf anderen Geräten, auf denen du angemeldet bist, aktuell gehalten.'
     : 'Melde dich mit Google an, damit dein Stand automatisch gesichert wird und auf jedem Gerät da ist. Anprobe bekommt nur Zugriff auf einen eigenen versteckten Ordner, nicht auf deine anderen Dateien.';
@@ -267,15 +268,16 @@ export function startCloud() {
   btn.onclick = open; $('cloudBtn').onclick = open;
   $('cloudClose').onclick = () => closeDialog($('cloudDlg'));
   $('cloudIn').onclick = connect;
-  $('cloudSync').onclick = () => { setInfo('busy', 'Gleiche mit Google ab …'); syncNow(); };
   $('cloudOut').onclick = async () => { await disconnect(); paint(); };
   paint();
-  document.addEventListener('anprobe:saved', () => { if (applying || !meta().rt) return; save({ dirty: true }); paint(); later(); });
+  document.addEventListener('anprobe:saved', () => { if (applying || !meta().rt) return; parked = false; save({ dirty: true }); paint(); later(); });
   document.addEventListener('visibilitychange', () => {
     if (!signedIn()) return;
     if (document.visibilityState === 'hidden') { if (meta().dirty) { clearTimeout(timer); syncNow(); } }
-    else if (Date.now() - lastCheck > RECHECK) syncNow();
+    else { parked = false; syncNow(); }
   });
   addEventListener('online', () => { if (signedIn()) syncNow(); });
+  // Fremde Änderungen (anderes Gerät) holen: eine kleine Abfrage, nur bei sichtbarer Seite und mit Netz
+  setInterval(() => { if (signedIn() && !parked && document.visibilityState === 'visible' && navigator.onLine !== false) syncNow(); }, POLL);
   comeBack().then(() => { if (signedIn() && !lastCheck) syncNow(); });
 }

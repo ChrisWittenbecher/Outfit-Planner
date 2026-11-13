@@ -136,8 +136,7 @@ try {
   await b.locator('#grid .card', { hasText: 'Hose' }).locator('.acts button[aria-label="Löschen"]').click().catch(() => {});
   const confirmBtn = b.locator('#uiOk'); if (await confirmBtn.isVisible().catch(() => false)) await confirmBtn.click();
   ok(await wait(async () => remoteNames()?.join() === 'Mantel,Shirt', 30000), 'Löschen auf B erreicht Google Drive (' + remoteNames() + ')');
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open); await a.click('#cloudSync');
-  ok(await wait(async () => await cards(a) === 2), 'A holt den neuen Stand beim Abgleichen (ohne Rückfrage, weil A nichts geändert hat)');
+  ok(await wait(async () => await cards(a) === 2, 45000), 'A holt den neuen Stand von selbst, ohne Knopf und ohne Rückfrage (A hat nichts geändert)');
 
   console.log('--- Konflikt: beide ändern');
   await a.keyboard.press('Escape');
@@ -146,8 +145,7 @@ try {
   await addItem(b, { trigger: '#addBtn', name: 'Mütze', cat: 'Accessoire' });
   ok(await wait(async () => remoteNames()?.includes('Mütze'), 30000), 'B sichert zuerst');
   A.block.on = false;
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open); await a.click('#cloudSync');
-  ok(await wait(() => a.evaluate(() => document.getElementById('cloudConflict').open)), 'A fragt nach, weil beide Seiten Änderungen haben');
+  ok(await wait(() => a.evaluate(() => document.getElementById('cloudConflict').open), 45000), 'A fragt nach, weil beide Seiten Änderungen haben');
   ok(/zusammenführen/i.test(await a.textContent('#ccMerge')) && await a.locator('#ccRemote').isVisible() && await a.locator('#ccLocal').isVisible(), 'drei Möglichkeiten werden angeboten');
   await a.click('#ccMerge');
   ok(await wait(async () => remoteNames()?.join() === 'Mantel,Mütze,Schal,Shirt'), 'zusammengeführt: nichts ging verloren (' + remoteNames() + ')');
