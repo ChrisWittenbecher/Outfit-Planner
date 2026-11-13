@@ -48,9 +48,10 @@ Stand der Planung: 13.11.2026. Ausgangspunkt ist 1.15.14. Die Vorschau mit den s
 
 ### Etappe 4 · 1.19.0 · Teilen als Bild
 
-- Knopf „Teilen“ am Board und Teilen-Symbol an jedem gespeicherten Outfit.
-- Bild wird lokal gezeichnet. Mit Unterstützung wird `navigator.share({ files })` genutzt, sonst Speichern der Datei mit Hinweis. Abbruch durch den Nutzer ist keine Fehlermeldung.
-- Dateiname aus dem Outfit-Namen, bereinigt. Gemeinsame Zeichenfunktion mit dem bestehenden PNG-Export, damit beides gleich aussieht.
+- Knopf „Teilen“ am Board und an jedem gespeicherten Outfit (als Text, nicht als Symbol, damit er überall verständlich ist). Ohne Teile auf dem Board sind „Teilen“ und „Als Bild laden“ gesperrt.
+- Das Bild wird lokal gezeichnet (800 × 1200 Pixel, Bühne des Boards). Mit Unterstützung geht es per `navigator.share({ files })` an das Teilen-Menü, sonst wird die Datei gespeichert, mit Hinweis. Abbruch durch die Person ist keine Fehlermeldung. Verlangt der Browser eine frische Berührung (Zeichnen dauerte zu lange), liegt das fertige Bild bereit und ein Knopf im Hinweis sendet es.
+- Dateiname aus dem Outfit-Namen, bereinigt (`sharefile.js`, mit Unit-Tests). Eine gemeinsame Zeichenfunktion (`share.js`) dient dem Teilen und dem bestehenden „Als Bild laden“, damit beides gleich aussieht. Fehlende Teile werden übersprungen und gemeldet.
+- Geprüft wird das fertige Bild Pixel für Pixel (Farben, Ebenenreihenfolge, Drehung, Multiplizieren, Bühne) und jeder Weg des Teilens mit einem Ersatz für `navigator.share`. Das echte Teilen-Menü eines Telefons lässt sich in der Testumgebung nicht bedienen und wird von Hand geprüft.
 
 ### Etappe 5 · 1.20.0 · Schneller hinzufügen
 

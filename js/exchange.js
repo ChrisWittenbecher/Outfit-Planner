@@ -1,25 +1,13 @@
 // @ts-nocheck
 import * as Geo from './geometry.js';
 import * as Scraper from './scraper.js';
-import { $, CATS, imgOf, item, loadImg, state } from './core.js';
+import { $, CATS, state } from './core.js';
 import { cleanPieces, fixOrder } from './board.js';
 import { renderAll } from './render.js';
 import { confirmBox, toast } from './ui.js';
 import { step, undo } from './history.js';
 import { markBackup } from './pwa.js';
 
-$('png').onclick = async () => {
-  if(!state.board.length) return;
-  const c = document.createElement('canvas'); c.width = 800; c.height = 1200; const x = c.getContext('2d');
-  x.fillStyle = getComputedStyle($('board')).backgroundColor; x.fillRect(0, 0, 800, 1200);   // Bühne des Boards (Hell, Mittel oder Dunkel)
-  for(const p of state.board){
-    const im = await loadImg(imgOf(p.id)), w = p.w * 2, h = w * im.height / im.width;
-    x.save(); x.globalCompositeOperation = item(p.id)?.cut ? 'source-over' : 'multiply';
-    x.translate(p.x * 2 + w / 2, p.y * 2 + h / 2); x.rotate((p.r || 0) * Math.PI / 180); // Drehung um die Mitte
-    x.drawImage(im, -w / 2, -h / 2, w, h); x.restore();
-  }
-  const a = document.createElement('a'); a.download = 'outfit.png'; a.href = c.toDataURL('image/png'); a.click();
-};
 $('exp').onclick = () => {
   state.data.board = state.board;
   const url = URL.createObjectURL(new Blob([JSON.stringify(state.data)], {type:'application/json'}));

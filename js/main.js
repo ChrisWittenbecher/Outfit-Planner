@@ -9,6 +9,7 @@ import './board.js';
 import './rotation.js';
 import './gestures.js';
 import './exchange.js';
+import './share.js';
 import './outfits.js';
 import './fitter.js';
 import './ui.js';

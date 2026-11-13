@@ -1,5 +1,5 @@
 // @ts-check
-export const VERSION = '1.18.0';
+export const VERSION = '1.19.0';
 /**
  * @param {readonly (string | null)[]} hrefs rohe href- und src-Werte
  * @param {string} base Adresse der Seite
