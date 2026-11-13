@@ -140,13 +140,15 @@ try {
     await p.click('#chips button:has-text("Jacke")');
     const green = await swatch(p, '#2e7d32'), beige = await swatch(p, '#d8c3a5');
     await p.click(trigger);
-    ok(await p.isVisible('#multiTip'), 'Dialog weist auf Mehrfach-Auswahl hin');
+    ok(await p.isVisible('#wayPhotos'), 'Auswahl-Blatt bietet „Fotos wählen“ an');
     await p.setInputFiles('#file', [
       { name: 'gruene_jacke.png', mimeType: 'image/png', buffer: green },
       { name: 'IMG_0042.png', mimeType: 'image/png', buffer: beige },
       { name: 'kaputt.png', mimeType: 'image/png', buffer: Buffer.from('das ist kein bild') },
     ]);
-    ok(await closed(p, 'dlg'), 'der Dialog schließt sich, die Bilder werden ohne Umweg hinzugefügt');
+    await p.waitForFunction(() => document.getElementById('queueDlg').open);
+    ok(await wait(async () => /2 von 3 Fotos sind bereit, 1 mit Fehler/.test(await p.textContent('#queueHead'))), 'Warteschlange: zwei Fotos bereit, eines mit Fehler (' + (await p.textContent('#queueHead')).trim() + ')');
+    await p.click('#queueAdd'); await closed(p, 'queueDlg');
     ok(await wait(async () => /2 Teile hinzugefügt/.test(await p.textContent('#toasts'))), 'Zusammenfassung: ' + (await p.textContent('#toasts')).slice(0, 140));
     ok(/1 nicht lesbar/.test(await p.textContent('#toasts')) && /Kategorie Jacke/.test(await p.textContent('#toasts')), 'defekte Datei wird gemeldet, Kategorie folgt dem Filter');
     await p.click('#chips button:has-text("Alle")');

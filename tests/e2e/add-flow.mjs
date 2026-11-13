@@ -25,7 +25,10 @@ try {
     ok(await p.locator(trigger).isVisible(), 'Hinzufügen-Button sichtbar (' + trigger + ')');
 
     await p.click(trigger);
-    ok(await p.locator('#dlg').evaluate(d => d.open), 'Dialog öffnet direkt');
+    ok(await p.locator('#addDlg').evaluate(d => d.open) && !await p.locator('#dlg').evaluate(d => d.open), 'Hinzufügen öffnet erst das Auswahl-Blatt');
+    await p.click('#wayLink');
+    await p.waitForFunction(() => document.getElementById('dlg').open && !document.getElementById('addDlg').open);
+    ok(await p.locator('#dlg').evaluate(d => d.open), '„Link einfügen“ führt in den Dialog „Neues Teil“');
     ok(await p.locator('#linkInput').count() === 0 && await p.locator('#scanBtn').count() === 0, 'kein Link-Import und kein Barcode-Scanner mehr');
     if (mobile) {
       ok(await p.evaluate(() => document.getElementById('dlg').getBoundingClientRect().width >= innerWidth - 1), 'Dialog als Bottom-Sheet in voller Breite');

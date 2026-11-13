@@ -54,6 +54,8 @@
   <link rel="modulepreload" href="js/search.js">
   <link rel="modulepreload" href="js/intake.js">
   <link rel="modulepreload" href="js/batch.js">
+  <link rel="modulepreload" href="js/queue.js">
+  <link rel="modulepreload" href="js/addsheet.js">
   <link rel="modulepreload" href="js/model.js">
   <link rel="modulepreload" href="js/thumbs.js">
   <link rel="modulepreload" href="js/wearlog.js">
@@ -438,12 +440,11 @@
       <div><div class="cap" id="capOrig">Original – Bereich ziehen zum Zuschneiden</div><div id="drop" tabindex="0" role="button" aria-describedby="capOrig"></div></div>
       <div><div class="cap">Ergebnis</div><div id="res"><span>Noch kein Bild</span></div></div>
     </div>
-    <input type="file" id="file" accept="image/*" multiple hidden>
     <div id="imgPick" hidden>
       <p class="hint" id="pickHint">Passt das Bild nicht, zum Beispiel weil eine Person darauf zu sehen ist? Wähle eine andere Aufnahme:</p>
       <div id="pickRow" role="group" aria-labelledby="pickHint"></div>
     </div>
-    <p class="hint hint--tip" id="multiTip">Tipp: Wähle mehrere Bilder auf einmal. Sie werden automatisch freigestellt und alle hinzugefügt.</p>
+    <p class="hint hint--tip" id="multiTip">Tipp: Wähle mehrere Bilder auf einmal. Sie werden automatisch freigestellt, du prüfst kurz die Namen und fügst alle zusammen hinzu.</p>
     <div id="opts">
       <label class="ck"><input type="checkbox" id="rm" checked> Hintergrund entfernen</label>
       <label class="ck" title="Höher = mehr Hintergrund und Schatten werden entfernt">Toleranz <input type="range" id="tol" min="6" max="80" value="28"></label>
@@ -480,6 +481,37 @@
     </div>
     </section>
     <div class="foot"><button type="button" id="cancel">Abbrechen</button><button type="button" class="pri" id="ok">Speichern</button></div>
+  </dialog>
+
+  <!-- Hinzufügen: drei Wege (Fotos, Kamera, Link). Ein einzelnes Foto führt in den Dialog „Neues Teil“, mehrere in die Warteschlange. -->
+  <input type="file" id="file" accept="image/*" multiple hidden>
+  <input type="file" id="cam" accept="image/*" capture="environment" hidden>
+  <dialog id="addDlg" data-dismiss="backdrop" aria-labelledby="addTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="addTitle" class="menu-title">Teil hinzufügen</h2>
+    <div class="menu-list">
+      <button type="button" class="way" id="wayPhotos" autofocus><b>Fotos wählen</b><small>Eins oder mehrere. Der Hintergrund wird entfernt.</small></button>
+      <button type="button" class="way" id="wayCamera" hidden><b>Kamera</b><small>Das Teil jetzt fotografieren.</small></button>
+      <button type="button" class="way" id="wayLink" hidden><b>Link einfügen</b><small>Name, Preis und Bild kommen aus dem Shop.</small></button>
+      <button type="button" id="addClose">Abbrechen</button>
+    </div>
+  </dialog>
+
+  <!-- Mehrere Fotos: verarbeiten, prüfen, dann erst hinzufügen -->
+  <dialog id="queueDlg" aria-labelledby="queueTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="queueTitle" tabindex="-1" autofocus>Fotos hinzufügen</h2>
+    <p class="hint" id="queueHead"></p>
+    <div id="queueBar" role="progressbar" aria-labelledby="queueHead" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+    <p class="hint" id="queueNote" hidden></p>
+    <div class="g2 queue-all">
+      <div><label for="queueCat">Kategorie für alle</label><select id="queueCat" autocomplete="off"></select></div>
+      <div><label for="queueState">Status für alle</label><select id="queueState" autocomplete="off"><option value="own">Besitze ich</option><option value="wish">Wunschliste</option></select></div>
+    </div>
+    <p class="hint">Nichts ist hinzugefügt, bevor du auf „Hinzufügen“ tippst. Namen und Kategorie kannst du schon ändern, während die übrigen Fotos noch laufen.</p>
+    <ul id="queueList"></ul>
+    <p id="queueLive" class="sr-only" role="status" aria-live="polite"></p>
+    <div class="foot"><button type="button" id="queueCancel">Abbrechen</button><button type="button" class="pri" id="queueAdd" disabled>Hinzufügen</button></div>
   </dialog>
 
 </body>

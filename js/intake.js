@@ -14,3 +14,16 @@ export function nameFromFile(filename, clean) {
   if (!stem || /^[\d\s._-]+$/.test(stem) || GENERIC.test(stem)) return 'Neues Teil';
   return stem;
 }
+
+/**
+ * Prüft eine Auswahl von Dateien: nur Bilder, höchstens `max`.
+ * @template {{ type?: unknown }} F
+ * @param {readonly F[]} files
+ * @param {number} [max]
+ * @returns {{ list: F[], notImage: number, tooMany: number }} list: die Bilder, die verarbeitet werden. notImage: keine Bilder. tooMany: Bilder über dem Limit.
+ */
+export function planFiles(files, max = MAX_BATCH) {
+  const images = files.filter(f => !!f && typeof f.type === 'string' && f.type.startsWith('image/'));
+  const list = images.slice(0, max);
+  return { list, notImage: files.length - images.length, tooMany: images.length - list.length };
+}

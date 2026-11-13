@@ -57,8 +57,8 @@ Stand der Planung: 13.11.2026. Ausgangspunkt ist 1.15.14. Die Vorschau mit den s
 
 - „Hinzufügen“ öffnet ein Blatt mit drei großen Wegen: **Fotos wählen** (mehrere), **Kamera**, **Link einfügen** (nur wenn der Hilfsdienst eingerichtet ist). Ein einzelnes Foto führt weiter in den vorhandenen ausführlichen Dialog.
 - Mehrere Fotos: Warteschlange mit Zustand je Foto (Wartet, Verarbeitet …, Fertig, Fehler), Fortschrittsbalken, Abbrechen. Verarbeitung nacheinander mit Pausen für die Oberfläche, wie bisher, damit nichts hängt.
-- **Prüfschritt:** „Fertige prüfen“ zeigt Name und Kategorie je Foto zum Anpassen. Erst „Hinzufügen“ schreibt in den Bestand, in einem Rückgängig-Schritt. Bis dahin ist nichts verändert.
-- Grenzen: höchstens 30 Fotos, Größe je Datei wie bisher, Speicherverbrauch begrenzt.
+- **Prüfschritt:** Name und Kategorie lassen sich je Foto schon während der Verarbeitung anpassen (für alle gemeinsam auch Kategorie und Status), Fotos lassen sich entfernen. Erst „Hinzufügen“ schreibt in den Bestand, in einem Rückgängig-Schritt. Bis dahin ist nichts verändert; Abbrechen, Esc und Zurück verwerfen alles. Wechselt eine Kategorie zu oder von „Schuhe“, wird das Foto passend neu freigestellt.
+- Grenzen: höchstens 30 Fotos, 25 MB je Datei, Speicherverbrauch begrenzt (80 Mio. Zeichen Bildtext). Umgesetzt in `js/addsheet.js`, `js/batch.js`, `js/queue.js`.
 
 ### Etappe 6 · 2.0.0 · Abschluss
 

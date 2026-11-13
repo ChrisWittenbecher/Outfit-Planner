@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { checker, startServer, launch } from './helpers.mjs';
+import { checker, startServer, launch, openNew } from './helpers.mjs';
 
 const PORT = 8746, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -28,7 +28,7 @@ try {
     ok(p.url() === BASE, 'Seite bleibt nach Zurück erhalten');
 
     // Schließen per Button entfernt den Eintrag wieder: Zurück danach verlässt nicht die App unnötig doppelt
-    await p.tap('#fab'); await p.waitForTimeout(500);
+    await openNew(p, '#fab', 'tap'); await p.waitForTimeout(300);
     await p.tap('#dlg button:has-text("Abbrechen")'); await p.waitForTimeout(700);
     ok(await open(p) === 0, 'Abbrechen schließt den Dialog');
     ok(await p.evaluate(() => history.state?.anprobeDialog === undefined), 'Eintrag nach Abbrechen entfernt');
@@ -42,7 +42,7 @@ try {
     // Touch-Texte
     ok(!/Mausrad|Pfeiltasten|Esc|Entf/.test(await p.evaluate(() => [...document.querySelectorAll('.sub span')].filter(e => e.offsetParent).map(e => e.textContent).join(' '))), 'Board-Hinweis ohne Maus und Tastatur');
     ok(await vis(p, '.sub .touch') && !(await vis(p, '.sub .fine')), 'nur der Touch-Hinweis ist sichtbar');
-    await p.tap('#fab'); await p.waitForTimeout(500);
+    await openNew(p, '#fab', 'tap'); await p.waitForTimeout(300);
     ok(/Tippen/.test(await p.textContent('#dlg .drop, #dlg #dropTxt, #dlg [id*=drop]').catch(() => '') || await p.evaluate(() => document.querySelector('#dlg').textContent)), 'Bildfeld spricht von Tippen');
     ok(!/Strg|Cmd/.test(await p.evaluate(() => document.querySelector('#dlg').textContent)), 'Bildfeld ohne Strg/Cmd');
     await p.goBack(); await p.waitForTimeout(500);

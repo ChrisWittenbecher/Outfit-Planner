@@ -30,6 +30,14 @@ export async function startServer(port, dir = root) {
   return server;
 }
 
+/** Öffnet „Hinzufügen“ und wählt „Link einfügen“: führt in den leeren Dialog „Neues Teil“ (how: 'click' oder 'tap'). */
+export async function openNew(p, trigger, how = 'click') {
+  await p[how](trigger);
+  await p.waitForFunction(() => document.getElementById('addDlg').open);
+  await p[how]('#wayLink');
+  await p.waitForFunction(() => document.getElementById('dlg').open && !document.getElementById('addDlg').open);
+}
+
 export async function addItem(p, { trigger, name = 'Blaues Shirt', cat = 'Oberteil', price = '', png = PNG }) {
   const before = await p.locator('#grid .card').count();
   await p.click(trigger);
