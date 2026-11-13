@@ -166,7 +166,7 @@ try {
     await p.click('#cloudBtn');
     ok(await p.locator('#imp').isVisible(), 'Konto-Knopf öffnet das Menü mit Wiederherstellen');
     const exp = p.waitForEvent('download'); await p.click('#exp');
-    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await p.evaluate(() => !document.getElementById('acctMenu').matches(':popover-open')), '„Backup“ im Konto-Menü lädt die Datei und schließt das Menü');
+    ok(/^outfit-planner-backup-.*\.json$/.test((await exp).suggestedFilename()) && await p.evaluate(() => !document.getElementById('acctMenu').matches(':popover-open')), '„Backup“ im Konto-Menü lädt die Datei und schließt das Menü');
     await toggle(p, 'light');
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
     await toggle(p, 'dark');
