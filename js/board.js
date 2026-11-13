@@ -86,7 +86,7 @@ export function renderBoard(){
   [...$('board').querySelectorAll('.p')].forEach(n => n.remove()); pieceEls.clear();
   $('hint').style.display = state.board.length ? 'none' : 'grid';
   ['bigger','smaller','front','back'].forEach(id => $(id).disabled = !state.sel);
-  $('fit').disabled = !state.board.length;
+  $('fit').disabled = $('png').disabled = $('shareBtn').disabled = !state.board.length;
   $('board').classList.toggle('has-sel', !!state.sel); showSelInfo();
   state.board.forEach((p, idx) => {
     const im = new Image(); im.src = imgOf(p.id); im.className = 'p' + (p.id === state.sel ? ' sel' : '') + mb(item(p.id)); im.draggable = false; im.alt = '';

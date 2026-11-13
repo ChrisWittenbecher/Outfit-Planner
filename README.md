@@ -38,7 +38,7 @@ Der typische Ablauf:
 | **Packliste** | Auf derselben Seite (Knopf „Packliste“): Für 1 bis 30 Tage und das gewählte Wetter stellt die App eine Kapselgarderobe aus deinem Schrank zusammen: wenige Teile, die sich gut kombinieren lassen (Basisteile zuerst, möglichst neutral, höchstens zwei Farbakzente). Du siehst, wie viele Outfits sich daraus ergeben und woran es fehlt, kannst die Teile abhaken und die Liste als Text kopieren. |
 | **Verkaufstext** | Auf der Seite Auswertung hat jedes Teil unter „Aussortieren?“ zwei Knöpfe: **Behalten** (die App fragt erst nach 90 Tagen wieder; rückgängig möglich) und **Aussortieren**, das zwischen Verkaufstext, Löschen (rückgängig möglich) und Abbrechen fragt. Neu angelegte Teile gelten 30 Tage lang noch nicht als Schrankhüter. Die App entwirft eine Anzeige (Zustand, Größe, Versand wählbar) mit einem Preisvorschlag aus dem Kaufpreis (Neu 70 %, Sehr gut 55 %, Gut 45 %, Gebraucht 30 %). Der Text enthält nur, was die App sicher weiß; er behauptet nichts zum Tragen. Du kannst ihn vor dem Kopieren ändern. |
 | **Schuhe** | Ist nur ein Schuh zu sehen, wird der zweite gespiegelt ergänzt. |
-| **Outfits** | Speichern, laden und als PNG exportieren. Preissumme pro Outfit. |
+| **Outfits** | Speichern, laden, als PNG-Datei speichern und **als Bild teilen**. Preissumme pro Outfit. Der Knopf „Teilen“ am Board und an jedem gespeicherten Outfit zeichnet das Bild auf dem Gerät (800 × 1200 Pixel, mit der gewählten Bühne) und reicht es an das Teilen-Menü des Systems weiter (Nachrichten, Mail, Dateien …). Es gibt keinen Server und keine öffentlichen Links. Wo das Gerät keine Dateien teilen kann (etwa viele Desktop-Browser), wird das Bild als Datei gespeichert, mit einem Hinweis. Wer das Menü schließt, bekommt keine Fehlermeldung. |
 | **Dunkelmodus** | Hell, Dunkel oder **Automatisch** (folgt dem System), umschaltbar oben rechts und gespeichert. Kachel und Board bleiben eine helle **Bühne**, damit dunkle Kleidungsstücke sichtbar bleiben; die Bühne des Boards lässt sich auf Hell, Mittel oder Dunkel stellen und wird auch im PNG-Export verwendet. Kontraste sind per Test abgesichert (Text mindestens 4,5:1, Feldränder mindestens 3:1). |
 | **Rückgängig und Wiederholen** | Bis zu 50 Schritte für Kleiderschrank, Board und Outfits (Strg/Cmd + Z, Strg/Cmd + Umschalt + Z oder die Pfeile oben). Löschen und Backup-Einlesen fragen nicht mehr nach, sondern bieten stattdessen **„Rückgängig“** an. |
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen, über das Konto-Menü oben rechts (Knopf „Anmelden“ bzw. dein Profilbild). Das Format bleibt über alle Versionen lesbar; Vorschaubilder gehören nicht hinein, sie entstehen beim Einlesen neu. |
@@ -110,7 +110,9 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── cloud.js            Google-Sicherung (Abgleich mit Google Drive, Anmeldung)
 │   ├── cloudauth.js        Bausteine der Anmeldung (PKCE, Adressen)
 │   ├── syncmerge.js        Zusammenführen zweier Stände
-│   ├── exchange.js         PNG-Export, Backup, Wiederherstellen
+│   ├── exchange.js         Backup, Wiederherstellen
+│   ├── share.js            Outfit als Bild zeichnen, speichern und teilen
+│   ├── sharefile.js        Dateiname, Teilen-Unterstützung, Fehlerarten (reine Logik)
 │   ├── outfits.js          Preise, Ebenenliste, gespeicherte Outfits
 │   ├── render.js           alles neu zeichnen
 │   ├── ui.js               eigene Dialoge und Hinweise statt alert, confirm, prompt
@@ -181,7 +183,7 @@ Die Tests laufen bei jedem Push und Pull Request über GitHub Actions (`.github/
 ### Architektur in Kürze
 
 - **Kleine Module:** Jede Datei in `js/` hat eine Aufgabe. Veränderlicher Zustand liegt gebündelt in `core.js` (`state`).
-- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js`, `wear.js`, `stats.js`, `color.js`, `search.js`, `intake.js`, `model.js`, `stylist.js`, `packing.js`, `sale.js` und `shopdata.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
+- **Reine Logik getrennt von der Oberfläche:** `geometry.js`, `scraper.js`, `prices.js`, `fit.js`, `care.js`, `wear.js`, `stats.js`, `sharefile.js`, `color.js`, `search.js`, `intake.js`, `model.js`, `stylist.js`, `packing.js`, `sale.js` und `shopdata.js` enthalten keine DOM-Zugriffe und sind per Unit-Test abgedeckt.
 - **Kein Build-Schritt:** klassische Skripte und ES-Module, direkt vom Browser ausgeführt.
 - **Typsicherheit ohne TypeScript-Quellcode:** `geometry.js`, `scraper.js`, `prices.js` und `fit.js` sind per JSDoc annotiert und werden mit `tsc --strict --checkJs` geprüft. Die Oberflächen-Module tragen `// @ts-nocheck` und werden vom End-to-End-Test abgedeckt. Sie nach und nach zu typisieren ist der nächste Schritt.
 - **Persistenz:** IndexedDB (Version 2) mit verzögertem Speichern und sofortigem Sichern nach bewussten Aktionen. Jedes Teil liegt einzeln im Store `items`, der Rest (Reihenfolge, Outfits, Protokoll, Pläne, Board) als kleiner Datensatz unter `kv.s`, Vorschaubilder im Store `thumbs`. Beim Speichern wird nur geschrieben, was sich geändert hat, in einer Transaktion. Schlägt das fehl (etwa wegen Platzmangel), steht eine Meldung in der Oberfläche, und der nächste Versuch holt es nach.
