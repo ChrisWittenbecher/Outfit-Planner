@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { checker, PNG, startServer, launch, engine, closed } from './helpers.mjs';
+import { checker, PNG, startServer, launch, engine, closed, reload } from './helpers.mjs';
 
 const PORT = 8731, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -95,7 +95,7 @@ try {
     await p.click('#png');
     ok((await dl).suggestedFilename() === 'outfit.png', 'PNG-Export funktioniert');
     await p.waitForTimeout(400);
-    await p.reload();
+    await reload(p);
     await p.waitForSelector('html[data-ready]', { state: 'attached' });
     await p.waitForSelector('#grid .card');
     ok(await p.locator('#grid .card').count() === 1, 'Teil bleibt nach Neuladen erhalten');
@@ -132,7 +132,7 @@ try {
     else { await card1().hover(); await card1().locator('.acts button[aria-label="Als gekauft markieren"]').click(); }
     ok(await card1().locator('.badge').count() === 0 && await p.locator('#sum .t--buy').count() === 0, 'Als gekauft markiert: keine Marke, keine „Noch zu kaufen“-Summe');
     await p.waitForTimeout(400);
-    await p.reload();
+    await reload(p);
     await p.waitForSelector('html[data-ready]', { state: 'attached' });
     await p.waitForSelector('#grid .card');
     ok(await card1().locator('.badge').count() === 0 && await card1().locator('.pc--down').count() === 1, 'Status und Preisverlauf bleiben nach Neuladen erhalten');

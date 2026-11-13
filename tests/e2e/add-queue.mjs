@@ -279,6 +279,7 @@ try {
     await doneAll();
     for (const w of [320, 360, 390, 768, 1280]) {
       await p.setViewportSize({ width: w, height: 800 }); await sleep(250);
+      await p.evaluate(() => Promise.all(document.getAnimations().filter(a => a.effect.getComputedTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))));   // eine laufende Skalierung des Blatts verfälscht die gemessene Höhe (Safari-Engine: 39,4 statt 40)
       const lay = await p.evaluate(() => {
         const coarse = matchMedia('(pointer: coarse)').matches, min = coarse ? 40 : 28;   // Berührungsgeräte bekommen größere Ziele (css: pointer: coarse)
         const vw = document.documentElement.clientWidth, d = document.getElementById('queueDlg'), r = d.getBoundingClientRect(), bad = [];

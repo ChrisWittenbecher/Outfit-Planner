@@ -62,7 +62,14 @@ Die App liegt im Repository-Hauptverzeichnis und läuft direkt auf GitHub Pages:
 Zeigt die Seite noch eine alte Version, hilft ein harter Reload (`Strg/Cmd + Shift + R`).
 
 **Version prüfen und aktualisieren:** Unten auf der Seite steht die Versionsnummer, daneben **„Nach Update suchen“**. Die App vergleicht sich außerdem selbst mit `version.json` und bietet ein Update an, wenn sie veraltet ist. „Aktualisieren“ lädt alle Dateien am Zwischenspeicher vorbei neu. Das ist besonders am iPhone nützlich, wo geöffnete Tabs und Startbildschirm-Apps tagelang alte Dateien behalten. Eine ältere Version ohne diese Anzeige muss einmal von Hand erneuert werden: Tab schließen und die Adresse neu öffnen, oder unter *Einstellungen → Safari → Verlauf und Websitedaten löschen*.
-Bei jeder Veröffentlichung die Version in `package.json`, `version.json` und `js/version.js` gemeinsam hochzählen (der Unit-Test `version.test.mjs` prüft das).
+
+**Selbstheilung bei Mischstand:** Stammt die Startseite aus einer alten und ein Modul aus einer neuen Version (das kann nach einem unterbrochenen Update passieren), erkennt `js/guard.js` das beim Start: Die Versionsnummer im `<meta name="app-version">` der Seite wird mit `VERSION` aus `js/version.js` verglichen. Bei Abweichung lädt die App `index.html` am Zwischenspeicher vorbei neu und startet einmal neu, höchstens einmal pro Minute, damit es keine Schleife gibt. Die Daten bleiben dabei unberührt.
+
+**Update von älteren Versionen:** Der Test `tests/e2e/upgrade.mjs` holt echte alte Versionen (1.15.15, 1.19.0 und 1.20.0) aus dem Git-Verlauf, lässt sie im selben Browserprofil mit einem Bestand im alten Format und einer (nachgestellten) Google-Sicherung laufen und aktualisiert dann auf den aktuellen Stand, einmal über den Knopf „Aktualisieren“ und einmal durch normales Neuladen. Geprüft wird, dass nichts verloren geht, alle Seiten mit den alten Daten richtig rechnen, jede Seite offline startet, die Google-Sicherung weiterläuft und ein altes Backup lesbar bleibt. Die Ausgangsversionen kommen aus dem Verlauf, deshalb checkt die CI mit `fetch-depth: 0` aus.
+
+**Notbremse beim Start:** Direkt nach einem Update liefert die Safari-Engine beim Neuladen manchmal noch einzelne alte Module aus ihrem Arbeitsspeicher zur neuen Seite; eine alte `main.js` kennt `guard.js` nicht, die App startet dann nicht, bis man ein zweites Mal lädt. Das kleine klassische Skript `js/recover.js` läuft vor den Modulen und lädt die Seite in diesem Fall von selbst neu (bei einem Skriptfehler vor dem Start, oder wenn die App 10 Sekunden nach dem Laden noch nicht bereit ist), höchstens zweimal pro Minute und pro Tab. Der Test `tests/e2e/recover.mjs` prüft das samt Schutz vor Schleifen.
+
+Bei jeder Veröffentlichung die Version gemeinsam hochzählen in `package.json`, `package-lock.json`, `version.json`, `sw.js` (erste Zeile), `js/version.js` und im `<meta name="app-version">` in `index.html` (der Unit-Test `version.test.mjs` prüft das). Neue Module gehören in `index.html` als `modulepreload` **hinter** die bisherigen, direkt vor `guard.js`; die Reihenfolge ist dort erklärt und wird beim Aktualisieren der alten App-Versionen gebraucht (sie laden nur die ersten `REFRESH_MAX` = 120 Dateien neu).
 
 ### Ohne Hosting ausprobieren
 
@@ -127,6 +134,7 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── fitter.js           Outfit-Fitter: Messung am Bild, Anwenden aufs Board, Knopf
 │   ├── sheet.js            Dialoge: sanftes Schließen, Antippen daneben, Wisch-Griff am Bottom-Sheet
 │   ├── update.js           Versionsanzeige und Update-Hinweis
+│   ├── guard.js            Erkennt Mischstand (Seite und Module aus verschiedenen Versionen) und lädt dann einmal neu
 │   ├── care.js             Backup-Erinnerung und Installationshinweis (reine Logik)
 │   ├── color.js            Farbname aus Pixeln (reine Funktion, getestet)
 │   ├── search.js           Suche, Tags, Normalisierung (reine Funktionen, getestet)
@@ -140,12 +148,13 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── statspage.js        Seite „Auswertung“ (Kennzahlen, Rangliste, Aussortieren)
 │   ├── pwa.js              Service Worker anmelden, Backup-Zeile und Hinweise
 │   ├── version.js          Versionsnummer, Prüfung von Versionen, Auswahl der Dateien beim Aktualisieren (getestet)
+│   ├── recover.js          Notbremse: startet die App nach einem Update nicht, lädt die Seite von selbst neu
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons (auch maskierbar und für den iPhone-Home-Bildschirm)
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Suche und Mehrfach-Upload, Sicherheit
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Suche und Mehrfach-Upload, Update von alten Versionen mit Daten (`upgrade.mjs`), Notbremse beim Start (`recover.mjs`), Sicherheit
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc

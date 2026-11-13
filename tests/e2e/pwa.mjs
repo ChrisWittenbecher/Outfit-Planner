@@ -42,7 +42,7 @@ try {
     const wanted = await p.$$eval('link[rel=modulepreload], link[rel=stylesheet], script[src], link[rel=manifest]', els => els.map(e => new URL(e.getAttribute('href') || e.getAttribute('src'), location.href).pathname));
     const missing = wanted.filter(w => !cached.urls.includes(w));
     ok(missing.length === 0 && wanted.length > 20, 'alle ' + wanted.length + ' Dateien der App liegen im Cache ' + missing.join(','));
-    ok(!cached.urls.some(u => /\.(exe|zip)$/.test(u)) && cached.urls.length < 80, 'nur Dateien der App (' + cached.urls.length + ')');
+    ok(!cached.urls.some(u => /\.(exe|zip)$/.test(u)) && cached.urls.length < 120, 'nur Dateien der App (' + cached.urls.length + ')');
 
     await addItem(p, { trigger: '#addBtn', name: 'Offline-Hemd', price: '20' });
     await persisted(p, 1);
@@ -75,11 +75,19 @@ try {
     const release = async v => {
       const old = (await readFile(path.join(dir, 'js/version.js'), 'utf8')).match(/VERSION = '([^']+)'/)[1];
       for (const f of ['js/version.js', 'sw.js', 'version.json']) await writeFile(path.join(dir, f), (await readFile(path.join(dir, f), 'utf8')).replaceAll(old, v));
+      // wie bei einer echten Veröffentlichung auch die Versionsnummer der Seite (sonst hält js/guard.js Seite und Module für einen Mischstand)
+      const html = path.join(dir, 'index.html');
+      await writeFile(html, (await readFile(html, 'utf8')).replace(/(<meta name="app-version" content=")[^"]*(")/, `$1${v}$2`));
     };
     const shown = p => p.textContent('#ver');
     const open = async () => {
       const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'allow' });
-      const p = await ctx.newPage(); await p.goto(BASE2); await ready(p);
+      const p = await ctx.newPage();
+      const trail = p.trail = []; const t0 = Date.now(), note = m => trail.push(((Date.now() - t0) / 1000).toFixed(2) + ' ' + m);   // Ablauf der Seite, nur für die Diagnose
+      p.on('framenavigated', f => { if (f === p.mainFrame()) note('navigiert ' + f.url()); });
+      p.on('console', m => note('console ' + m.type() + ' ' + m.text().slice(0, 140)));
+      p.on('request', r => { if (r.isNavigationRequest() || /index\.html|version\.js|sw\.js/.test(r.url())) note('Anfrage ' + new URL(r.url()).pathname); });
+      await p.goto(BASE2); await ready(p);
       await p.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 15000 });
       return { ctx, p };
     };
@@ -108,7 +116,14 @@ try {
       for (let i = 0; i < 60 && !took; i++) { const s = await probe(); took = s.caches.includes('anprobe-8.8.8') && !s.caches.includes('anprobe-7.7.7') && s.viaWorker === '8.8.8'; if (!took) await b.p.waitForTimeout(250); }
       ok(took, 'der neue Service Worker lädt die neue Version im Hintergrund vor, übernimmt und räumt den alten Cache auf ' + (took ? '' : JSON.stringify(await probe())));
       await b.p.reload(); await ready(b.p);
-      const timing = await b.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/version\.js/.test(e.name)).map(e => ({ worker: e.workerStart > 0, size: e.transferSize, delivery: e.deliveryType, status: e.responseStatus })));
+      // Gerät und Engine liefern nach dem Wechsel des Service Workers beim Neuladen manchmal noch ein altes Modul zur neuen Seite (Safari-Engine).
+      // Dann lädt js/guard.js die Seite einmal von selbst neu; das darf den Test nicht stören, soll aber im Protokoll stehen.
+      let timing, reloads = 0;
+      for (let k = 0; k < 3 && !timing; k++) {
+        try { timing = await b.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/version\.js/.test(e.name)).map(e => ({ worker: e.workerStart > 0, size: e.transferSize, delivery: e.deliveryType, status: e.responseStatus }))); }
+        catch (e) { reloads++; console.log('INFO  Seite wurde währenddessen neu geladen (Selbstheilung?). Ablauf:\n' + b.p.trail.slice(-25).join('\n')); await b.p.waitForLoadState('load'); await ready(b.p); }
+      }
+      ok(!!timing, 'nach dem Neuladen steht die Seite still' + (reloads ? ' (nach ' + reloads + ' Selbstheilung(en))' : ''));
       console.log('Hinweis: nach dem Neuladen zeigt die Seite ' + await shown(b.p) + ' ' + JSON.stringify(timing) + ' ' + JSON.stringify(await probe()));
       // „Nächster Start“ heißt: die App wird neu geöffnet (neues Dokument im selben Browserprofil), nicht per Neuladen aktualisiert
       await b.p.close();

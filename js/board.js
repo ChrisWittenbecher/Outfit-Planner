@@ -141,8 +141,11 @@ $('shuffle').onclick = () => {
   if(state.board.length) fitBoard();
 };
 export function fit(){
-  state.K = Math.min(1, ($('stage').clientWidth - 36) / 400);
+  const w = $('stage').clientWidth;
+  if(!w) return;   // Schrank ist gerade verborgen (anderer Reiter): nicht mit Breite 0 rechnen, sonst wird der Maßstab negativ
+  state.K = Math.min(1, (w - 36) / 400);
   const wrap = $('wrap').style; wrap.width = 400 * state.K + 'px'; wrap.height = 600 * state.K + 'px';
   $('board').style.transform = `scale(${state.K})`;
 }
 addEventListener('resize', fit);
+document.addEventListener('anprobe:view', e => { if(e.detail.view === 'schrank') fit(); });   // Fenster wurde evtl. geändert, während der Schrank verborgen war

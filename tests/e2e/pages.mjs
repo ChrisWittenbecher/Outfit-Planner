@@ -116,6 +116,23 @@ try {
     await p.evaluate(() => { location.hash = '#schrank'; });
     ok(await wait(async () => await view() === 'schrank'), 'Adresse von Hand geändert: Bereich folgt');
 
+    console.log('--- Board nach Reiterwechsel');
+    {
+      const boardW = () => p.evaluate(() => Math.round(document.getElementById('board').getBoundingClientRect().width));
+      const same = async (w, label) => ok(await wait(async () => Math.abs(await boardW() - w) <= 1), `${label} (${await boardW()} statt ${w} px)`);
+      const w0 = await boardW(), vp = p.viewportSize();
+      ok(w0 > 150, 'Board hat eine sinnvolle Breite: ' + w0 + ' px');
+      await p.click('#tab-auswertung'); await p.waitForFunction(() => !document.getElementById('view-auswertung').hidden);
+      await p.setViewportSize({ width: vp.width + 40, height: vp.height + 200 }); await p.waitForTimeout(300);   // Handy drehen oder Fenster ziehen, während der Schrank verborgen ist
+      await p.setViewportSize(vp); await p.waitForTimeout(300);
+      await p.click('#tab-schrank'); await p.waitForFunction(() => !document.getElementById('view-schrank').hidden);
+      await same(w0, 'Fenster geändert, während der Schrank verborgen war: Board hat danach wieder seine Größe');
+      await p.goto(BASE + '#auswertung'); await ready(p);
+      await p.click('#tab-schrank'); await p.waitForFunction(() => !document.getElementById('view-schrank').hidden);
+      await same(w0, 'Start in der Auswertung, dann Schrank: Board hat seine Größe');
+      ok(await p.evaluate(() => !/-/.test(document.getElementById('board').style.transform)), 'der Maßstab ist nie negativ');
+    }
+
     console.log('--- Dialog und Verlauf');
     await p.click('#tab-vorschlaege'); await shown();
     await p.locator('#sugCards .sug').first().locator('.sug-save').click();

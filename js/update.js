@@ -20,7 +20,7 @@ export async function newerVersion(){
 export async function refresh(){
   toast('Aktualisiere …', {ms:10000});
   try{
-    const res = await fetch(location.pathname, {cache:'reload'});
+    const res = await fetch(new URL('index.html', location.href), {cache:'reload'});   // die Seite selbst, auch wenn die App über „/“ geöffnet wurde
     const text = (await res.text()).slice(0, 200000);
     const hrefs = [...text.matchAll(/<(?:link|script)\b[^>]*?\s(?:href|src)="([^"]+)"/gi)].map(m => m[1]);
     const urls = refreshTargets(hrefs, location.href);   // nur eigene Dateien der App

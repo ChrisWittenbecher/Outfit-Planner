@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { PNG, checker, closed, engine, launch, startServer } from './helpers.mjs';
+import { PNG, checker, closed, engine, launch, startServer, reload } from './helpers.mjs';
 
 // Etappe 2: Wetter (Open-Meteo, nur mit Zustimmung), Anlass, Schalter. Der Wetterdienst wird nachgestellt, es geht nie etwas ins echte Netz.
 const PORT = 8753, BASE = `http://localhost:${PORT}/index.html`;
@@ -128,7 +128,7 @@ try {
     await p.check('#wxOn'); await wait(async () => /Jetzt/.test(await status(p)));
     const n1 = wxCalls.length;
     await p.click('#tab-schrank'); await wait(async () => (await p.evaluate(() => location.hash)) === '');
-    await p.reload(); await ready(p); await new Promise(r => setTimeout(r, 600));
+    await reload(p); await ready(p); await new Promise(r => setTimeout(r, 600));
     ok(wxCalls.length === n1 && await p.evaluate(() => window.__geo.calls) === 0, 'Start im Schrank: nichts wird abgefragt (erst wenn die Seite „Vorschläge“ geöffnet wird)');
     await open(p); await openCtl(p);
     ok(await p.locator('#wxOn').isChecked(), 'Schalter ist nach dem Neustart noch an');
@@ -137,7 +137,7 @@ try {
     await p.click('#tab-schrank'); await open(p);
     ok(wxCalls.length === n1 + 1, 'Reiterwechsel holt nicht erneut (Zwischenspeicher im Speicher)');
     // Startet die Seite gleich auf „Vorschläge“ (Lesezeichen, Neuladen dort), kommt das Wetter ebenfalls
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await wait(async () => /Jetzt 11 °C/.test(await status(p))) && wxCalls.length === n1 + 2, 'Start direkt auf „Vorschläge“: Wetter wird geholt (' + (wxCalls.length - n1) + ' Abfragen seit dem Neustart)');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     ok((await p.evaluate(() => window.__csp)).length === 0, 'keine CSP-Verstöße');
@@ -230,7 +230,7 @@ try {
     await p.uncheck('#optRare');
     ok(!(await hasIdle()) && /Gewählt nach Wetter und Farben\./.test(await p.textContent('#sugNote')), name + ': ohne „Selten Getragenes“ fehlt der Hinweis');
     ok(JSON.parse(await prefs(p)).rare === false, name + ': Wahl ist gespeichert');
-    await p.reload(); await ready(p); await open(p); await openCtl(p);
+    await reload(p); await ready(p); await open(p); await openCtl(p);
     ok(!(await p.locator('#optRare').isChecked()) && await p.locator('#optOwn').isChecked(), name + ': Wahl bleibt nach Neustart');
     await p.check('#optRare');
     ok(JSON.parse(await prefs(p)).rare === true, name + ': wieder an');
