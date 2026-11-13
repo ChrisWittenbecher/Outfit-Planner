@@ -100,3 +100,13 @@ test('Quellenangabe: Name und beide Links (CC BY 4.0)', () => {
   assert.equal(ATTRIBUTION.href, 'https://open-meteo.com/');
   assert.equal(ATTRIBUTION.licence, 'https://creativecommons.org/licenses/by/4.0/');
 });
+
+test('Alle Wettercodes der Dokumentation (WMO) haben einen Text und eine Stufe', () => {
+  const codes = [0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 97, 99];
+  for (const code of codes) {
+    const r = parseWeather({ current: { temperature_2m: 15, weather_code: code } });
+    assert.ok(r && r.text.length > 2, 'Text für Code ' + code);
+    assert.ok(['kalt', 'mild', 'warm', 'regen'].includes(r.weather), 'Stufe für Code ' + code);
+  }
+  assert.equal(parseWeather({ current: { temperature_2m: 15, weather_code: 97 } }).weather, 'regen');
+});

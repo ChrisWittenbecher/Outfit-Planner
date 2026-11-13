@@ -34,7 +34,7 @@ const TEXT = {
   61: 'leichter Regen', 63: 'Regen', 65: 'starker Regen', 66: 'gefrierender Regen', 67: 'gefrierender Regen',
   71: 'leichter Schneefall', 73: 'Schneefall', 75: 'starker Schneefall', 77: 'Schneegriesel',
   80: 'leichte Regenschauer', 81: 'Regenschauer', 82: 'starke Regenschauer', 85: 'leichte Schneeschauer', 86: 'Schneeschauer',
-  95: 'Gewitter', 96: 'Gewitter mit Hagel', 99: 'Gewitter mit Hagel',
+  95: 'Gewitter', 96: 'Gewitter mit Hagel', 97: 'schweres Gewitter', 99: 'Gewitter mit Hagel',
 };
 const isRain = (/** @type {number} */ c) => (c >= 51 && c <= 67) || (c >= 80 && c <= 82) || (c >= 95 && c <= 99);
 const isSnow = (/** @type {number} */ c) => (c >= 71 && c <= 77) || c === 85 || c === 86;
