@@ -110,17 +110,6 @@ try {
   ok(await p.locator('#res img').count() === 0, 'es wird nichts verarbeitet');
   await p.click('#cancel');
 
-  console.log('--- KI-Freistellen nur mit Zustimmung'); phase = 'KI-Freistellen nur mit Zustimmung';
-  await p.click('#fab');
-  await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: PNG });
-  await p.waitForSelector('#res img', { timeout: 15000 });
-  await p.click('#ai');
-  await p.waitForSelector('#uiDlg[open]', { timeout: 5000 });
-  ok(/jsDelivr/.test(await p.textContent('#uiText')), 'vor dem Nachladen fremden Codes fragt die App nach (nennt jsDelivr)');
-  await p.click('#uiCancel'); await wait(500);
-  ok(foreign.length === 0, 'ohne Zustimmung wird nichts von außen geladen');
-  await p.click('#cancel');
-
   console.log('--- Clickjacking'); phase = 'Clickjacking';
   const host = await ctx.newPage();
   await host.route('**/frame-host', r => r.fulfill({ status: 200, contentType: 'text/html', body: `<iframe id="f" src="${BASE}" width="400" height="600"></iframe>` }));

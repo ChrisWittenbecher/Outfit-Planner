@@ -26,7 +26,7 @@ Der typische Ablauf:
 | Bereich | Beschreibung |
 |---|---|
 | **Bild und Screenshot** | Per Dateiauswahl, Drag & Drop oder Einfügen aus der Zwischenablage. Preis und **Link zum Shop** werden immer am Teil gespeichert (fehlt „https://“, wird es ergänzt). Aktionen pro Teil (Bearbeiten, Angebot öffnen, Löschen) liegen am Smartphone im Drei-Punkte-Menü. |
-| **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler, optional KI-Freistellen für schwierige Bilder. Ausschnitt per Ziehen anpassbar. |
+| **Automatisches Freistellen** | Flood-Fill-Freistellung mit Toleranzregler. Ausschnitt per Ziehen anpassbar. |
 | **Outfit-Fitter** | Teile ordnen sich beim Auflegen **direkt passend zueinander** an, ohne dass du Größe und Lage anpassen musst: Die App misst an den freigestellten Bildern, wie breit der Saum des Oberteils und der Bund der Hose sind, und skaliert die Hose so, dass beides zusammenpasst. Die Schuhe richten sich nach dem Hosensaum, die Jacke ist etwas weiter als das Oberteil, Accessoires stehen daneben. Das Ganze wird auf das Board gestreckt. Verstellst du etwas von Hand, bleibt dein Layout (auch nach dem Neuladen); **„Passend anordnen“** stellt die Passform jederzeit wieder her. Bei Bildern ohne Freistellung nimmt die App übliche Proportionen an. |
 | **Anprobe-Board** | **Doppeltipp** (am Smartphone) oder Doppelklick (Maus) nimmt ein Teil vom Board, ebenso die Entf-Taste; ein Hinweis mit „Rückgängig“ holt es zurück. Verschieben, Skalieren und **Drehen aller Teile**: am Smartphone mit **zwei Fingern** (Spreizen = Größe, Verdrehen = Drehung), am Desktop per Mausrad, Griff, Regler und Tastatur. Ebenen per Schaltfläche oder Liste. |
 | **Wunschliste und Preisverlauf** | Jedes Teil ist entweder „Besitze ich“ oder „Wunschliste“ (filterbar, mit Marke an der Karte, „Als gekauft markieren“ per Klick). Im Outfit zeigt die Summe zusätzlich, was **noch zu kaufen** ist. Jede Preisänderung wird mit Datum im **Preisverlauf** festgehalten; die Karte zeigt die letzte Änderung als ↓ oder ↑ in Prozent. Der Preis wird von Hand eingetragen (siehe Roadmap). |
@@ -147,14 +147,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 - **Nur zwei Einstellungen in `localStorage`:** die Wahl von Design und Bühne (damit sie vor dem ersten Zeichnen bereitsteht). Alles andere liegt in IndexedDB.
 - **Eingabeprüfung:** Links werden validiert (nur `http(s)`, keine Zugangsdaten, keine privaten oder lokalen Adressen). Texte, Preise, Bilder und Backup-Dateien werden bereinigt: Ein Backup wird nur mit eingebetteten Bildern gelesen (keine Adressen, kein SVG), Größe und Menge sind begrenzt, ungültige oder doppelte Teile werden übersprungen und gemeldet. Bilder über 25 MB werden abgelehnt.
 - **Kein Backend:** Es gibt keinen Server, der angegriffen werden könnte.
-- **Fremder Code nur mit Zustimmung und abgeschottet:** Das optionale KI-Freistellen lädt Code von jsDelivr erst, nachdem du es bestätigt hast. Er läuft in einem eigenen Rahmen ohne Zugriff auf deine Daten; die Regeln der App selbst bleiben streng (kein `eval`, keine fremden Skripte).
+- **Kein fremder Code:** Die App lädt keine Skripte von fremden Servern und nutzt kein `eval` (strenge Content-Security-Policy, Rahmen sind nicht erlaubt).
 - **Lieferkette:** GitHub-Actions auf festen Commits, Lockfile mit Prüfsummen, Dependabot, CodeQL und `npm audit`.
 
 Alle Maßnahmen, die Einstellungen auf GitHub (Branch-Schutz, Secret Scanning, …) und die Meldung von Schwachstellen stehen in [SECURITY.md](SECURITY.md).
 
 ### Externe Dienste
 
-Nur das optionale **KI-Freistellen** lädt beim ersten Mal ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Es läuft in einem abgeschotteten Rahmen (`ai/`) ohne Zugriff auf deine Daten; die strengen Regeln der App bleiben unverändert. Dabei werden keine deiner Daten gesendet. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
+Das Freistellen läuft komplett auf deinem Gerät. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
 
 ## Entwicklung
 
