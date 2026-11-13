@@ -13,14 +13,19 @@ const NOSTORE = { 'cache-control': 'no-store' };
 const isReady = p => p.evaluate(() => !!document.documentElement.dataset.ready).catch(() => false);
 const flag = p => p.evaluate(() => sessionStorage.getItem('anprobe-recover')).catch(() => null);
 
-/** Neue Seite; die Navigationen zu index.html werden gezählt, js/ui.js lässt sich durch ein fehlerhaftes Modul ersetzen, js/main.js abbrechen. */
+/** Neue Seite; die Navigationen zu index.html werden gezählt, js/ui.js lässt sich durch ein fehlerhaftes Modul ersetzen, ein langsamer Start nachstellen. */
 async function open(fake = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const p = await ctx.newPage();
-  const seen = { nav: 0, ui: 0, main: 0 };
+  const seen = { nav: 0, ui: 0 };
   p.on('request', r => { if (r.isNavigationRequest() && new URL(r.url()).pathname === '/index.html') seen.nav++; });
   await p.route('**/js/ui.js', r => { seen.ui++; return fake.ui?.(seen.ui) ? r.fulfill({ contentType: 'text/javascript', headers: NOSTORE, body: "throw new TypeError('altes Modul passt nicht zur Seite');" }) : r.continue(); });
-  await p.route('**/js/main.js', r => { seen.main++; return fake.main?.(seen.main) ? r.abort() : r.continue(); });   // Laden schlägt fehl: kein Skriptfehler im Fenster, die App startet einfach nicht
+  if (fake.slow) {   // Die App startet, meldet sich aber nicht als bereit, bis die Notbremse einmal geladen hat (ohne Skriptfehler, ohne ersetzte Module)
+    await p.addInitScript(() => {
+      const strip = () => { try { if (!sessionStorage.getItem('anprobe-recover')) document.documentElement.removeAttribute('data-ready'); } catch { /* egal */ } };
+      new MutationObserver(strip).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-ready'] });   // am Dokument, die Wurzel gibt es beim ersten Skript noch nicht
+    });
+  }
   return { ctx, p, seen };
 }
 
@@ -60,9 +65,9 @@ try {
     await ctx.close();
   }
 
-  console.log('--- Start bleibt aus, ohne Skriptfehler (main.js lässt sich einmal nicht laden)');
+  console.log('--- Start bleibt aus, ohne Skriptfehler (die App meldet sich nicht als bereit)');
   {
-    const { ctx, p, seen } = await open({ main: n => n === 1 });
+    const { ctx, p, seen } = await open({ slow: true });
     await p.goto(BASE);
     await p.waitForTimeout(3000);
     ok(!await isReady(p) && seen.nav === 1, 'zunächst steht die App und lädt nicht neu');
