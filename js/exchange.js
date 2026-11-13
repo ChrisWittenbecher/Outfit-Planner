@@ -23,7 +23,7 @@ $('png').onclick = async () => {
 $('exp').onclick = () => {
   state.data.board = state.board;
   const url = URL.createObjectURL(new Blob([JSON.stringify(state.data)], {type:'application/json'}));
-  const a = document.createElement('a'); a.href = url; a.download = 'anprobe-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = 'outfit-planner-backup-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);   // Speicher wieder freigeben
   markBackup();
 };
@@ -33,7 +33,7 @@ $('impf').onchange = async e => {
   const bad = msg => toast(msg, {kind:'error'});
   if(f.size > Scraper.BACKUP_LIMITS.bytes) return bad('Die Datei ist zu groß für ein Backup.');   // vor dem Lesen prüfen, nichts wird in den Speicher geladen
   let r;
-  try{ r = Scraper.parseBackup(await f.text(), CATS); }catch(err){ return bad('Diese Datei ist kein gültiges Anprobe-Backup.'); }
+  try{ r = Scraper.parseBackup(await f.text(), CATS); }catch(err){ return bad('Diese Datei ist kein gültiges Outfit-Planner-Backup.'); }
   if(!r.ok) return bad(r.error);
   if(!await confirmBox({title:'Backup einlesen', text:'Die aktuellen Daten werden durch das Backup ersetzt. Mit „Rückgängig“ holst du sie zurück.', ok:'Ersetzen', danger:true})) return;
   step(); state.data = {items:r.items, outfits:r.outfits, wears:r.wears, plans:r.plans}; state.board = fixOrder(cleanPieces(r.board)); state.sel = null; state.fitted = false; renderAll();

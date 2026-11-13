@@ -1,6 +1,6 @@
-# Anprobe-Hilfsdienst einrichten (Cloudflare Worker)
+# Outfit-Planner-Hilfsdienst einrichten (Cloudflare Worker)
 
-Mit dem Dienst fügst du in Anprobe nur den Produktlink ein, und Name, Preis, Farbe, Kategorie und Bild füllen sich von selbst. Er ist kostenlos (Cloudflare Free: 100 000 Anfragen pro Tag) und dauert etwa zehn Minuten.
+Mit dem Dienst fügst du im Outfit-Planner nur den Produktlink ein, und Name, Preis, Farbe, Kategorie und Bild füllen sich von selbst. Er ist kostenlos (Cloudflare Free: 100 000 Anfragen pro Tag) und dauert etwa zehn Minuten.
 
 ## Einmal einrichten
 
@@ -11,7 +11,7 @@ Mit dem Dienst fügst du in Anprobe nur den Produktlink ein, und Name, Preis, Fa
 5. Oben rechts **Deploy** drücken.
 6. Die Adresse des Dienstes steht danach auf der Seite des Workers, sie sieht so aus: `https://anprobe.DEIN-NAME.workers.dev`. **Diese Adresse an Claude schicken.** Claude trägt sie in `js/config.js` und in die Inhaltsrichtlinie (CSP) ein, damit die App sich nur mit genau diesem Dienst verbindet, und stellt die neue Version bereit.
 
-Fertig. In Anprobe erscheint beim Hinzufügen ein Feld „Produktlink einfügen“.
+Fertig. Im Outfit-Planner erscheint beim Hinzufügen ein Feld „Produktlink einfügen“.
 
 ## Prüfen, ob der Dienst läuft
 
@@ -27,7 +27,7 @@ Unter **Settings → Bindings → Add → Rate limiting** eine Bindung mit dem N
 - Er antwortet nur Anfragen, die von der Adresse der App kommen.
 - Er nimmt nur https-Adressen mit Domainnamen. IP-Adressen, `localhost` und interne Namen lehnt er ab, jede Weiterleitung wird neu geprüft.
 - Er speichert nichts, setzt keine Cookies und gibt keine Zugangsdaten weiter.
-- Manche Shops (zum Beispiel mit Bot-Schutz) sperren automatische Abrufe. Dann zeigt Anprobe eine Meldung, und du nutzt den Kurzbefehl oder trägst von Hand ein.
+- Manche Shops (zum Beispiel mit Bot-Schutz) sperren automatische Abrufe. Dann zeigt der Outfit-Planner eine Meldung, und du nutzt den Kurzbefehl oder trägst von Hand ein.
 
 ## Aktualisieren
 

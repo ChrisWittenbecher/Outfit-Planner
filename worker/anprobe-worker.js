@@ -1,4 +1,4 @@
-// Anprobe-Hilfsdienst für Cloudflare Workers.
+// Outfit-Planner-Hilfsdienst für Cloudflare Workers.
 // Holt auf Wunsch der App eine Produktseite und gibt nur Name, Preis, Währung, Farbe, Marke, Link und Bildadresse zurück.
 // Dazu liefert er das Produktbild aus, weil Browser fremde Bilder nicht direkt lesen dürfen.
 // Außerdem tauscht er für die Google-Anmeldung den Code gegen Tokens, weil das Client-Geheimnis nicht in die App darf.

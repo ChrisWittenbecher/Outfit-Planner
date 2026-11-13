@@ -1,21 +1,21 @@
 # Google-Sicherung einrichten
 
-Damit speichert Anprobe deinen Stand automatisch in deinem Google Drive. Du musst das **einmal** einrichten (ca. 10 Minuten). Bis dahin bleibt „Google-Sicherung“ in der App ausgeblendet.
+Damit speichert der Outfit-Planner deinen Stand automatisch in deinem Google Drive. Du musst das **einmal** einrichten (ca. 10 Minuten). Bis dahin bleibt „Google-Sicherung“ in der App ausgeblendet.
 
-Was Anprobe bekommt: nur Zugriff auf einen **versteckten App-Ordner** (Recht `drive.appdata`). Anprobe sieht keine anderen Dateien in deinem Drive, andere Apps sehen die Datei nicht.
+Was der Outfit-Planner bekommt: nur Zugriff auf einen **versteckten App-Ordner** (Recht `drive.appdata`). Er sieht keine anderen Dateien in deinem Drive, andere Apps sehen die Datei nicht.
 
 ## 1. Google-Cloud-Projekt
-1. Öffne <https://console.cloud.google.com/projectcreate>, Name z. B. „Anprobe“, **Erstellen**.
+1. Öffne <https://console.cloud.google.com/projectcreate>, Name z. B. „Outfit-Planner“, **Erstellen**.
 2. Öffne <https://console.cloud.google.com/apis/library/drive.googleapis.com> (mit diesem Projekt) und klicke **Aktivieren** (Google Drive API).
 
 ## 2. Zustimmungsbildschirm
 1. <https://console.cloud.google.com/auth/overview> → **Erste Schritte**.
-2. App-Name „Anprobe“, E-Mail: deine. Zielgruppe: **Extern**. Kontakt: deine E-Mail. Speichern.
+2. App-Name „Outfit-Planner“, E-Mail: deine. Zielgruppe: **Extern**. Kontakt: deine E-Mail. Speichern.
 3. Unter **Datenzugriff** → **Bereiche hinzufügen**: `…/auth/drive.appdata` auswählen. Speichern.
 4. Unter **Zielgruppe**: **App veröffentlichen** (Produktion). Für diesen Bereich ist keine Prüfung durch Google nötig. Bleibt die App im Testmodus, läuft die Anmeldung nach 7 Tagen ab.
 
 ## 3. OAuth-Client
-1. <https://console.cloud.google.com/auth/clients> → **Client erstellen** → Typ **Webanwendung**, Name „Anprobe“.
+1. <https://console.cloud.google.com/auth/clients> → **Client erstellen** → Typ **Webanwendung**, Name „Outfit-Planner“.
 2. **Autorisierte JavaScript-Quellen:** `https://outfit-planner.org`
 3. **Autorisierte Weiterleitungs-URIs:** `https://outfit-planner.org/` (mit Schrägstrich am Ende)
 4. **Erstellen**. Du bekommst eine **Client-ID** und ein **Client-Geheimnis**. Das Geheimnis kommt nur in den Hilfsdienst, nie in die App.

@@ -22,8 +22,8 @@ const idb = new Promise((res, rej) => {
   const q = indexedDB.open(DB, VERSION);
   q.onupgradeneeded = () => { for(const n of ['kv', 'items', 'thumbs']) if(!q.result.objectStoreNames.contains(n)) q.result.createObjectStore(n, n === 'items' ? {keyPath:'id'} : undefined); };
   let blocked = false;
-  q.onblocked = () => { blocked = true; status('Anprobe ist noch in einem anderen Tab geöffnet. Bitte diesen Tab schließen, dann geht es hier weiter.'); };
-  q.onsuccess = () => { if(blocked) status(''); q.result.onversionchange = () => { q.result.close(); handle = null; status('Anprobe wurde in einem anderen Tab aktualisiert. Bitte diese Seite neu laden.'); }; res(q.result); };
+  q.onblocked = () => { blocked = true; status('Der Outfit-Planner ist noch in einem anderen Tab geöffnet. Bitte diesen Tab schließen, dann geht es hier weiter.'); };
+  q.onsuccess = () => { if(blocked) status(''); q.result.onversionchange = () => { q.result.close(); handle = null; status('Der Outfit-Planner wurde in einem anderen Tab aktualisiert. Bitte diese Seite neu laden.'); }; res(q.result); };
   q.onerror = () => rej(q.error);
 });
 export const db = () => idb;

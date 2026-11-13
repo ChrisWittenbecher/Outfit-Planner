@@ -1,6 +1,6 @@
 # Sicherheit
 
-Anprobe ist eine statische Web-App ohne Server und ohne Konto. Alle Daten bleiben im Browser des Nutzers (IndexedDB).
+Der Outfit-Planner ist eine statische Web-App ohne Server und ohne Konto. Alle Daten bleiben im Browser des Nutzers (IndexedDB).
 Deshalb gibt es keine Zugangsdaten, keine Datenbank und keine Server-Schnittstelle, die angegriffen werden könnten.
 Was bleibt, sind Angriffe über Eingaben (Backup-Dateien, Bilder, Links), über die Auslieferung (Seite, Skripte) und über
 die Entwicklungspipeline (Abhängigkeiten, GitHub Actions). Dagegen gelten diese Regeln.
@@ -55,7 +55,7 @@ Diese Punkte lassen sich nicht per Code erledigen. Sie stehen unter *Settings* d
 
 ## Grenzen
 
-- Das Backup (`anprobe-backup-….json`) enthält alle Daten im Klartext. Wer es weitergibt, gibt die Daten weiter.
+- Das Backup (`outfit-planner-backup-….json`) enthält alle Daten im Klartext. Wer es weitergibt, gibt die Daten weiter.
 - Wer die App im Browser öffnet, vertraut dem Stand auf GitHub Pages. Ohne eigene Header (kein `frame-ancestors`, kein HSTS-Einfluss) bleibt das Risiko, das jede statische Seite auf GitHub Pages hat.
 - Mit Google-Sicherung liegt dein kompletter Stand (inklusive Bilder) unverschlüsselt in einer versteckten Datei im App-Ordner deines Google Drive. Google und jeder mit Zugriff auf dein Google-Konto kann sie lesen. Den Zugriff entziehst du unter myaccount.google.com → Sicherheit → Drittanbieter-Apps. Der Auffrisch-Schlüssel im Browser gilt nur für diesen App-Ordner.
 - Der Hilfsdienst ruft die Shop-Seite ab; der Shop sieht dabei die Adresse von Cloudflare, nicht deine. Die App selbst lädt nichts von Shops.

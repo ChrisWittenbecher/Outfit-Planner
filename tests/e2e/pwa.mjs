@@ -138,7 +138,7 @@ try {
     ok(await p.locator('#toasts button', { hasText: 'Backup speichern' }).isVisible(), 'nach 30 Tagen erinnert ein Hinweis mit Knopf');
     const dl = p.waitForEvent('download');
     await p.click('#toasts button');
-    ok(/^anprobe-backup-.*\.json$/.test((await dl).suggestedFilename()), 'der Knopf sichert direkt');
+    ok(/^outfit-planner-backup-.*\.json$/.test((await dl).suggestedFilename()), 'der Knopf sichert direkt');
     await p.waitForTimeout(500);
     ok(/heute/.test(await p.textContent('#bk')), 'danach steht „heute“ in der Fußzeile');
     const m = await meta(p);

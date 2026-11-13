@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Google-Sicherung: hält den Stand in einer versteckten Datei im App-Ordner von Google Drive.
 // Anmeldung per Weiterleitung (Code mit PKCE), den Austausch gegen Tokens übernimmt der Hilfsdienst (dort liegt das Client-Geheimnis).
-// Zugriff nur auf den App-Ordner (Recht drive.appdata): Anprobe sieht keine anderen Dateien, andere Apps sehen diese Datei nicht.
+// Zugriff nur auf den App-Ordner (Recht drive.appdata): der Outfit-Planner sieht keine anderen Dateien, andere Apps sehen diese Datei nicht.
 import * as Scraper from './scraper.js';
 import { $, CATS, state } from './core.js';
 import { WORKER_URL, GOOGLE_CLIENT_ID } from './config.js';

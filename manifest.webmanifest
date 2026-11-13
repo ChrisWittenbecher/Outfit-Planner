@@ -1,6 +1,6 @@
 {
-  "name": "Anprobe – Outfit-Planer",
-  "short_name": "Anprobe",
+  "name": "Outfit-Planner",
+  "short_name": "Outfit-Planner",
   "description": "Outfits aus Screenshots und Fotos planen: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.",
   "lang": "de",
   "start_url": "./index.html",

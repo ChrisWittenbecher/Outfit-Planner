@@ -12,7 +12,7 @@ test('sw.js nennt dieselbe Version wie die App (so erkennt der Browser jede neue
 test('Manifest: eigenständige App im Ordner, Symbole vorhanden und in der richtigen Größe', async () => {
   const m = JSON.parse(await read('manifest.webmanifest'));
   assert.equal(m.display, 'standalone'); assert.equal(m.lang, 'de'); assert.equal(m.scope, './'); assert.match(m.start_url, /^\.\/(index\.html)?$/);
-  assert.ok(m.name && m.short_name && m.short_name.length <= 12);
+  assert.ok(m.name && m.short_name && m.short_name.length <= 14);
   const purposes = m.icons.map(i => i.purpose);
   assert.ok(purposes.includes('any') && purposes.includes('maskable'));
   for (const i of m.icons) {

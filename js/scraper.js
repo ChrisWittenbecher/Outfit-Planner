@@ -203,8 +203,8 @@ export function parseBackup(text, cats) {
   if (typeof text !== 'string' || text.length > BACKUP_LIMITS.bytes) return { ok: false, error: 'Die Datei ist zu groß für ein Backup.' };
   /** @type {any} */
   let j;
-  try { j = JSON.parse(text); } catch { return { ok: false, error: 'Diese Datei ist kein gültiges Anprobe-Backup.' }; }
-  if (!j || typeof j !== 'object' || !Array.isArray(j.items)) return { ok: false, error: 'Diese Datei ist kein gültiges Anprobe-Backup.' };
+  try { j = JSON.parse(text); } catch { return { ok: false, error: 'Diese Datei ist kein gültiges Outfit-Planner-Backup.' }; }
+  if (!j || typeof j !== 'object' || !Array.isArray(j.items)) return { ok: false, error: 'Diese Datei ist kein gültiges Outfit-Planner-Backup.' };
   if (j.items.length > BACKUP_LIMITS.items) return { ok: false, error: 'Das Backup enthält zu viele Teile (höchstens ' + BACKUP_LIMITS.items + ').' };
   const rawOutfits = Array.isArray(j.outfits) ? j.outfits.slice(0, BACKUP_LIMITS.outfits) : [];
   const seen = new Set();
