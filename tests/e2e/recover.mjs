@@ -7,6 +7,9 @@ const { ok, state: result } = checker();
 const server = await startServer(PORT);
 const browser = await launch();
 const wait = async (cond, ms = 15000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await cond()) return true; await new Promise(r => setTimeout(r, 60)); } return false; };
+// Die ersetzten Antworten dürfen nicht zwischengespeichert werden, sonst reicht die Safari-Engine sie je nach Zustand ihres Arbeitsspeichers auch beim
+// zweiten Neuladen weiter, und der Test prüfte die Zwischenspeicherung der Engine statt der Notbremse (das echte Verhalten deckt upgrade.mjs ab).
+const NOSTORE = { 'cache-control': 'no-store' };
 const isReady = p => p.evaluate(() => !!document.documentElement.dataset.ready).catch(() => false);
 const flag = p => p.evaluate(() => sessionStorage.getItem('anprobe-recover')).catch(() => null);
 
@@ -16,8 +19,8 @@ async function open(fake = {}) {
   const p = await ctx.newPage();
   const seen = { nav: 0, ui: 0, main: 0 };
   p.on('request', r => { if (r.isNavigationRequest() && new URL(r.url()).pathname === '/index.html') seen.nav++; });
-  await p.route('**/js/ui.js', r => { seen.ui++; return fake.ui?.(seen.ui) ? r.fulfill({ contentType: 'text/javascript', body: "throw new TypeError('altes Modul passt nicht zur Seite');" }) : r.continue(); });
-  await p.route('**/js/main.js', r => { seen.main++; return fake.main?.(seen.main) ? r.fulfill({ contentType: 'text/javascript', body: '/* tut nichts */' }) : r.continue(); });
+  await p.route('**/js/ui.js', r => { seen.ui++; return fake.ui?.(seen.ui) ? r.fulfill({ contentType: 'text/javascript', headers: NOSTORE, body: "throw new TypeError('altes Modul passt nicht zur Seite');" }) : r.continue(); });
+  await p.route('**/js/main.js', r => { seen.main++; return fake.main?.(seen.main) ? r.fulfill({ contentType: 'text/javascript', headers: NOSTORE, body: '/* tut nichts */' }) : r.continue(); });
   return { ctx, p, seen };
 }
 
