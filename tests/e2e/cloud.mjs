@@ -16,7 +16,7 @@ const jsonRes = (o, status = 200) => ({ status, contentType: 'application/json',
 async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' } = {}) {
   const p = await ctx.newPage();
   const errors = [], block = { on: false };
-  p.on('pageerror', e => errors.push(e.message));
+  p.on('pageerror', e => errors.push(e.message + ' @ ' + String(e.stack || '').replace(/\s+/g, ' ').slice(0, 400)));
   if (process.env.DEBUG) { p.on('console', m => console.log('  [console]', m.text())); p.on('requestfailed', r => console.log('  [failed]', r.method(), r.url(), r.failure()?.errorText)); }
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: `export const WORKER_URL = '${W}'; export const GOOGLE_CLIENT_ID = '${clientId}';` }));
@@ -32,6 +32,7 @@ async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' 
     const req = r.request(), path = new URL(req.url()).pathname;
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors });
     const body = req.postDataJSON(); fake.calls.push('worker ' + path);
+    if (path === '/auth/token' && fake.tokenFails) return r.fulfill(jsonRes({ error: 'upstream', detail: 'invalid_client' }, 502));
     if (path === '/auth/token') {
       const want = fake.challenge.get(body.code), got = createHash('sha256').update(body.verifier).digest('base64url');
       if (!want || want !== got) return r.fulfill(jsonRes({ error: 'invalid_grant' }, 400));
@@ -162,6 +163,13 @@ try {
   ok(await wait(async () => !(await a.evaluate(() => localStorage.getItem('anprobe-cloud')))?.includes('RT-secret'), 8000), 'abgelaufene Anmeldung (invalid_grant) löscht den Schlüssel');
   ok(await wait(() => a.locator('.toast', { hasText: 'Anmeldung ist abgelaufen' }).count().then(n => n > 0), 8000), 'und meldet das mit Knopf zum Neu-Anmelden');
   fake.refreshFails = false;
+
+  console.log('--- Fehlermeldung bei falschem Client-Geheimnis');
+  fake.tokenFails = true;
+  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open); await a.click('#cloudIn');
+  await a.waitForSelector('html[data-ready]', { state: 'attached' });
+  ok(await wait(() => a.locator('.toast', { hasText: 'invalid_client' }).count().then(n => n > 0), 8000), 'Fehler des Hilfsdienstes nennt den Google-Grund (invalid_client)');
+  fake.tokenFails = false;
 
   console.log('--- Abmelden');
   await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
