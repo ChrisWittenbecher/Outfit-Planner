@@ -325,7 +325,11 @@
   .cloud-state[data-kind="busy"]::before { background: var(--acc); }
   .cloud-state[data-kind="warn"]::before, .cloud-state[data-kind="error"]::before { background: var(--danger); }
   .cloud-state[data-kind="error"] { color: var(--danger); }
-  button.acct-out { width: 100%; border-color: var(--line); color: var(--danger); }
+  button.acct-in { width: 100%; margin-bottom: 12px; }
+  .acct-data { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .acct-data button { border-color: var(--line); }
+  @media (hover: hover) and (pointer: fine) { .acct-data button:hover:not(:disabled) { background: var(--raised); } }
+  button.acct-out { width: 100%; margin-top: 12px; border-color: var(--line); color: var(--danger); }
   button.acct-out:active:not(:disabled) { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
   @media (hover: hover) and (pointer: fine) { button.acct-out:hover:not(:disabled) { background: var(--danger-soft); } }
   .menu-list .danger { color: var(--danger); border-color: var(--danger); }
@@ -386,7 +390,6 @@
   #uiOk.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 
   @media (max-width: 560px) {
-    #exp, #imp { display: none; }
     .more-btn { display: grid; }
     #toasts { bottom: calc(88px + env(safe-area-inset-bottom)); }
     .topbar .actions { flex-wrap: nowrap; }

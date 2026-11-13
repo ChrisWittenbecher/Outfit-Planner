@@ -75,7 +75,7 @@ try {
     __proto__: { polluted: true },
   };
   const send = async (content, name = 'backup.json') => {
-    await p.click('#more'); await p.click('#mImp').catch(() => {});
+    await p.click('#cloudBtn'); await p.click('#imp').catch(() => {});
     await p.setInputFiles('#impf', { name, mimeType: 'application/json', buffer: Buffer.isBuffer(content) ? content : Buffer.from(content) });
   };
   await send(JSON.stringify(attack).replace('"__proto__"', '"__proto__"'));
