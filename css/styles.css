@@ -378,9 +378,9 @@
   .tools .wide { min-width: 8.5em; }
 
   #toasts { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(24px, env(safe-area-inset-bottom)); display: grid; justify-items: center; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
-  .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; background: var(--overlay); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px var(--shade-lg); font-size: 14px; }
+  .toast { pointer-events: none; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; background: var(--overlay); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px var(--shade-lg); font-size: 14px; }
   .toast--err { border-color: var(--danger); }
-  .toast button { border: 0; background: none; color: var(--acc); font-weight: 600; padding: 6px 12px; min-height: 36px; border-radius: 8px; }
+  .toast button { pointer-events: auto; border: 0; background: none; color: var(--acc); font-weight: 600; padding: 6px 12px; min-height: 36px; border-radius: 8px; }
   .toast button:active:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); }
   @media (hover: hover) and (pointer: fine) { .toast button:hover:not(:disabled) { background: var(--acc-soft); color: var(--acc-strong); } }
 
