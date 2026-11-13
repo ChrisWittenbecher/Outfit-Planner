@@ -48,6 +48,17 @@ try {
     ok(await feel(p) === before, 'bei „Aus“ bleibt alles still');
     await p.tap('#more'); await p.waitForTimeout(300); await p.tap('#mHaptic'); await p.waitForTimeout(300);
     ok(await feel(p) > before && /An/.test(await p.textContent('#mHaptic')), 'wieder „An“, bestätigt mit einem Tippen');
+    if (!android) {
+      // Der unsichtbare Schalter darf dem Nutzer den Fokus nicht wegnehmen (Tastatur, Screenreader)
+      const act = () => p.evaluate(() => { const a = document.activeElement; return a ? (a.id || a.tagName + (a.type ? ':' + a.type : '')) : 'nichts'; });
+      await p.tap('#mClose'); await p.waitForTimeout(500);
+      await p.evaluate(() => document.getElementById('outfitTitle').focus());
+      await p.evaluate(() => document.getElementById('theme').click()); await p.waitForTimeout(400);
+      ok(await act() === 'outfitTitle', 'Haptik lässt den Fokus, wo er war (aktiv: ' + await act() + ')');
+      await p.evaluate(() => document.activeElement.blur());
+      await p.evaluate(() => document.getElementById('theme').click()); await p.waitForTimeout(400);
+      ok(!(await act()).startsWith('INPUT'), 'Haptik setzt ohne Fokus keinen Fokus auf den Schalter (aktiv: ' + await act() + ')');
+    }
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();
   }

@@ -34,13 +34,23 @@ function iosSwitch() {
   return (sw = l);
 }
 
+/** Legt den Schalter um, ohne dass der Fokus mitwandert (Tastatur und Screenreader bleiben, wo sie waren). @param {HTMLLabelElement} l */
+function tap(l) {
+  const before = document.activeElement;
+  l.click();
+  const now = document.activeElement;
+  if (now === before || !(now instanceof HTMLElement) || !l.contains(now)) return;
+  if (before instanceof HTMLElement && before !== document.body && before.isConnected) before.focus({ preventScroll: true });
+  else now.blur();
+}
+
 /** @param {'tick'|'select'|'success'|'warn'|'error'} kind */
 export function haptic(kind = 'tick') {
   if (!hapticsOn()) return;
   try {
     if (canVibrate) { navigator.vibrate(PATTERNS[kind] || PATTERNS.tick); return; }
     const l = iosSwitch(), n = TAPS[kind] || 1;
-    for (let k = 0; k < n; k++) setTimeout(() => l.click(), k * 70);
+    for (let k = 0; k < n; k++) setTimeout(() => tap(l), k * 70);
   } catch { /* Haptik ist nur ein Zusatz */ }
 }
 

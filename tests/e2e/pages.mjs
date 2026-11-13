@@ -30,6 +30,7 @@ try {
     p.on('pageerror', e => errors.push(e.message));
     p.on('dialog', d => { native.push(d.type()); d.dismiss(); });
     await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
+    if (mobile) await p.addInitScript(() => { Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true }); });   // wie iPhone: Haptik über den unsichtbaren Schalter
     await p.goto(BASE); await ready(p);
 
     const view = () => p.evaluate(() => document.documentElement.dataset.view);
