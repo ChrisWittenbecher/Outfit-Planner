@@ -60,9 +60,31 @@ try {
   await p.locator('#board').scrollIntoViewIfNeeded();
   const top = await p.locator('#board img.p').last().boundingBox();
   const cx = top.x + top.width / 2, cy = top.y + top.height / 2;
+  // Liegt ein Hinweis („Rückgängig“) über dem Teil, wartet der Test, bis er weg ist: sonst träfe der zweite Tipp den Hinweis
+  const covered = async () => { const t = await p.locator('#toasts .toast').first().boundingBox().catch(() => null); return !!t && cx > t.x - 20 && cx < t.x + t.width + 20 && cy > t.y - 20 && cy < t.y + t.height + 20; };
+  for (let k = 0; k < 80 && await covered(); k++) await wait(100);
   const before = await count();
-  await p.touchscreen.tap(cx, cy); await wait(300); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
-  ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 300 ms Pause nehmen das Teil vom Board');
+  // Ablaufprotokoll der Berührungen: bei einem Fehlschlag steht in der Meldung, ob der Abstand zu groß war oder eine Berührung abgebrochen wurde
+  await p.evaluate(() => {
+    window.__ev = [];
+    addEventListener('scroll', () => window.__ev.push('scroll@' + Math.round(performance.now()) + ':y=' + Math.round(scrollY)), true);
+    for (const t of ['pointerdown', 'pointerup', 'pointercancel', 'focusin', 'focusout']) {
+      addEventListener(t, e => {
+        const n = e.target, r = n && n.getBoundingClientRect ? n.getBoundingClientRect() : null;
+        window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc')) + (n && n.className && typeof n.className === 'string' ? '.' + n.className : '') + (r ? '[' + [r.x, r.y, r.width, r.height].map(Math.round) + ']' : '') + (e.clientX != null && t.startsWith('pointer') ? '(' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')' : '') + ' y=' + Math.round(scrollY));
+      }, true);
+    }
+  });
+  const stack = (x, y) => p.evaluate(([x, y]) => document.elementsFromPoint(x, y).slice(0, 4).map(n => n.tagName + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className ? '.' + n.className : '')).join(' > '), [x, y]);
+  console.log('INFO Teil: ' + JSON.stringify(top) + ' Fenster: ' + await p.evaluate(() => innerWidth + 'x' + innerHeight + ' scrollY=' + scrollY));
+  console.log('INFO 1. Tipp trifft: ' + await stack(cx, cy));
+  console.log('INFO 2. Tipp träfe: ' + await stack(cx + 12, cy + 6));
+  await p.touchscreen.tap(cx, cy);
+  console.log('INFO nach 1. Tipp, 2. Tipp träfe: ' + await stack(cx + 12, cy + 6) + ' | Hinweis: ' + await p.evaluate(() => document.getElementById('toasts').textContent));
+  await wait(250); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
+  const trace = await p.evaluate(() => window.__ev.join(' '));
+  console.log('INFO Ablauf: ' + trace);
+  ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 250 ms Pause nehmen das Teil vom Board [' + trace + ']');
   ok(await p.locator('#toasts button', { hasText: 'Rückgängig' }).isVisible(), 'Hinweis mit „Rückgängig“');
 
   ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));

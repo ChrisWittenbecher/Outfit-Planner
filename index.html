@@ -62,7 +62,10 @@
   <link rel="modulepreload" href="js/packing.js">
   <link rel="modulepreload" href="js/sale.js">
   <link rel="modulepreload" href="js/clip.js">
-  <link rel="modulepreload" href="js/ideas.js">
+  <link rel="modulepreload" href="js/sugpage.js">
+  <link rel="modulepreload" href="js/suggestcard.js">
+  <link rel="modulepreload" href="js/views.js">
+  <link rel="modulepreload" href="js/nav.js">
   <link rel="modulepreload" href="js/sell.js">
   <link rel="modulepreload" href="js/calendar.js">
   <link rel="modulepreload" href="js/pwa.js">
@@ -74,6 +77,10 @@
 
   <header class="topbar">
     <h1>Outfit-Planner</h1>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Bereiche">
+      <button type="button" role="tab" id="tab-schrank" class="tab" data-view="schrank" aria-controls="view-schrank" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 7.5a2.5 2.5 0 1 0-2.5-2.5"/><path d="M12 7.5V10l8.2 5.4a1 1 0 0 1-.55 1.84H4.35a1 1 0 0 1-.55-1.84L12 10"/></svg><span>Schrank</span></button>
+      <button type="button" role="tab" id="tab-vorschlaege" class="tab" data-view="vorschlaege" aria-controls="view-vorschlaege" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16v4M17 18h4"/></svg><span>Vorschläge</span></button>
+    </nav>
     <div class="actions" role="toolbar" aria-label="Hauptaktionen">
       <button type="button" class="ibtn" id="undo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
       <button type="button" class="ibtn" id="redo" title="Wiederholen (Strg+Umschalt+Z)" aria-label="Wiederholen" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
@@ -96,7 +103,8 @@
 
   <button type="button" class="pri fab" id="fab" aria-label="Kleidungsstück hinzufügen" aria-haspopup="dialog">+</button>
 
-  <main id="main" class="layout">
+  <main id="main">
+  <div class="layout" id="view-schrank" role="tabpanel" aria-labelledby="tab-schrank">
 
     <section class="panel" aria-labelledby="wardrobeTitle">
       <div class="panel-head"><h2 id="wardrobeTitle">Kleiderschrank</h2><span id="count" class="meta"></span></div>
@@ -109,7 +117,7 @@
     </section>
 
     <section class="panel" id="stage" aria-labelledby="outfitTitle">
-      <div class="panel-head panel-head--full"><h2 id="outfitTitle">Outfit</h2><span id="saveState" class="meta" role="status"></span></div>
+      <div class="panel-head panel-head--full"><h2 id="outfitTitle" tabindex="-1">Outfit</h2><span id="saveState" class="meta" role="status"></span></div>
       <div id="wrap">
         <div id="board" role="group" aria-label="Anprobe-Board">
           <div class="hint" id="hint">Tippe im Kleiderschrank auf ein Teil, um es hier anzuprobieren.</div>
@@ -162,10 +170,68 @@
     </section>
 
     <section class="panel" aria-labelledby="savedTitle">
-      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2><span class="head-act"><button type="button" class="small" id="ideaBtn" aria-haspopup="dialog">Ideen</button><button type="button" class="small" id="calBtn" aria-haspopup="dialog">Kalender</button></span></div>
+      <div class="panel-head"><h2 id="savedTitle">Gespeichert</h2><span class="head-act"><button type="button" class="small" id="calBtn" aria-haspopup="dialog">Kalender</button></span></div>
       <div id="outs"></div>
     </section>
+  </div>
+
+  <div class="page" id="view-vorschlaege" role="tabpanel" aria-labelledby="tab-vorschlaege" hidden>
+    <section class="panel page-main" aria-labelledby="sugTitle">
+      <div class="page-head">
+        <h2 id="sugTitle" class="page-title" tabindex="-1">Heute für dich</h2>
+        <p class="meta" id="sugDate"></p>
+      </div>
+      <div class="chips" id="sugMode" role="group" aria-label="Ansicht">
+        <button type="button" id="sugModeOut" aria-pressed="true">Outfit-Vorschläge</button>
+        <button type="button" id="sugModePack" aria-pressed="false">Packliste</button>
+      </div>
+      <div class="chips sug-w sug-w--inline" role="group" aria-label="Wetter">
+        <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
+        <button type="button" data-w="mild" aria-pressed="true">Mild</button>
+        <button type="button" data-w="warm" aria-pressed="false">Warm</button>
+        <button type="button" data-w="regen" aria-pressed="false">Regen</button>
+      </div>
+      <div id="sugOut">
+        <p class="hint" id="sugNote"></p>
+        <ul id="sugCards" class="sug-cards"></ul>
+        <div class="page-foot">
+          <span>Nicht dabei? Die nächsten Vorschläge nutzen andere Teile.</span>
+          <button type="button" id="sugMore">Neue Vorschläge</button>
+        </div>
+      </div>
+      <div id="sugPack" hidden>
+        <label for="packDays">Wie viele Tage?</label>
+        <input type="number" id="packDays" min="1" max="30" value="5" inputmode="numeric" autocomplete="off">
+        <p class="hint" id="packNote"></p>
+        <div id="packList"></div>
+        <div class="cal-act"><button type="button" id="packCopy">Liste kopieren</button></div>
+      </div>
+    </section>
+    <aside class="panel page-side" aria-labelledby="sugSideTitle">
+      <h2 id="sugSideTitle">Wetter</h2>
+      <div class="chips sug-w" role="group" aria-label="Wetter">
+        <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
+        <button type="button" data-w="mild" aria-pressed="true">Mild</button>
+        <button type="button" data-w="warm" aria-pressed="false">Warm</button>
+        <button type="button" data-w="regen" aria-pressed="false">Regen</button>
+      </div>
+      <p class="note">Alles läuft auf deinem Gerät. Es gibt kein KI-Modell und keine Daten, die deinen Schrank verlassen.</p>
+    </aside>
+    <div id="sugLive" class="sr-only" role="status" aria-live="polite"></div>
+  </div>
   </main>
+
+  <template id="sugTpl">
+    <li class="sug">
+      <div class="sug-strip"></div>
+      <div class="sug-head"><h3 class="sug-title"></h3><p class="sug-sub"></p></div>
+      <ul class="sug-why"></ul>
+      <div class="sug-act">
+        <button type="button" class="pri sug-try">Anprobieren</button>
+        <button type="button" class="ibtn sug-save"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+      </div>
+    </li>
+  </template>
 
   <p class="ver">Outfit-Planner <span id="ver"></span> · <span id="bk"></span><span id="bkSep" hidden> · </span><button type="button" id="updBtn">Nach Update suchen</button></p>
 
@@ -181,12 +247,11 @@
     </div>
   </dialog>
 
-  <!-- Mehr (Smartphone): Ideen, Kalender, Haptik -->
+  <!-- Mehr (Smartphone): Kalender, Haptik -->
   <dialog id="moreDlg" data-dismiss="backdrop" aria-labelledby="moreTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
-      <button type="button" id="mIdea">Ideen: Vorschläge &amp; Packliste</button>
       <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mHaptic" hidden>Haptik: An</button>
       <button type="button" id="mClose">Schließen</button>
@@ -230,35 +295,6 @@
   </dialog>
 
   <!-- Kalender: getragene und geplante Outfits, Auswertung -->
-  <dialog id="ideaDlg" aria-labelledby="ideaTitle">
-    <div class="grab" aria-hidden="true"></div>
-    <h2 id="ideaTitle" class="menu-title">Ideen</h2>
-    <div class="chips" id="ideaWeather" role="group" aria-label="Wetter">
-      <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
-      <button type="button" data-w="mild" aria-pressed="true">Mild</button>
-      <button type="button" data-w="warm" aria-pressed="false">Warm</button>
-      <button type="button" data-w="regen" aria-pressed="false">Regen</button>
-    </div>
-    <div class="chips" id="ideaTabs" role="group" aria-label="Ansicht">
-      <button type="button" id="ideaTabOut" aria-pressed="true">Outfit-Vorschläge</button>
-      <button type="button" id="ideaTabPack" aria-pressed="false">Packliste</button>
-    </div>
-    <div id="ideaOut">
-      <p class="hint" id="ideaNote"></p>
-      <ul id="ideaList" class="idea-list"></ul>
-      <div class="cal-act"><button type="button" id="ideaMore">Andere Vorschläge</button></div>
-    </div>
-    <div id="ideaPack" hidden>
-      <label for="packDays">Wie viele Tage?</label>
-      <input type="number" id="packDays" min="1" max="30" value="5" inputmode="numeric" autocomplete="off">
-      <p class="hint" id="packNote"></p>
-      <div id="packList"></div>
-      <div class="cal-act"><button type="button" id="packCopy">Liste kopieren</button></div>
-    </div>
-    <div id="ideaLive" class="sr-only" role="status" aria-live="polite"></div>
-    <div class="foot"><button type="button" id="ideaClose">Schließen</button></div>
-  </dialog>
-
   <dialog id="saleDlg" aria-labelledby="saleTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="saleTitle" class="menu-title">Verkaufstext</h2>

@@ -26,7 +26,10 @@ const RANK = {'Schuhe':0,'Hose/Rock':1,'Oberteil':2,'Jacke':3,'Accessoire':4}; /
 const rank = id => RANK[item(id)?.cat] ?? 2;
 /** Legt genau diese Teile aufs Board, jedes an seinem Standardplatz. */
 export function placeAll(list){ state.board = []; for(const i of list) addPiece(i); }
-function addPiece(i){ const d = DEF[i.cat]; let k = state.board.length; while(k > 0 && rank(state.board[k-1].id) > RANK[i.cat]) k--; state.board.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
+function insertPiece(arr, i){ const d = DEF[i.cat]; let k = arr.length; while(k > 0 && rank(arr[k-1].id) > RANK[i.cat]) k--; arr.splice(k, 0, {id:i.id, x:d[0], y:d[1], w:d[2], r:0}); }
+function addPiece(i){ insertPiece(state.board, i); }
+/** Teile an ihren Standardplätzen in der richtigen Ebenenreihenfolge, ohne das Board zu verändern. */
+export function piecesFor(list){ const a = []; for(const i of list) insertPiece(a, i); return a; }
 export const cleanPieces = list => Geo.sanitizePieces(list).filter(p => imgOf(p.id));
 export function fixOrder(a){ if(a.some(p => 'z' in p)){ a.sort((p, q) => rank(p.id) - rank(q.id)); a.forEach(p => delete p.z); } return a; } // ältere Daten: Reihenfolge neu setzen
 export function moveLayer(id, to){ const k = state.board.findIndex(p => p.id === id); if(k < 0) return; const [p] = state.board.splice(k, 1); state.board.splice(Math.max(0, Math.min(state.board.length, to)), 0, p); renderBoard(); announce((item(id)?.name || 'Teil') + ' liegt jetzt auf Ebene ' + (state.board.findIndex(q => q.id === id) + 1) + ' von ' + state.board.length); }

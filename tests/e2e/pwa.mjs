@@ -42,7 +42,7 @@ try {
     const wanted = await p.$$eval('link[rel=modulepreload], link[rel=stylesheet], script[src], link[rel=manifest]', els => els.map(e => new URL(e.getAttribute('href') || e.getAttribute('src'), location.href).pathname));
     const missing = wanted.filter(w => !cached.urls.includes(w));
     ok(missing.length === 0 && wanted.length > 20, 'alle ' + wanted.length + ' Dateien der App liegen im Cache ' + missing.join(','));
-    ok(!cached.urls.some(u => /\.(exe|zip)$/.test(u)) && cached.urls.length < 60, 'nur Dateien der App (' + cached.urls.length + ')');
+    ok(!cached.urls.some(u => /\.(exe|zip)$/.test(u)) && cached.urls.length < 80, 'nur Dateien der App (' + cached.urls.length + ')');
 
     await addItem(p, { trigger: '#addBtn', name: 'Offline-Hemd', price: '20' });
     await persisted(p, 1);

@@ -21,6 +21,8 @@ const NEED = {
   warm: { req: ['Oberteil', 'Hose/Rock', 'Schuhe'], opt: [] },
   regen: { req: ['Oberteil', 'Hose/Rock', 'Jacke', 'Schuhe'], opt: ['Accessoire'] },
 };
+/** Abzug für Teile, die im vorigen Satz Vorschläge schon vorkamen (damit „Neue Vorschläge“ wirklich andere Teile nutzt). */
+const AVOID = 2.5;
 const POOL = 5;   // so viele Kandidaten je Kategorie kommen in die engere Wahl
 
 /** Kleine, deterministische Zufallsfolge (gleiche Zahl → gleiche Folge). @param {number} seed */
@@ -66,12 +68,13 @@ export function colorHarmony(colors) {
  * Schlägt Outfits aus den vorhandenen Teilen vor. Wunschlisten-Teile zählen nicht.
  * @param {readonly Piece[]} items
  * @param {readonly { d: string, items: string[] }[]} wears
- * @param {{ weather: Weather, today: string, seed?: number, count?: number }} opts
+ * @param {{ weather: Weather, today: string, seed?: number, count?: number, avoid?: readonly string[] }} opts avoid: Teile, die gerade schon gezeigt wurden und diesmal zurückstehen sollen
  * @returns {{ suggestions: Suggestion[], missing: string[] }}
  */
 export function suggest(items, wears, opts) {
   const { weather, today } = opts, count = Math.max(1, opts.count ?? 3), rnd = rng(opts.seed ?? 1);
   const need = NEED[weather] || NEED.mild;
+  const avoid = new Set(Array.isArray(opts.avoid) ? opts.avoid : []);
   const own = items.filter(i => i && i.status !== 'wish');
   const stats = wearStats(/** @type {any} */ (wears), today);
   /** @type {Map<string, { score: number, idle: number | null }>} */
@@ -79,7 +82,7 @@ export function suggest(items, wears, opts) {
   for (const it of own) {
     const s = stats.get(it.id), idle = s ? daysBetween(s.last, today) : null;
     const fresh = idle === null ? 2.5 : idle <= 2 ? -2 : Math.min(idle, 90) / 30;
-    base.set(it.id, { score: fresh + weatherFit(it, weather).score + rnd() * 1.5, idle });
+    base.set(it.id, { score: fresh + weatherFit(it, weather).score + rnd() * 1.5 - (avoid.has(it.id) ? AVOID : 0), idle });
   }
   const top = (/** @type {string} */ cat) => own.filter(i => i.cat === cat).sort((a, b) => /** @type {number} */ (base.get(b.id)?.score) - /** @type {number} */ (base.get(a.id)?.score) || (a.id < b.id ? -1 : 1)).slice(0, POOL);
   const missing = need.req.filter(c => !own.some(i => i.cat === c));

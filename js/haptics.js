@@ -34,13 +34,34 @@ function iosSwitch() {
   return (sw = l);
 }
 
+/** Liegt das Element vollständig im sichtbaren Bereich? @param {HTMLElement} e */
+function onScreen(e) {
+  const r = e.getBoundingClientRect(), w = window.innerWidth, h = window.innerHeight;
+  return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= h && r.right <= w;
+}
+
+/**
+ * Legt den Schalter um, ohne dass der Fokus mitwandert (Tastatur und Screenreader bleiben, wo sie waren).
+ * Liegt das Element mit dem bisherigen Fokus außerhalb des Bildschirms, bekommt es ihn nicht zurück: WebKit scrollt es sonst
+ * trotz preventScroll in die Mitte und die Seite springt mitten im Tippen. Dort ist der Fokus ohnehin nichts, was jemand sieht.
+ * @param {HTMLLabelElement} l
+ */
+function tap(l) {
+  const before = document.activeElement;
+  l.click();
+  const now = document.activeElement;
+  if (now === before || !(now instanceof HTMLElement) || !l.contains(now)) return;
+  if (before instanceof HTMLElement && before !== document.body && before.isConnected && onScreen(before)) before.focus({ preventScroll: true });
+  else now.blur();
+}
+
 /** @param {'tick'|'select'|'success'|'warn'|'error'} kind */
 export function haptic(kind = 'tick') {
   if (!hapticsOn()) return;
   try {
     if (canVibrate) { navigator.vibrate(PATTERNS[kind] || PATTERNS.tick); return; }
     const l = iosSwitch(), n = TAPS[kind] || 1;
-    for (let k = 0; k < n; k++) setTimeout(() => l.click(), k * 70);
+    for (let k = 0; k < n; k++) setTimeout(() => tap(l), k * 70);
   } catch { /* Haptik ist nur ein Zusatz */ }
 }
 
