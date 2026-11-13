@@ -30,7 +30,7 @@ export async function addMany(files){
       try{
         if(f.size > Scraper.IMAGE_LIMITS.bytes) throw new Error('zu groß');
         const n = await norm(await readFile(f));
-        const r = await makeImage({orig:n.url, crop:null, alpha:n.alpha, rm:true, tol:28, ai:false, mirror:false, mirrorTouched:false}, cat);
+        const r = await makeImage({orig:n.url, crop:null, alpha:n.alpha, rm:true, tol:28, mirror:false, mirrorTouched:false}, cat);
         const it = {id:newId(), img:r.img, orig:n.url, alpha:n.alpha, cut:r.cut, mirror:r.mirror, name:nameFromFile(f.name, Scraper.sanitizeText), cat, link:'', price:null, cur:'EUR', status:wish ? 'wish' : 'own', priceHistory:recordPrice([], null), tags:[]};
         const color = await detectColor(r.img, r.cut).catch(() => null); if(color) it.color = color;
         made.push(it);

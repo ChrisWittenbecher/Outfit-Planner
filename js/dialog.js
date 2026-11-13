@@ -11,10 +11,9 @@ import { fetchImage, fetchProduct, linkFetchEnabled } from './linkfetch.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
 import { haptic } from './haptics.js';
-import { confirmBox } from './ui.js';
 import { closeDialog, showDialog } from './sheet.js';
 
-const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, ai:false, img:null, cut:false, mirror:false, mirrorTouched:false, colorTouched:false});
+const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, img:null, cut:false, mirror:false, mirrorTouched:false, colorTouched:false});
 function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(state.draft) $('mirror').checked = !!state.draft.mirror; }
 let tok = 0;
 /** Verarbeitet das Bild im Dialog und zeigt das Ergebnis an. */
@@ -56,7 +55,7 @@ function showOrig(){
     };
   };
 }
-function syncOpts(){ syncMirror(); $('rm').checked = state.draft.rm; $('tol').value = state.draft.tol; $('tol').disabled = !state.draft.rm || state.draft.alpha; $('ai').disabled = !state.draft.rm || state.draft.alpha; }
+function syncOpts(){ syncMirror(); $('rm').checked = state.draft.rm; $('tol').value = state.draft.tol; $('tol').disabled = !state.draft.rm || state.draft.alpha; }
 function showHistory(it){
   const h = it && it.priceHistory || [], box = $('priceHistory');
   box.hidden = h.length < 2;
@@ -87,7 +86,7 @@ export function openDlg(it){
 }
 async function adopt(n){
   if(!state.draft) state.draft = blank();
-  state.draft.orig = n.url; state.draft.alpha = n.alpha; state.draft.crop = null; state.draft.ai = false; showOrig(); syncOpts(); await process();
+  state.draft.orig = n.url; state.draft.alpha = n.alpha; state.draft.crop = null; showOrig(); syncOpts(); await process();
 }
 const setSource = async src => adopt(await norm(src));
 
@@ -194,14 +193,8 @@ $('drop').addEventListener('drop', e => { const files = [...e.dataTransfer.files
 document.addEventListener('paste', e => { if(e.target === $('url')) return; const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
 $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) process(); };
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };
-$('rm').onchange = () => { state.draft.rm = $('rm').checked; state.draft.ai = false; syncOpts(); process(); };
-$('tol').oninput = () => { state.draft.tol = +$('tol').value; state.draft.ai = false; processSoon(); };
-let aiOk = false;   // Zustimmung gilt nur für diese Sitzung
-$('ai').onclick = async () => {
-  if(!state.draft.orig) return;
-  if(!aiOk && !await confirmBox({title:'KI-Freistellen laden?', text:'Dafür lädt die App einmalig Programmcode und ein Modell (ca. 40 MB) von jsDelivr und staticimgly.com. Deine Bilder bleiben auf dem Gerät. Ohne Zustimmung nutzt du die normale Freistellung.', ok:'Laden'})) return;
-  aiOk = true; state.draft.ai = true; process();
-};
+$('rm').onchange = () => { state.draft.rm = $('rm').checked; syncOpts(); process(); };
+$('tol').oninput = () => { state.draft.tol = +$('tol').value; processSoon(); };
 $('rcrop').onclick = () => { if(!state.draft) return; state.draft.crop = null; const b = $('selbox'); if(b) b.style.display = 'none'; process(); };
 
 $('ok').onclick = () => {
