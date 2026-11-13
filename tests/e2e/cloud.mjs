@@ -106,7 +106,7 @@ try {
   await a.click('#cloudBtn'); await menuOpen(a);
   ok(await a.locator('#cloudIn').isVisible() && await a.locator('#exp').isVisible() && await a.locator('#imp').isVisible() && await a.locator('#cloudOut').isHidden(), 'abgemeldet: Menü bietet Anmelden, Backup und Wiederherstellen');
   { const dl = a.waitForEvent('download'); await a.click('#exp');
-    ok(/^anprobe-backup-.*\.json$/.test((await dl).suggestedFilename()), '„Backup“ im Konto-Menü lädt die Datei');
+    ok(/^outfit-planner-backup-.*\.json$/.test((await dl).suggestedFilename()), '„Backup“ im Konto-Menü lädt die Datei');
     ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'und schließt das Menü'); }
   await a.waitForTimeout(300);
   ok(/Google Drive/.test(await a.getAttribute('#cloudBtn', 'title')), 'Hinweis am Knopf erklärt die Sicherung in Google Drive');
