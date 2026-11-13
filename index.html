@@ -9,7 +9,7 @@
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://anprobe.chris-wittenbecher.workers.dev https://www.googleapis.com; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://anprobe.chris-wittenbecher.workers.dev https://www.googleapis.com https://api.open-meteo.com; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -64,6 +64,8 @@
   <link rel="modulepreload" href="js/clip.js">
   <link rel="modulepreload" href="js/sugpage.js">
   <link rel="modulepreload" href="js/suggestcard.js">
+  <link rel="modulepreload" href="js/weather.js">
+  <link rel="modulepreload" href="js/wx.js">
   <link rel="modulepreload" href="js/views.js">
   <link rel="modulepreload" href="js/nav.js">
   <link rel="modulepreload" href="js/sell.js">
@@ -185,12 +187,10 @@
         <button type="button" id="sugModeOut" aria-pressed="true">Outfit-Vorschläge</button>
         <button type="button" id="sugModePack" aria-pressed="false">Packliste</button>
       </div>
-      <div class="chips sug-w sug-w--inline" role="group" aria-label="Wetter">
-        <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
-        <button type="button" data-w="mild" aria-pressed="true">Mild</button>
-        <button type="button" data-w="warm" aria-pressed="false">Warm</button>
-        <button type="button" data-w="regen" aria-pressed="false">Regen</button>
-      </div>
+      <details class="sug-det" id="sugDet">
+        <summary><span class="sug-det-t">Anpassen</span><span class="sug-det-now" id="sugDetNow"></span></summary>
+        <div id="sugDetBody"></div>
+      </details>
       <div id="sugOut">
         <p class="hint" id="sugNote"></p>
         <ul id="sugCards" class="sug-cards"></ul>
@@ -207,15 +207,42 @@
         <div class="cal-act"><button type="button" id="packCopy">Liste kopieren</button></div>
       </div>
     </section>
-    <aside class="panel page-side" aria-labelledby="sugSideTitle">
-      <h2 id="sugSideTitle">Wetter</h2>
-      <div class="chips sug-w" role="group" aria-label="Wetter">
-        <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
-        <button type="button" data-w="mild" aria-pressed="true">Mild</button>
-        <button type="button" data-w="warm" aria-pressed="false">Warm</button>
-        <button type="button" data-w="regen" aria-pressed="false">Regen</button>
+    <aside class="panel page-side" id="sugSide" aria-labelledby="sugSideTitle">
+      <h2 id="sugSideTitle">Anpassen</h2>
+      <div id="sugCtl" class="sug-ctl">
+        <section class="sug-sec" aria-labelledby="wxTitle">
+          <h3 id="wxTitle">Wetter</h3>
+          <label class="ck ck--tall"><input type="checkbox" id="wxOn"> Wetter von heute verwenden</label>
+          <p class="hint" id="wxNow" hidden></p>
+          <button type="button" class="small" id="wxRetry" hidden>Erneut versuchen</button>
+          <div class="chips sug-w" role="group" aria-label="Wetter von Hand wählen">
+            <button type="button" data-w="kalt" aria-pressed="false">Kalt</button>
+            <button type="button" data-w="mild" aria-pressed="true">Mild</button>
+            <button type="button" data-w="warm" aria-pressed="false">Warm</button>
+            <button type="button" data-w="regen" aria-pressed="false">Regen</button>
+          </div>
+          <p class="hint" id="wxCredit" hidden><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Wetterdaten von Open-Meteo.com</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
+          <p class="hint" id="wxPriv">Beim Einschalten fragt dein Gerät nach dem Standort. Er wird auf etwa 10 km gerundet nur an Open-Meteo gesendet und nicht gespeichert.</p>
+        </section>
+        <section class="sug-sec" id="occSec" aria-labelledby="occTitle">
+          <h3 id="occTitle">Anlass</h3>
+          <div class="chips" id="occChips" role="group" aria-label="Anlass">
+            <button type="button" data-occ="" aria-pressed="true">Alle</button>
+            <button type="button" data-occ="Büro" aria-pressed="false">Büro</button>
+            <button type="button" data-occ="Alltag" aria-pressed="false">Alltag</button>
+            <button type="button" data-occ="Abend" aria-pressed="false">Abend</button>
+            <button type="button" data-occ="Sport" aria-pressed="false">Sport</button>
+            <button type="button" data-occ="Reise" aria-pressed="false">Reise</button>
+          </div>
+          <p class="hint" id="occHint" hidden></p>
+        </section>
+        <section class="sug-sec" id="optSec" aria-labelledby="optTitle">
+          <h3 id="optTitle">Auswahl</h3>
+          <label class="ck ck--tall"><input type="checkbox" id="optRare" checked> Selten Getragenes bevorzugen</label>
+          <label class="ck ck--tall"><input type="checkbox" id="optOwn" checked> Nur Teile, die ich besitze</label>
+        </section>
+        <p class="note">Die Vorschläge rechnet dein Gerät, es gibt kein KI-Modell. Nur mit „Wetter von heute“ geht eine Abfrage an Open-Meteo hinaus, sonst verlässt nichts deinen Schrank.</p>
       </div>
-      <p class="note">Alles läuft auf deinem Gerät. Es gibt kein KI-Modell und keine Daten, die deinen Schrank verlassen.</p>
     </aside>
     <div id="sugLive" class="sr-only" role="status" aria-live="polite"></div>
   </div>

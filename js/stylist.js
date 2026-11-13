@@ -8,6 +8,11 @@ import { daysBetween, wearStats } from './wear.js';
 /** @type {readonly Weather[]} */
 export const WEATHER = Object.freeze(['kalt', 'mild', 'warm', 'regen']);
 export const WEATHER_LABEL = Object.freeze({ kalt: 'Kalt', mild: 'Mild', warm: 'Warm', regen: 'Regen' });
+/** Anlässe für „Heute für dich“. Sie wirken über Tags, die man selbst vergibt. */
+export const OCCASIONS = Object.freeze(['Büro', 'Alltag', 'Abend', 'Sport', 'Reise']);
+/** @typedef {'Büro' | 'Alltag' | 'Abend' | 'Sport' | 'Reise'} Occasion */
+/** @type {Record<Occasion, string[]>} Tag-Namen (klein geschrieben), die zum Anlass passen */
+const OCC_TAGS = { 'Büro': ['büro', 'buero', 'arbeit'], 'Alltag': ['alltag'], 'Abend': ['abend', 'festlich'], 'Sport': ['sport'], 'Reise': ['reise'] };
 /** Farben, die zu fast allem passen. */
 export const NEUTRAL = new Set(['Schwarz', 'Weiß', 'Grau', 'Beige', 'Braun']);
 const WARM_TONES = new Set(['Rot', 'Orange', 'Gelb', 'Rosa']);
@@ -51,6 +56,21 @@ export function weatherFit(it, weather) {
 }
 
 /**
+ * Wie gut passt das Teil zum Anlass? Passende Tags zählen plus, Sport-Teile gehören nur zum Anlass Sport.
+ * @param {Piece} it @param {Occasion | undefined} occasion @returns {{ score: number, tag: string }}
+ */
+export function occasionFit(it, occasion) {
+  const tags = (Array.isArray(it.tags) ? it.tags : []).filter(/** @returns {t is string} */ t => typeof t === 'string');
+  const find = (/** @type {string[]} */ names) => tags.find(t => names.includes(t.toLowerCase())) || '';
+  if (occasion && occasion !== 'Sport' || !occasion) {
+    if (find(OCC_TAGS['Sport'])) return { score: -3, tag: '' };
+  }
+  if (!occasion || !OCCASIONS.includes(occasion)) return { score: 0, tag: '' };
+  const hit = find(OCC_TAGS[occasion]);
+  return hit ? { score: occasion === 'Sport' ? 3 : 2, tag: hit } : { score: 0, tag: '' };
+}
+
+/**
  * Bewertung der Farben eines Outfits. Ruhige Farben und ein einzelner Akzent sind gut, viele verschiedene Akzente nicht.
  * @param {(string | undefined)[]} colors
  * @returns {{ score: number, note: string }}
@@ -68,27 +88,31 @@ export function colorHarmony(colors) {
  * Schlägt Outfits aus den vorhandenen Teilen vor. Wunschlisten-Teile zählen nicht.
  * @param {readonly Piece[]} items
  * @param {readonly { d: string, items: string[] }[]} wears
- * @param {{ weather: Weather, today: string, seed?: number, count?: number, avoid?: readonly string[] }} opts avoid: Teile, die gerade schon gezeigt wurden und diesmal zurückstehen sollen
- * @returns {{ suggestions: Suggestion[], missing: string[] }}
+ * @param {{ weather: Weather, today: string, seed?: number, count?: number, avoid?: readonly string[], occasion?: Occasion, preferRare?: boolean, wishlist?: boolean }} opts
+ *   avoid: Teile, die gerade schon gezeigt wurden und diesmal zurückstehen sollen; occasion: Anlass (Tags); preferRare: lange Nichtgetragenes bevorzugen (Standard: ja); wishlist: auch Wunschlisten-Teile (Standard: nein)
+ * @returns {{ suggestions: Suggestion[], missing: string[], tagged: number }} tagged: so viele Teile tragen den Tag des gewählten Anlasses
  */
 export function suggest(items, wears, opts) {
   const { weather, today } = opts, count = Math.max(1, opts.count ?? 3), rnd = rng(opts.seed ?? 1);
   const need = NEED[weather] || NEED.mild;
   const avoid = new Set(Array.isArray(opts.avoid) ? opts.avoid : []);
-  const own = items.filter(i => i && i.status !== 'wish');
+  const occasion = opts.occasion && OCCASIONS.includes(opts.occasion) ? opts.occasion : undefined, rare = opts.preferRare !== false;
+  const own = items.filter(i => i && (opts.wishlist === true || i.status !== 'wish'));
+  const tagged = occasion ? own.filter(i => occasionFit(i, occasion).tag).length : 0;
   const stats = wearStats(/** @type {any} */ (wears), today);
   /** @type {Map<string, { score: number, idle: number | null }>} */
   const base = new Map();
   for (const it of own) {
     const s = stats.get(it.id), idle = s ? daysBetween(s.last, today) : null;
-    const fresh = idle === null ? 2.5 : idle <= 2 ? -2 : Math.min(idle, 90) / 30;
-    base.set(it.id, { score: fresh + weatherFit(it, weather).score + rnd() * 1.5 - (avoid.has(it.id) ? AVOID : 0), idle });
+    const wish = it.status === 'wish';
+    const fresh = wish ? (rare ? 1.5 : 0) : idle === null ? (rare ? 2.5 : 0) : idle <= 2 ? -2 : rare ? Math.min(idle, 90) / 30 : 0;   // Wunschteile: weder bevorzugt noch benachteiligt
+    base.set(it.id, { score: fresh + weatherFit(it, weather).score + occasionFit(it, occasion).score + rnd() * 1.5 - (avoid.has(it.id) ? AVOID : 0), idle });
   }
   const top = (/** @type {string} */ cat) => own.filter(i => i.cat === cat).sort((a, b) => /** @type {number} */ (base.get(b.id)?.score) - /** @type {number} */ (base.get(a.id)?.score) || (a.id < b.id ? -1 : 1)).slice(0, POOL);
   const missing = need.req.filter(c => !own.some(i => i.cat === c));
   const slots = [...need.req.filter(c => !missing.includes(c)), ...need.opt].map(cat => ({ cat, opt: need.opt.includes(cat), pool: /** @type {(Piece | null)[]} */ (top(cat)) })).filter(s => s.pool.length);
   for (const s of slots) if (s.opt) s.pool.push(null);
-  if (!slots.length) return { suggestions: [], missing };
+  if (!slots.length) return { suggestions: [], missing, tagged };
 
   /** @type {{ pick: Piece[], score: number }[]} */
   const all = [];
@@ -111,25 +135,27 @@ export function suggest(items, wears, opts) {
     for (const c of all) {
       if (out.length >= count) break;
       if (out.some(o => o.ids.length === c.pick.length && Math.max(c.pick.length - shared(c.pick, o.ids), o.ids.length - shared(c.pick, o.ids)) < minDiff)) continue;
-      out.push({ ids: ORDER.flatMap(cat => c.pick.filter(p => p.cat === cat).map(p => p.id)), score: c.score, reasons: why(c.pick, weather, base) });
+      out.push({ ids: ORDER.flatMap(cat => c.pick.filter(p => p.cat === cat).map(p => p.id)), score: c.score, reasons: why(c.pick, weather, base, occasion, rare) });
     }
   }
-  return { suggestions: out.slice(0, count), missing };
+  return { suggestions: out.slice(0, count), missing, tagged };
 }
 
-/** @param {Piece[]} pick @param {Weather} weather @param {Map<string, { score: number, idle: number | null }>} base */
-function why(pick, weather, base) {
+/** @param {Piece[]} pick @param {Weather} weather @param {Map<string, { score: number, idle: number | null }>} base @param {Occasion | undefined} [occasion] @param {boolean} [rare] mit false fehlt der Hinweis „lange nicht getragen“ */
+function why(pick, weather, base, occasion, rare = true) {
   /** @type {string[]} */
   const r = [];
   const h = colorHarmony(pick.map(p => p.color));
   if (h.note) r.push(h.note);
+  const occ = occasion ? pick.map(p => ({ p, f: occasionFit(p, occasion) })).find(x => x.f.tag) : undefined;
+  if (occ) r.push('„' + occ.p.name + '“ ist mit „' + occ.f.tag + '“ markiert');
   const jacket = pick.find(p => p.cat === 'Jacke');
   if (weather === 'kalt' && jacket) r.push('Jacke gegen die Kälte');
   else if (weather === 'regen' && jacket) r.push('Jacke für den Regen');
   else if (weather === 'warm' && !jacket) r.push('Luftig für warme Tage');
   const fit = pick.map(p => ({ p, f: weatherFit(p, weather) })).find(x => x.f.score > 0);
   if (fit) r.push('„' + fit.p.name + '“ ist mit „' + fit.f.tag + '“ markiert');
-  const idle = pick.map(p => ({ p, idle: base.get(p.id)?.idle ?? null })).sort((a, b) => (b.idle ?? 9999) - (a.idle ?? 9999))[0];
+  const idle = rare ? pick.filter(p => p.status !== 'wish').map(p => ({ p, idle: base.get(p.id)?.idle ?? null })).sort((a, b) => (b.idle ?? 9999) - (a.idle ?? 9999))[0] : undefined;
   if (idle && (idle.idle === null || idle.idle >= 60)) r.push('„' + idle.p.name + '“ ' + (idle.idle === null ? 'noch nie getragen' : 'lange nicht getragen'));
   return r.slice(0, 3);
 }

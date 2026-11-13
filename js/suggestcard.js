@@ -6,16 +6,21 @@ import { NEUTRAL, WEATHER_LABEL } from './stylist.js';
 /** @type {Record<Weather, string>} */
 const BY_WEATHER = { kalt: 'Warm eingepackt', mild: 'Ruhiger Alltag', warm: 'Leicht und luftig', regen: 'Für den Regen' };
 
+/** @type {Record<Weather, string>} */
+const SHORT = { kalt: 'warm', mild: 'mild', warm: 'luftig', regen: 'trocken' };
+
 /**
  * Kurzer Titel für eine Vorschlagskarte. Gewählt wird der erste passende Titel, der in dieser Runde noch nicht vergeben ist,
  * damit die drei Karten nie gleich heißen.
  * @param {{ pieces: readonly { cat?: string, color?: string }[], reasons: readonly string[] }} s
  * @param {Weather} weather
  * @param {readonly string[]} [taken] schon vergebene Titel
+ * @param {string} [occasion] gewählter Anlass; steht dann vorn im Titel („Büro, trocken“)
  */
-export function cardTitle(s, weather, taken = []) {
+export function cardTitle(s, weather, taken = [], occasion = '') {
   /** @type {string[]} */
   const options = [];
+  if (occasion && SHORT[weather]) options.push(occasion + ', ' + SHORT[weather]);
   if (s.reasons.some(r => /nie getragen|lange nicht getragen/.test(r))) options.push('Wiederentdeckt');
   options.push(BY_WEATHER[weather] || 'Vorschlag');
   const accents = new Set(s.pieces.map(p => p.color).filter(c => !!c && !NEUTRAL.has(c)));

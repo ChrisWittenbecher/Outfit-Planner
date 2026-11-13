@@ -32,7 +32,7 @@ test('CSP: externe Quellen sind genau die bekannte, geprüfte Liste (jede Erweit
   const c = csp();
   const external = [...c].flatMap(([k, v]) => v.filter(s => /^https:\/\/[^/]+$/.test(s)).map(s => k + ' ' + s)).sort();
   assert.deepEqual(external, [
-    'connect-src https://anprobe.chris-wittenbecher.workers.dev', 'connect-src https://www.googleapis.com',
+    'connect-src https://anprobe.chris-wittenbecher.workers.dev', 'connect-src https://api.open-meteo.com', 'connect-src https://www.googleapis.com',
   ]);
   assert.equal(c.has('frame-src'), false, 'keine Rahmen erlaubt: default-src \'none\' gilt');
   assert.deepEqual(c.get('default-src'), ["'none'"]);
