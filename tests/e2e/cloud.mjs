@@ -208,6 +208,19 @@ try {
   await m.goto(`${ORIGIN}/index.html`); await m.waitForSelector('html[data-ready]', { state: 'attached' });
   const mb = await m.evaluate(() => { const b = document.getElementById('cloudBtn'), r = b.getBoundingClientRect(); return { shown: getComputedStyle(b).display !== 'none', w: r.width, right: r.right, vw: innerWidth, label: getComputedStyle(b.querySelector('.acct-label')).display, scroll: document.documentElement.scrollWidth > innerWidth }; });
   ok(mb.shown && mb.w >= 44 && mb.right <= mb.vw && mb.label === 'none' && !mb.scroll, 'am Smartphone: runder Knopf (≥ 44 px) ohne Überlauf ' + JSON.stringify(mb));
+  // Das Menü bleibt auf jeder Breite ganz im Bild. Am Handy steht der Knopf in der zweiten Zeile und nicht am rechten Rand (Fehler in 1.16.0: Menü ragte links hinaus)
+  for (const [w, h] of [[320, 640], [360, 740], [390, 844], [768, 1024], [1280, 800]]) {
+    await m.setViewportSize({ width: w, height: h }); await m.waitForTimeout(350);   // das Menü schließt beim Ändern der Größe; ein Klick direkt danach zählt noch als „Schließen“
+    await m.click('#cloudBtn'); await menuOpen(m); await m.waitForTimeout(500);   // Einblend-Animation abwarten: währenddessen ist das Menü kurz kleiner
+    const g = await m.evaluate(() => {
+      const r = document.getElementById('acctMenu').getBoundingClientRect(), b = document.getElementById('cloudBtn').getBoundingClientRect();
+      const btns = [...document.querySelectorAll('#acctMenu button:not([hidden])')].map(x => { const q = x.getBoundingClientRect(); return [Math.round(q.left), Math.round(q.right)]; });
+      return { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), bb: Math.round(b.bottom), br: Math.round(b.right), vw: document.documentElement.clientWidth, w: Math.round(r.width), btns };
+    });
+    ok(g.l >= 0 && g.r <= g.vw && g.t >= g.bb && g.btns.every(([a, z]) => a >= 0 && z <= g.vw), 'Menü liegt bei ' + w + ' px ganz im Bild ' + JSON.stringify({ links: g.l, rechts: g.r, breite: g.vw }));
+    ok(g.br < g.w + 8 || Math.abs(g.r - g.br) <= 1, 'und hängt am Knopf, wo Platz ist (Knopf rechts ' + g.br + ', Menü rechts ' + g.r + ')');
+    await m.keyboard.press('Escape'); await m.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open'));
+  }
   await ctxM.close();
 
   // WebKit meldet eine abgebrochene Anfrage an Google (etwa wenn das Test-Dach eine Anfrage beim Aufräumen kappt) manchmal als Seitenfehler,

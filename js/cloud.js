@@ -265,16 +265,21 @@ function paint() {
 let menuClosedAt = 0;
 const menu = () => $('acctMenu');
 function closeMenu() { try { if (menu().matches(':popover-open')) menu().hidePopover(); } catch { /* schon zu */ } }
+/** Rechte Kante des Menüs: am Konto-Knopf, aber so weit nach rechts, dass die linke Kante im Bild bleibt (am Handy steht der Knopf in der zweiten Zeile, nicht am Rand). */
+function menuEdge(width) {
+  const vw = document.documentElement.clientWidth;
+  return Math.min(vw - 8, Math.max($('cloudBtn').getBoundingClientRect().right, width + 8));
+}
 function placeMenu() {
-  const r = $('cloudBtn').getBoundingClientRect(), m = menu();
+  const r = $('cloudBtn').getBoundingClientRect(), m = menu(), vw = document.documentElement.clientWidth;
   m.style.top = Math.round(r.bottom + 8) + 'px';
-  m.style.right = Math.max(8, Math.round(document.documentElement.clientWidth - r.right)) + 'px';
+  m.style.right = Math.max(8, Math.round(vw - menuEdge(Math.min(300, vw - 16)))) + 'px';
 }
 function toggleMenu() {
   if (menu().matches(':popover-open')) { closeMenu(); return; }
   paint(); placeMenu(); menu().showPopover();
-  // Rechte Kante genau an den Knopf: Scrollleisten verschieben die Bezugsbreite, daher nach dem Öffnen nachmessen
-  const dx = menu().getBoundingClientRect().right - $('cloudBtn').getBoundingClientRect().right;
+  // Genau an die Kante setzen: Scrollleisten verschieben die Bezugsbreite, daher nach dem Öffnen mit der echten Breite nachmessen
+  const dx = menu().getBoundingClientRect().right - menuEdge(menu().offsetWidth);   // offsetWidth: unabhängig von der Einblend-Animation (sie skaliert das Menü kurz)
   if (Math.abs(dx) > 0.5) menu().style.right = Math.max(8, (parseFloat(menu().style.right) || 0) + Math.round(dx)) + 'px';
 }
 
