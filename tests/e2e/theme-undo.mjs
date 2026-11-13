@@ -116,7 +116,7 @@ try {
 
     // Backup: Export, Teil löschen, Import mit Rückfrage
     await wait(p);
-    const exp = p.waitForEvent('download'); await p.click('#exp');
+    const exp = p.waitForEvent('download'); await p.click('#cloudBtn'); await p.click('#exp');
     const file = await (await exp).path();
     await p.locator('#grid .card').first().hover();
     await p.locator('#grid .card').first().locator('.acts button[aria-label="Löschen"]').click();
@@ -156,14 +156,17 @@ try {
     const ctx = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'light', acceptDownloads: true });
     const { p, errors, native } = await open(ctx);
     ok(await bg(p, 'body') === 'rgb(232, 234, 238)', 'Hell: Seite #e8eaee');
-    ok(await p.locator('#exp').isHidden() && await p.locator('#imp').isHidden() && await p.locator('#more').isVisible(), 'Smartphone: Export/Import wandern ins „Mehr“-Menü');
+    ok(await p.locator('#exp').isHidden() && await p.locator('#imp').isHidden() && await p.locator('#more').isVisible() && await p.locator('#cloudBtn').isVisible(), 'Smartphone: Export/Import liegen im Konto-Menü');
     const sizes = await p.evaluate(() => ['undo', 'redo', 'theme', 'more'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return [id, Math.round(r.width), Math.round(r.height)]; }));
     ok(sizes.every(([, w, h]) => w >= 40 && h >= 40), 'Symbolschaltflächen mindestens 40 × 40 px ' + JSON.stringify(sizes));
     ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Kopfzeile ohne horizontalen Überlauf');
     await p.click('#more');
     ok(await p.locator('#moreDlg').evaluate(d => d.open), '„Mehr“ öffnet das Menü');
-    const exp = p.waitForEvent('download'); await p.click('#mExp');
-    ok(/^outfit-planner-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
+    await p.click('#mClose'); ok(await closed(p, 'moreDlg'), '„Schließen“ schließt das Menü');
+    await p.click('#cloudBtn');
+    ok(await p.locator('#imp').isVisible(), 'Konto-Knopf öffnet das Menü mit Wiederherstellen');
+    const exp = p.waitForEvent('download'); await p.click('#exp');
+    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await p.evaluate(() => !document.getElementById('acctMenu').matches(':popover-open')), '„Backup“ im Konto-Menü lädt die Datei und schließt das Menü');
     await toggle(p, 'light');
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
     await toggle(p, 'dark');

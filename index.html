@@ -82,8 +82,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="light" hidden><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="dark" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-            <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
-      <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
       <input type="file" id="impf" accept="application/json" hidden>
       <button type="button" class="pri" id="addBtn" aria-haspopup="dialog">+ Kleidungsstück hinzufügen</button>
       <button type="button" class="ibtn more-btn" id="more" aria-haspopup="dialog" aria-label="Mehr" title="Mehr">⋯</button>
@@ -183,7 +181,7 @@
     </div>
   </dialog>
 
-  <!-- Mehr (Smartphone): Backup und Wiederherstellen -->
+  <!-- Mehr (Smartphone): Ideen, Kalender, Haptik -->
   <dialog id="moreDlg" data-dismiss="backdrop" aria-labelledby="moreTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
@@ -191,21 +189,24 @@
       <button type="button" id="mIdea">Ideen: Vorschläge &amp; Packliste</button>
       <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mHaptic" hidden>Haptik: An</button>
-      <button type="button" id="mExp">Backup speichern</button>
-      <button type="button" id="mImp">Backup einlesen</button>
       <button type="button" id="mClose">Schließen</button>
     </div>
   </dialog>
 
-  <!-- Konto-Menü (Dropdown am Anmelde-Knopf) -->
-  <div id="acctMenu" class="acct-menu" popover aria-label="Google-Konto">
-    <div class="who">
+  <!-- Konto-Menü (Dropdown am Konto-Knopf): Google-Konto, Backup und Wiederherstellen -->
+  <div id="acctMenu" class="acct-menu" popover aria-label="Konto und Backup">
+    <div class="who" id="cloudWho" hidden>
       <img id="cloudWhoImg" alt="" width="44" height="44" referrerpolicy="no-referrer" hidden>
       <span id="cloudWhoInit" class="who-init" aria-hidden="true" hidden></span>
       <div class="who-text"><strong id="cloudName"></strong><span id="cloudMail"></span></div>
     </div>
-    <p id="cloudState" class="cloud-state" role="status"></p>
-    <button type="button" id="cloudOut" class="acct-out">Abmelden</button>
+    <p id="cloudState" class="cloud-state" role="status" hidden></p>
+    <button type="button" id="cloudIn" class="pri acct-in" hidden>Mit Google anmelden</button>
+    <div class="acct-data" role="group" aria-label="Daten sichern">
+      <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
+      <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
+    </div>
+    <button type="button" id="cloudOut" class="acct-out" hidden>Abmelden</button>
   </div>
   <dialog id="cloudConflict" aria-labelledby="ccTitle">
     <div class="grab" aria-hidden="true"></div>

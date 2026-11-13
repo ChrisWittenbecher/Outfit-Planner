@@ -235,15 +235,20 @@ function setAvatar(img, init, ico, name, photo) {
 function paintAccount(on, m) {
   const acct = $('cloudBtn'); if (!acct) return;
   const ico = acct.querySelector('.acct-ico'), img = $('cloudAvatar'), init = $('cloudInit');
-  const label = on ? 'Google-Konto' + (m.name ? ': ' + m.name : '') : 'Mit Google anmelden';
-  acct.toggleAttribute('data-on', on); acct.title = on ? label : 'Mit Google anmelden: dein Stand wird automatisch in deinem Google Drive gesichert'; acct.setAttribute('aria-label', label);
-  if (on) { acct.setAttribute('aria-haspopup', 'true'); acct.setAttribute('aria-expanded', String($('acctMenu').matches(':popover-open'))); } else { acct.removeAttribute('aria-haspopup'); acct.removeAttribute('aria-expanded'); }
+  // Abgemeldet zeigt der Knopf „Anmelden“ (ohne Google-Einrichtung „Backup“); das Menü enthält immer Backup und Wiederherstellen
+  const word = cloudEnabled ? 'Anmelden' : 'Backup';
+  const label = on ? 'Google-Konto' + (m.name ? ': ' + m.name : '') : cloudEnabled ? 'Anmelden und Backup' : 'Backup und Wiederherstellen';
+  acct.toggleAttribute('data-on', on); acct.setAttribute('aria-label', label);
+  acct.title = on ? label : cloudEnabled ? 'Mit Google anmelden (dein Stand wird automatisch in deinem Google Drive gesichert), Backup und Wiederherstellen' : label;
+  acct.querySelector('.acct-label').textContent = word;
+  acct.setAttribute('aria-haspopup', 'true'); acct.setAttribute('aria-expanded', String($('acctMenu').matches(':popover-open')));
+  $('cloudWho').hidden = !on; $('cloudState').hidden = !on; $('cloudOut').hidden = !on; $('cloudIn').hidden = on || !cloudEnabled;
   if (on) setAvatar(img, init, ico, m.name, m.photo);
   else { ico.toggleAttribute('hidden', false); img.hidden = true; init.hidden = true; img.removeAttribute('src'); }
   if (on) {
     $('cloudName').textContent = m.name || 'Google-Konto'; $('cloudMail').textContent = m.mail || '';
     setAvatar($('cloudWhoImg'), $('cloudWhoInit'), null, m.name, m.photo);
-  } else closeMenu();
+  }
 }
 
 function paint() {
@@ -256,7 +261,7 @@ function paint() {
   st.dataset.kind = !on ? '' : info.kind !== 'idle' && info.kind !== 'ok' ? info.kind : m.dirty ? 'busy' : 'ok';
 }
 
-// ---- Dropdown am Anmelde-Knopf (Popover-Element: Esc und Klick daneben schließen von selbst) ----
+// ---- Dropdown am Konto-Knopf (Popover-Element: Esc und Klick daneben schließen von selbst) ----
 let menuClosedAt = 0;
 const menu = () => $('acctMenu');
 function closeMenu() { try { if (menu().matches(':popover-open')) menu().hidePopover(); } catch { /* schon zu */ } }
@@ -274,14 +279,17 @@ function toggleMenu() {
 }
 
 export function startCloud() {
-  if (!cloudEnabled) return;
+  // Das Konto-Menü gibt es immer, denn Backup und Wiederherstellen liegen darin; die Google-Teile nur mit Einrichtung
   $('cloudBtn').hidden = false;
-  $('cloudBtn').onclick = () => { if (!signedIn()) connect(); else if (Date.now() - menuClosedAt > 200) toggleMenu(); };   // Klick auf den Knopf bei offenem Menü: nur schließen
+  $('cloudBtn').onclick = () => { if (Date.now() - menuClosedAt > 200) toggleMenu(); };   // Klick auf den Knopf bei offenem Menü: nur schließen
   menu().addEventListener('beforetoggle', e => { if (e.newState === 'closed') menuClosedAt = Date.now(); });   // Klick-daneben schließt schon beim Drücken, vor dem Klick-Ereignis
   menu().addEventListener('toggle', e => { $('cloudBtn').setAttribute('aria-expanded', String(e.newState === 'open')); });
   addEventListener('resize', closeMenu);
-  $('cloudOut').onclick = async () => { closeMenu(); await disconnect(); paint(); };
+  for (const id of ['exp', 'imp']) $(id).addEventListener('click', closeMenu);   // die Aktion selbst hängt in exchange.js
   paint();
+  if (!cloudEnabled) return;
+  $('cloudIn').onclick = () => { closeMenu(); connect(); };
+  $('cloudOut').onclick = async () => { closeMenu(); await disconnect(); paint(); };
   document.addEventListener('anprobe:saved', () => { if (applying || !meta().rt) return; parked = false; save({ dirty: true }); paint(); later(); });
   document.addEventListener('visibilitychange', () => {
     if (!signedIn()) return;

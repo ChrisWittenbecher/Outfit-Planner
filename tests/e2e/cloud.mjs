@@ -80,14 +80,19 @@ const names = text => JSON.parse(text).items.map(i => i.name).sort();
 const remoteNames = () => { const f = [...fake.files.values()][0]; return f ? names(f.text) : null; };
 const cards = p => p.locator('#grid .card').count();
 const menuOpen = p => p.waitForFunction(() => document.getElementById('acctMenu').matches(':popover-open'));
-const signIn = async p => { await p.click('#cloudBtn'); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
+const login = async p => { await p.click('#cloudBtn'); await menuOpen(p); await p.click('#cloudIn'); };   // abgemeldet öffnet der Knopf das Menü, dort geht es zu Google
+const signIn = async p => { await login(p); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
 
 try {
   console.log('--- ohne Google-Einrichtung');
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   let { p } = await setup(ctx, { clientId: '' });
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
-  ok(await p.evaluate(() => document.getElementById('cloudBtn').hidden && document.getElementById('acctMenu').matches(':popover-open') === false), 'ohne Client-ID bleibt die Google-Sicherung ausgeblendet');
+  ok(await p.evaluate(() => !document.getElementById('cloudBtn').hidden && document.getElementById('acctMenu').matches(':popover-open') === false), 'ohne Client-ID bleibt der Konto-Knopf für das Backup sichtbar');
+  ok((await p.textContent('#cloudBtn')).trim() === 'Backup', 'ohne Client-ID heißt der Knopf „Backup“');
+  await p.click('#cloudBtn'); await menuOpen(p);
+  ok(await p.locator('#exp').isVisible() && await p.locator('#imp').isVisible(), 'Backup und Wiederherstellen liegen im Konto-Menü');
+  ok(await p.locator('#cloudIn').isHidden() && await p.locator('#cloudOut').isHidden() && await p.locator('#cloudWho').isHidden(), 'ohne Client-ID kein Google im Menü');
   await ctx.close();
 
   console.log('--- Gerät A: anmelden und sichern');
@@ -96,9 +101,16 @@ try {
   await a.goto(`${ORIGIN}/index.html`); await a.waitForSelector('html[data-ready]', { state: 'attached' });
   await addItem(a, { trigger: '#addBtn', name: 'Shirt', cat: 'Oberteil' });
   await addItem(a, { trigger: '#addBtn', name: 'Hose', cat: 'Hose/Rock' });
-  ok(await a.evaluate(() => !document.getElementById('cloudBtn').hidden) && (await a.textContent('#cloudBtn')).trim() === 'Anmelden' && await a.getAttribute('#cloudBtn', 'aria-label') === 'Mit Google anmelden', 'Anmelde-Knopf oben rechts zeigt „Anmelden“');
+  ok(await a.evaluate(() => !document.getElementById('cloudBtn').hidden) && (await a.textContent('#cloudBtn')).trim() === 'Anmelden' && await a.getAttribute('#cloudBtn', 'aria-label') === 'Anmelden und Backup', 'Anmelde-Knopf oben rechts zeigt „Anmelden“');
+  ok(await a.evaluate(() => !document.getElementById('exp').checkVisibility() && !document.getElementById('imp').checkVisibility()), 'Backup und Wiederherstellen stehen nicht mehr in der Kopfzeile');
+  await a.click('#cloudBtn'); await menuOpen(a);
+  ok(await a.locator('#cloudIn').isVisible() && await a.locator('#exp').isVisible() && await a.locator('#imp').isVisible() && await a.locator('#cloudOut').isHidden(), 'abgemeldet: Menü bietet Anmelden, Backup und Wiederherstellen');
+  { const dl = a.waitForEvent('download'); await a.click('#exp');
+    ok(/^anprobe-backup-.*\.json$/.test((await dl).suggestedFilename()), '„Backup“ im Konto-Menü lädt die Datei');
+    ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'und schließt das Menü'); }
+  await a.waitForTimeout(300);
   ok(/Google Drive/.test(await a.getAttribute('#cloudBtn', 'title')), 'Hinweis am Knopf erklärt die Sicherung in Google Drive');
-  await a.click('#cloudBtn');   // ohne Konto geht der Klick direkt zu Google
+  await login(a);
   ok(await wait(async () => remoteNames()?.join() === 'Hose,Shirt'), 'nach der Anmeldung liegen beide Teile in Google Drive: ' + remoteNames());
   ok(!/code=|state=/.test(a.url()), 'Code und state sind aus der Adresszeile verschwunden');
   ok(fake.calls.some(c => c === 'auth https://www.googleapis.com/auth/drive.appdata S256'), 'Anmeldung fragt nur das App-Ordner-Recht an, mit PKCE (S256)');
@@ -118,6 +130,7 @@ try {
   const mpos = await a.evaluate(() => { const m = document.getElementById('acctMenu').getBoundingClientRect(), b = document.getElementById('cloudBtn').getBoundingClientRect(); return { dx: Math.abs(m.right - b.right), dy: m.top - b.bottom }; });
   ok(mpos.dx < 4 && mpos.dy > 0 && mpos.dy < 20, 'das Menü klappt direkt unter dem Knopf auf ' + JSON.stringify(mpos));
   ok(/Gesichert|Zuletzt|Änderungen|Noch nicht|Gleiche/.test(await a.textContent('#cloudState')), 'Menü zeigt den Sicherungsstand');
+  ok(await a.locator('#exp').isVisible() && await a.locator('#imp').isVisible() && await a.locator('#cloudOut').isVisible() && await a.locator('#cloudIn').isHidden(), 'angemeldet: Menü bietet Backup, Wiederherstellen und Abmelden');
   await a.click('#cloudBtn');
   ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'ein zweiter Klick auf den Knopf schließt das Menü');
   await a.waitForTimeout(300); await a.click('#cloudBtn'); await menuOpen(a); await a.keyboard.press('Escape');
@@ -135,7 +148,7 @@ try {
   const B = await setup(ctxB); const b = B.p;
   await b.goto(`${ORIGIN}/index.html`); await b.waitForSelector('html[data-ready]', { state: 'attached' });
   ok(await cards(b) === 0, 'Gerät B startet leer');
-  await b.click('#cloudBtn');
+  await login(b);
   ok(await wait(async () => await cards(b) === 3), 'Gerät B holt drei Teile von Google (ohne Rückfrage)');
   ok(await b.locator('#grid .card img').first().evaluate(i => i.complete && i.naturalWidth > 0), 'Bilder sind angekommen');
 
@@ -173,14 +186,14 @@ try {
 
   console.log('--- Fehlermeldung bei falschem Client-Geheimnis');
   fake.tokenFails = true;
-  await a.click('#cloudBtn');
+  await login(a);
   await a.waitForSelector('html[data-ready]', { state: 'attached' });
   ok(await wait(() => a.locator('.toast', { hasText: 'invalid_client' }).count().then(n => n > 0), 8000), 'Fehler des Hilfsdienstes nennt den Google-Grund (invalid_client)');
   fake.tokenFails = false;
 
   console.log('--- Abmelden');
   await signInAgain(a);
-  async function signInAgain(page) { await page.click('#cloudBtn'); await page.waitForSelector('html[data-ready]', { state: 'attached' }); await wait(() => page.evaluate(() => (localStorage.getItem('anprobe-cloud') || '').includes('RT-secret'))); }
+  async function signInAgain(page) { await login(page); await page.waitForSelector('html[data-ready]', { state: 'attached' }); await wait(() => page.evaluate(() => (localStorage.getItem('anprobe-cloud') || '').includes('RT-secret'))); }
   await a.click('#cloudBtn'); await menuOpen(a);
   await a.click('#cloudOut'); await a.waitForFunction(() => document.getElementById('uiDlg').open); await a.click('#uiOk');
   ok(await wait(async () => fake.revoked === 1), 'Abmelden widerruft den Zugriff bei Google');
