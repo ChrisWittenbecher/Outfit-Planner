@@ -113,17 +113,17 @@ try {
     ok(await p.locator('#calDayList li').count() === 1, 'doppelter Eintrag wird abgelehnt');
     ok(/2× getragen \| 30,00\s€ pro Tragen/.test(await info('Testhemd')), 'Kosten pro Tragen sinken mit jedem Tragen: ' + await info('Testhemd'));
 
-    console.log('--- Auswertung');
-    await p.click('#calTabStats');
-    const stats = await p.textContent('#calStats');
-    ok(/Am häufigsten getragen/.test(stats) && /Testhemd/.test(stats) && /2×/.test(stats) && /30,00\s€ pro Tragen/.test(stats), 'Rangliste mit Anzahl und Kosten pro Tragen');
-    ok(/Testschuhe/.test(stats) && /noch nie getragen/.test(stats), 'nie getragene Teile erscheinen unter „Lange nicht getragen“');
-    ok(await p.getAttribute('#calTabStats', 'aria-pressed') === 'true' && await p.isHidden('#calCal'), 'Reiter wechselt die Ansicht');
-    await p.click('#calTabCal');
-
-    console.log('--- Schließen und Rückgängig');
+    console.log('--- Schließen, Auswertung, Rückgängig');
     await p.keyboard.press('Escape');
     ok(await closed(p, 'calDlg'), 'Esc schließt den Kalender');
+    await p.click('#tab-auswertung');
+    ok(await wait(async () => await p.isVisible('#view-auswertung')), 'Reiter „Auswertung“ öffnet die Seite');
+    const top = await p.textContent('#statTop');
+    ok(/Testhemd/.test(top) && /2×/.test(top) && /30,00\s€ pro Tragen/.test(top), 'Rangliste mit Anzahl und Kosten pro Tragen: ' + top.replace(/\s+/g, ' ').trim());
+    const idle = await p.textContent('#idleList');
+    ok(!/Testschuhe/.test(idle), 'ein gerade angelegtes Teil gilt noch nicht als Schrankhüter (Schonfrist)');
+    await p.click('#tab-schrank');
+    ok(await wait(async () => await p.isVisible('#view-schrank')), 'zurück zum Schrank');
     await p.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     ok(await wait(async () => /1× getragen/.test(await info('Testhemd'))), 'Strg+Z nimmt den nachgetragenen Eintrag zurück');
 

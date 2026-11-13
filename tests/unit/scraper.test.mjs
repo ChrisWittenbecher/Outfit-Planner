@@ -191,3 +191,11 @@ test('sanitizeOutfit: Name als Text, feste Felder', () => {
   assert.deepEqual(o.pieces, []);
   assert.ok(o.id.length <= 64);
 });
+
+test('sanitizeItem: „Behalten“-Tag (keep) nur als echter Kalendertag', () => {
+  const base = { id: 'i1', img: 'data:image/png;base64,AAAA' };
+  assert.equal(s.sanitizeItem({ ...base, keep: '2026-11-13' }, ['Oberteil']).keep, '2026-11-13');
+  for (const bad of ['2026-02-30', '13.11.2026', '', null, 5, {}, '<b>2026-11-13</b>', '2026-11-13T10:00', '1999-01-01'])
+    assert.equal('keep' in s.sanitizeItem({ ...base, keep: bad }, ['Oberteil']), false, String(bad));
+  assert.equal('keep' in s.sanitizeItem(base, ['Oberteil']), false);
+});

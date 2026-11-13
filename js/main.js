@@ -18,6 +18,7 @@ import './update.js';
 import './calendar.js';
 import './nav.js';
 import './sugpage.js';
+import './statspage.js';
 import { startCare } from './pwa.js';
 import { startHistory } from './history.js';
 import { startCloud } from './cloud.js';

@@ -1,9 +1,9 @@
 // @ts-check
 /** Die Bereiche der App. „schrank“ ist der Standard und hat keine Adresse. */
-export const VIEWS = Object.freeze(['schrank', 'vorschlaege']);
-/** @typedef {'schrank' | 'vorschlaege'} View */
+export const VIEWS = Object.freeze(['schrank', 'vorschlaege', 'auswertung']);
+/** @typedef {'schrank' | 'vorschlaege' | 'auswertung'} View */
 
-export const TITLE = Object.freeze({ schrank: 'Outfit-Planner', vorschlaege: 'Vorschläge – Outfit-Planner' });
+export const TITLE = Object.freeze({ schrank: 'Outfit-Planner', vorschlaege: 'Vorschläge – Outfit-Planner', auswertung: 'Auswertung – Outfit-Planner' });
 
 /** Bereich aus dem Adressteil nach dem #. Alles Unbekannte führt zum Schrank. @param {unknown} hash @returns {View} */
 export function viewOf(hash) {

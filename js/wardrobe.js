@@ -67,7 +67,7 @@ export function renderGrid(){
 }
 function markBought(i){ i.status = 'own'; renderAll(); flush(); announce('„' + i.name + '“ ist jetzt in deinem Besitz.'); }
 function openOffer(i){ if(/^https?:/.test(i.link || '')) open(i.link, '_blank', 'noopener'); }
-function deleteItem(i){
+export function deleteItem(i){
   step();
   state.data.items = state.data.items.filter(k => k.id !== i.id);
   state.board = state.board.filter(p => p.id !== i.id);

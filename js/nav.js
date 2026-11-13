@@ -6,7 +6,7 @@ import { TITLE, VIEWS, hashOf, nextTab, viewOf } from './views.js';
 // Bereiche der App als Reiter. Der Schrank hat keine Adresse, die anderen Bereiche stehen im Adressteil (#vorschlaege).
 // Jeder Wechsel legt einen Verlaufseintrag an, damit „Zurück“ zum vorigen Bereich führt. Die Dialoge (sheet.js) legen eigene
 // Einträge mit gleicher Adresse an; beim Zurück bleibt der Bereich dann derselbe, nur der Dialog schließt.
-const HEAD = { schrank: 'outfitTitle', vorschlaege: 'sugTitle' };
+const HEAD = { schrank: 'outfitTitle', vorschlaege: 'sugTitle', auswertung: 'statTitle' };
 let current = viewOf(location.hash);
 
 export const currentView = () => current;

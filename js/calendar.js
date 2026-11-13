@@ -1,18 +1,17 @@
 // @ts-nocheck
-import { $, item, mb, money, showThumb, state } from './core.js';
+import { $, item, state } from './core.js';
 import { renderGrid } from './wardrobe.js';
 import { renderOuts } from './outfits.js';
 import { flush } from './storage.js';
 import { step } from './history.js';
 import { closeDialog, showDialog } from './sheet.js';
 import { WEAR_ERR, logWear, ownedIds, prepareWear } from './wearlog.js';
-import { openSale } from './sell.js';
-import { addDays, costPerWear, dayKey, dormant, idleText, monthGrid, shiftMonth, wearStats } from './wear.js';
+import { addDays, dayKey, monthGrid, shiftMonth } from './wear.js';
 
 const dlg = $('calDlg');
 $('calDayTitle').tabIndex = -1;
 const BOARD = '__board';
-const view = { tab: 'cal', sel: '' };
+const view = { sel: '' };
 const today = () => dayKey(new Date());
 const dateOf = key => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const monthFmt = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' });
@@ -117,48 +116,7 @@ function actions() {
   $('calHint').hidden = !hints.length;
 }
 
-function renderStats() {
-  const box = $('calStats'), t = today(), wears = state.data.wears.filter(w => w.d <= t);
-  const owned = state.data.items.filter(i => i.status !== 'wish');
-  box.replaceChildren();
-  if (!wears.length) {
-    box.append(el('p', 'cal-empty', 'Noch nichts eingetragen. Trage im Kalender oder mit „Heute getragen“ ein, was du anhattest. Dann siehst du hier, was sich lohnt und was nur im Schrank hängt.'));
-    return;
-  }
-  const row = (it, sub, right, rightSub) => {
-    const li = el('li'), im = new Image();
-    showThumb(im, it); im.alt = ''; im.className = mb(it).trim(); im.loading = 'lazy';
-    const txt = el('div', 't'); txt.append(el('b', '', it.name), el('small', '', sub));
-    const v = el('div', 'v'); v.append(el('b', '', right)); if (rightSub) v.append(el('small', '', rightSub));
-    li.append(im, txt, v); return li;
-  };
-  const stats = wearStats(wears, t);
-  const top = owned.filter(i => stats.has(i.id)).sort((a, b) => stats.get(b.id).count - stats.get(a.id).count || (stats.get(a.id).last < stats.get(b.id).last ? 1 : -1)).slice(0, 5);
-  const h1 = el('h3', '', 'Am häufigsten getragen'), l1 = el('ul', 'stat-list');
-  for (const i of top) {
-    const s = stats.get(i.id), cw = costPerWear(i.price, s.count);
-    l1.append(row(i, i.cat, s.count + '×', cw != null ? money(cw, i.cur) + ' pro Tragen' : 'ohne Preis'));
-  }
-  const rest = dormant(owned, wears, t, 90).slice(0, 10);
-  box.append(h1, l1);
-  if (rest.length) {
-    const h2 = el('h3', '', 'Lange nicht getragen'), l2 = el('ul', 'stat-list');
-    for (const r of rest) {
-      const li = row(r.item, r.last ? 'zuletzt ' + idleText(r.idle) : 'noch nie getragen', r.item.price != null ? money(r.item.price, r.item.cur) : '–');
-      const sell = button('Verkaufstext', () => openSale(r.item));
-      sell.setAttribute('aria-label', 'Verkaufstext für „' + r.item.name + '“ erstellen');
-      li.append(sell); l2.append(li);
-    }
-    box.append(h2, el('p', 'hint', 'Seit 90 Tagen oder länger nicht dabei. Teile ohne Eintrag stehen am Ende.'), l2);
-  }
-}
-
-function render() {
-  const cal = view.tab === 'cal';
-  $('calCal').hidden = !cal; $('calStats').hidden = cal;
-  $('calTabCal').setAttribute('aria-pressed', String(cal)); $('calTabStats').setAttribute('aria-pressed', String(!cal));
-  if (cal) { renderMonth(); renderDay(); renderPick(); } else renderStats();
-}
+function render() { renderMonth(); renderDay(); renderPick(); }
 
 function select(key, focus) {
   view.sel = key; render();
@@ -184,8 +142,6 @@ $('calPrev').onclick = () => select(shiftMonth(view.sel, -1), false);
 $('calNext').onclick = () => select(shiftMonth(view.sel, 1), false);
 $('calToday').onclick = () => select(today(), false);
 $('calPick').onchange = actions;
-$('calTabCal').onclick = () => { view.tab = 'cal'; render(); };
-$('calTabStats').onclick = () => { view.tab = 'stats'; render(); };
 $('calWear').onclick = () => {
   const pick = $('calPick').value, o = pick === BOARD ? null : outfitById(pick);
   const r = logWear(view.sel, o);
@@ -200,7 +156,7 @@ $('calPlan').onclick = () => {
 $('calClose').onclick = () => closeDialog(dlg);
 
 function open() {
-  view.tab = 'cal'; view.sel = today();
+  view.sel = today();
   render(); showDialog(dlg);
 }
 $('calBtn').onclick = open;

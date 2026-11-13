@@ -46,6 +46,19 @@ test('Zusammenführen: nichts geht verloren, dieses Gerät gewinnt bei gleicher 
   assert.deepEqual(local.items.map(i => i.id), ['a', 'b']);   // Eingaben bleiben unverändert
 });
 
+test('Zusammenführen: „Behalten“ (keep) geht nicht verloren, das spätere Datum gewinnt, Ungültiges zählt nicht', () => {
+  const mk = items => ({ items, outfits: [], wears: [], plans: {} });
+  const m = mergeData(
+    mk([{ id: 'a', keep: '2026-10-01' }, { id: 'b' }, { id: 'c', keep: '2026-11-05' }, { id: 'd', keep: 'kaputt' }, { id: 'e' }]),
+    mk([{ id: 'a', keep: '2026-11-01' }, { id: 'b', keep: '2026-11-02' }, { id: 'c', keep: '2026-09-01' }, { id: 'd', keep: '<b>' }, { id: 'e', keep: 5 }, { id: 'f', keep: '2026-11-03' }]),
+  );
+  const keep = Object.fromEntries(m.items.map(i => [i.id, i.keep]));
+  assert.deepEqual(keep, { a: '2026-11-01', b: '2026-11-02', c: '2026-11-05', d: 'kaputt', e: undefined, f: '2026-11-03' });
+  const local = mk([{ id: 'a', keep: '2026-10-01', name: 'lokal' }]);
+  mergeData(local, mk([{ id: 'a', keep: '2026-11-01' }]));
+  assert.equal(local.items[0].keep, '2026-10-01');   // Eingaben bleiben unverändert
+});
+
 test('Profilbild: nur https von googleusercontent.com, auf 96 px gesetzt', () => {
   assert.equal(safePhoto('https://lh3.googleusercontent.com/a/abc=s64'), 'https://lh3.googleusercontent.com/a/abc=s96-c');
   assert.equal(safePhoto('https://lh3.googleusercontent.com/a/abc=s220-c'), 'https://lh3.googleusercontent.com/a/abc=s96-c');

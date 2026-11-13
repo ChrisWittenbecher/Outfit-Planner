@@ -42,7 +42,7 @@ try {
     console.log('--- Start im Schrank');
     ok(await view() === 'schrank' && await hash() === '', 'Start ohne Adresse im Schrank');
     ok(JSON.stringify(await panels()) === JSON.stringify({ s: true, v: false }), 'nur der Schrank ist sichtbar');
-    ok(JSON.stringify(await sel()) === JSON.stringify(['true:0', 'false:-1']), 'Reiter: Schrank gewählt, nur er ist per Tab erreichbar');
+    ok(JSON.stringify(await sel()) === JSON.stringify(['true:0', 'false:-1', 'false:-1']), 'Reiter: Schrank gewählt, nur er ist per Tab erreichbar');
     ok(await p.title() === 'Outfit-Planner', 'Seitentitel: Outfit-Planner');
     const roles = await p.evaluate(() => {
       const tabs = [...document.querySelectorAll('#tabs [role=tab]')];
@@ -60,7 +60,7 @@ try {
     await p.click('#tab-vorschlaege'); await shown();
     ok(await view() === 'vorschlaege' && await hash() === '#vorschlaege', 'Klick: Bereich und Adresse (#vorschlaege)');
     ok(JSON.stringify(await panels()) === JSON.stringify({ s: false, v: true }), 'nur die Vorschläge sind sichtbar');
-    ok(JSON.stringify(await sel()) === JSON.stringify(['false:-1', 'true:0']), 'Reiter: Vorschläge gewählt');
+    ok(JSON.stringify(await sel()) === JSON.stringify(['false:-1', 'true:0', 'false:-1']), 'Reiter: Vorschläge gewählt');
     ok(await p.title() === 'Vorschläge – Outfit-Planner', 'Seitentitel passt zum Bereich');
     ok(await p.locator('#sugCards .sug').count() === 3, 'drei Vorschlagskarten');
     ok(await p.locator('#sugCards .sug--first').count() === 1, 'die erste Karte ist hervorgehoben');
@@ -92,11 +92,13 @@ try {
     await p.keyboard.press('ArrowLeft');
     ok(await wait(async () => await view() === 'schrank') && await p.evaluate(() => document.activeElement.id) === 'tab-schrank', 'Pfeil links: Schrank, Fokus folgt');
     await p.keyboard.press('ArrowLeft');
-    ok(await wait(async () => await view() === 'vorschlaege'), 'Pfeil links vom ersten Reiter springt zum letzten');
+    ok(await wait(async () => await view() === 'auswertung'), 'Pfeil links vom ersten Reiter springt zum letzten');
+    await p.keyboard.press('ArrowLeft');
+    ok(await wait(async () => await view() === 'vorschlaege'), 'Pfeil links: Vorschläge');
     await p.keyboard.press('Home');
     ok(await wait(async () => await view() === 'schrank'), 'Pos1: erster Reiter');
     await p.keyboard.press('End');
-    ok(await wait(async () => await view() === 'vorschlaege'), 'Ende: letzter Reiter');
+    ok(await wait(async () => await view() === 'auswertung') && await p.evaluate(() => document.activeElement.id) === 'tab-auswertung', 'Ende: letzter Reiter');
     await p.keyboard.press('ArrowRight');
     ok(await wait(async () => await view() === 'schrank'), 'Pfeil rechts vom letzten Reiter springt zum ersten');
     await p.keyboard.press('x');

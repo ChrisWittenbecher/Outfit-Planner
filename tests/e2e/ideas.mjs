@@ -125,17 +125,20 @@ try {
     await p.click('#tab-schrank');
 
     console.log('--- Verkaufstext');
-    if (mobile) { await p.click('#more'); await p.click('#mCal'); } else await p.click('#calBtn');
-    await p.waitForFunction(() => document.getElementById('calDlg').open);
-    await p.click('#calTabStats');
-    const sell = p.locator('#calStats li', { hasText: 'Schwarzes Shirt' }).locator('button', { hasText: 'Verkaufstext' });
-    ok(await sell.count() === 1, 'Schrankhüter bekommen einen Knopf „Verkaufstext“');
-    ok(await sell.getAttribute('aria-label') === 'Verkaufstext für „Schwarzes Shirt“ erstellen', 'Knopf hat einen sprechenden Namen');
-    ok(await p.locator('#calStats ul.stat-list').first().locator('button', { hasText: 'Verkaufstext' }).count() === 0, 'die Rubrik „Am häufigsten getragen“ hat keine solchen Knöpfe');
-    await sell.click();
+    await p.click('#tab-auswertung');
+    await p.waitForFunction(() => !document.getElementById('view-auswertung').hidden);
+    const row = p.locator('#idleList li', { hasText: 'Weißes Shirt' });
+    ok(await row.count() === 1, 'Schrankhüter stehen unter „Aussortieren?“: ' + (await p.locator('#idleList b').allTextContents()).join(' | '));
+    const out = row.locator('button', { hasText: 'Aussortieren' });
+    ok(await out.getAttribute('aria-label') === 'Aussortieren: Weißes Shirt', 'Knopf hat einen sprechenden Namen');
+    ok(/Zuletzt vor 3 Monaten getragen/.test(await row.textContent()), 'Hinweis nennt die Pause: ' + (await row.textContent()).replace(/\s+/g, ' ').trim());
+    ok(await p.locator('#statTop li button').count() === 0, 'die Rubrik „Am häufigsten getragen“ hat keine Knöpfe');
+    await out.click();
+    await p.waitForFunction(() => document.getElementById('sortDlg').open);
+    await p.click('#sortSell');
     await p.waitForFunction(() => document.getElementById('saleDlg').open);
     let text = await p.inputValue('#saleText');
-    ok(/^Schwarzes Shirt\n/.test(text) && /Zustand: Gut\./.test(text) && /Preis: 18,00\s€ VB/.test(text), 'Entwurf: Titel, Zustand, Preis 18 € (45 % von 40 €)');
+    ok(/^Weißes Shirt\n/.test(text) && /Zustand: Gut\./.test(text) && /Preis: 18,00\s€ VB/.test(text), 'Entwurf: Titel, Zustand, Preis 18 € (45 % von 40 €)');
     ok(/Nur Abholung/.test(text) && /keine Garantie/.test(text), 'Abholung und Privatverkauf stehen drin');
     await p.selectOption('#saleCond', 'neu');
     ok(/Preis: 28,00\s€ VB/.test(await p.inputValue('#saleText')), 'anderer Zustand, anderer Preis (28 €)');
@@ -146,9 +149,8 @@ try {
     await p.click('#saleCopy');
     ok(await wait(async () => /kopiert|nicht geklappt/.test(await p.textContent('#saleLive'))), 'Kopieren meldet sich: ' + (await p.textContent('#saleLive')).trim());
     await p.click('#saleClose');
-    ok(await closed(p, 'saleDlg') && await p.evaluate(() => document.getElementById('calDlg').open), 'Schließen führt zurück in die Auswertung');
-    ok(await wait(async () => await p.evaluate(() => document.activeElement?.textContent === 'Verkaufstext')), 'Fokus kehrt zum Knopf zurück');
-    await p.click('#calClose'); await closed(p, 'calDlg');
+    ok(await closed(p, 'saleDlg') && await p.isVisible('#view-auswertung'), 'Schließen führt zurück auf die Seite Auswertung');
+    ok(await wait(async () => await p.evaluate(() => document.activeElement?.getAttribute('aria-label') === 'Aussortieren: Weißes Shirt')), 'Fokus kehrt zum Knopf zurück');
 
     console.log('--- Fehlerfreiheit');
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
