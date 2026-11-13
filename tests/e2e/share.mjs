@@ -117,13 +117,13 @@ try {
     ok(near(im.px[7].slice(0, 3), bg, 1) && near(im.px[9].slice(0, 3), bg, 1), 'dort, wo es ungedreht läge, ist Bühne');
     ok(await p.locator('#shareBtn').getAttribute('aria-busy') === null, 'Knopf ist nach dem Teilen nicht mehr „beschäftigt“');
     ok(await toasts() === '' && downloads.length === 0, 'Erfolg bleibt still: kein Hinweis, keine Datei');
-    ok(await active() === 'shareBtn', 'Fokus bleibt auf dem Knopf');
     ok(await p.locator('#board img.p').count() === 4 && await p.isDisabled('#undo') === undoBefore, 'Board und Rückgängig-Verlauf bleiben unverändert');
 
     console.log('--- Tastatur');
     await reset();
     await p.focus('#shareBtn'); await p.keyboard.press('Enter');
     ok(await wait(async () => (await calls()).length === 1), 'Enter auf dem Knopf teilt');
+    ok(await active() === 'shareBtn', 'Fokus bleibt nach dem Teilen auf dem Knopf');
     await reset();
     await p.focus('#shareBtn'); await p.keyboard.press('Space');
     ok(await wait(async () => (await calls()).length === 1), 'Leertaste teilt');
@@ -204,7 +204,10 @@ try {
     ok(near(im2.px[2].slice(0, 3), [255, 0, 0], 1) && near(im2.px[3].slice(0, 3), bg, 1), 'nur dieses Outfit, nicht das Board (dort liegen Blau und Grün darüber)');
     ok(await wait(async () => /1 Teil fehlt im Schrank und ist nicht auf dem Bild/.test(await toasts())), 'fehlendes Teil wird gemeldet (' + await toasts() + ')');
     ok(await p.locator('#board img.p').count() === 4, 'das Board bleibt unverändert');
-    ok(await active() === 'Teilen: Büro Look', 'Fokus bleibt auf dem Knopf');
+
+    await reset();
+    await saved('Büro Look').focus(); await p.keyboard.press('Enter');
+    ok(await wait(async () => (await calls()).length === 1) && await active() === 'Teilen: Büro Look', 'per Tastatur geteilt, Fokus bleibt auf dem Knopf');
 
     await reset();
     await saved('Outfit 3').scrollIntoViewIfNeeded();
