@@ -529,7 +529,7 @@
   #sugNote { margin-bottom: 4px; }
 
   /* Vorschlagskarten */
-  .sug-cards { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .sug-cards { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
   .sug { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--raised); border: 2px solid transparent; border-radius: 16px; }
   .sug--first { border-color: var(--acc); }
   .sug-strip { display: flex; gap: 8px; justify-content: center; padding: 14px 8px; background: var(--canvas); border-radius: 12px; }
