@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps webkit
+      - name: recover x2
+        run: for i in 1 2; do echo "##### recover $i"; node tests/e2e/recover.mjs || true; done
       - name: pwa x3
         run: for i in 1 2 3; do echo "##### pwa $i"; node tests/e2e/pwa.mjs || true; done
       - name: upgrade B x3
