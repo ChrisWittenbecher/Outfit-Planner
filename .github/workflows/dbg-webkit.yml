@@ -1,0 +1,31 @@
+name: dbg-webkit
+on:
+  push:
+    branches: [dbg-webkit]
+permissions:
+  contents: read
+jobs:
+  dbg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BROWSER: webkit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - name: pwa x3
+        run: for i in 1 2 3; do echo "##### pwa $i"; node tests/e2e/pwa.mjs || true; done
+      - name: upgrade B x3
+        run: for i in 1 2 3; do echo "##### upgrade B $i"; ONLY=B node tests/e2e/upgrade.mjs || true; done
+      - name: upgrade A,D once
+        run: ONLY=A,D node tests/e2e/upgrade.mjs || true
+      - name: add-queue x2
+        run: for i in 1 2; do echo "##### add-queue $i"; node tests/e2e/add-queue.mjs || true; done
