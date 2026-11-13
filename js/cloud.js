@@ -236,39 +236,51 @@ function paintAccount(on, m) {
   const acct = $('cloudBtn'); if (!acct) return;
   const ico = acct.querySelector('.acct-ico'), img = $('cloudAvatar'), init = $('cloudInit');
   const label = on ? 'Google-Konto' + (m.name ? ': ' + m.name : '') : 'Mit Google anmelden';
-  acct.toggleAttribute('data-on', on); acct.title = label; acct.setAttribute('aria-label', label);
+  acct.toggleAttribute('data-on', on); acct.title = on ? label : 'Mit Google anmelden: dein Stand wird automatisch in deinem Google Drive gesichert'; acct.setAttribute('aria-label', label);
+  if (on) { acct.setAttribute('aria-haspopup', 'true'); acct.setAttribute('aria-expanded', String($('acctMenu').matches(':popover-open'))); } else { acct.removeAttribute('aria-haspopup'); acct.removeAttribute('aria-expanded'); }
   if (on) setAvatar(img, init, ico, m.name, m.photo);
   else { ico.toggleAttribute('hidden', false); img.hidden = true; init.hidden = true; img.removeAttribute('src'); }
-  const who = $('cloudWho'); who.hidden = !on;
   if (on) {
     $('cloudName').textContent = m.name || 'Google-Konto'; $('cloudMail').textContent = m.mail || '';
     setAvatar($('cloudWhoImg'), $('cloudWhoInit'), null, m.name, m.photo);
-  }
+  } else closeMenu();
 }
 
 function paint() {
   const on = signedIn();
-  const m = meta(), btn = $('mCloud'); if (!btn) return;
-  btn.textContent = 'Google-Sicherung' + (on ? ' · an' : '');
+  const m = meta();
   paintAccount(on, m);
-  $('cloudIn').hidden = on; $('cloudOut').hidden = !on;
-  $('cloudText').textContent = on
-    ? 'Dein Stand wird automatisch in einer versteckten Datei in deinem Google Drive gesichert und auf anderen Geräten, auf denen du angemeldet bist, aktuell gehalten.'
-    : 'Melde dich mit Google an, damit dein Stand automatisch gesichert wird und auf jedem Gerät da ist. Anprobe bekommt nur Zugriff auf einen eigenen versteckten Ordner, nicht auf deine anderen Dateien.';
   const when = m.last ? new Date(m.last).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-  $('cloudState').textContent = !on ? '' : info.text || (m.dirty ? 'Änderungen warten auf den Abgleich.' : when ? 'Zuletzt abgeglichen: ' + when + ' Uhr' : 'Noch nicht abgeglichen.');
-  $('cloudState').dataset.kind = info.kind;
+  const st = $('cloudState');
+  st.textContent = !on ? '' : info.text || (m.dirty ? 'Änderungen werden gesichert …' : when ? 'Gesichert: ' + when + ' Uhr' : 'Noch nicht abgeglichen.');
+  st.dataset.kind = !on ? '' : info.kind !== 'idle' && info.kind !== 'ok' ? info.kind : m.dirty ? 'busy' : 'ok';
+}
+
+// ---- Dropdown am Anmelde-Knopf (Popover-Element: Esc und Klick daneben schließen von selbst) ----
+let menuClosedAt = 0;
+const menu = () => $('acctMenu');
+function closeMenu() { try { if (menu().matches(':popover-open')) menu().hidePopover(); } catch { /* schon zu */ } }
+function placeMenu() {
+  const r = $('cloudBtn').getBoundingClientRect(), m = menu();
+  m.style.top = Math.round(r.bottom + 8) + 'px';
+  m.style.right = Math.max(8, Math.round(document.documentElement.clientWidth - r.right)) + 'px';
+}
+function toggleMenu() {
+  if (menu().matches(':popover-open')) { closeMenu(); return; }
+  paint(); placeMenu(); menu().showPopover();
+  // Rechte Kante genau an den Knopf: Scrollleisten verschieben die Bezugsbreite, daher nach dem Öffnen nachmessen
+  const dx = menu().getBoundingClientRect().right - $('cloudBtn').getBoundingClientRect().right;
+  if (Math.abs(dx) > 0.5) menu().style.right = Math.max(8, (parseFloat(menu().style.right) || 0) + Math.round(dx)) + 'px';
 }
 
 export function startCloud() {
-  const btn = $('mCloud');
   if (!cloudEnabled) return;
-  btn.hidden = false; $('cloudBtn').hidden = false;
-  const open = () => { closeDialog($('moreDlg')); paint(); showDialog($('cloudDlg')); };
-  btn.onclick = open; $('cloudBtn').onclick = open;
-  $('cloudClose').onclick = () => closeDialog($('cloudDlg'));
-  $('cloudIn').onclick = connect;
-  $('cloudOut').onclick = async () => { await disconnect(); paint(); };
+  $('cloudBtn').hidden = false;
+  $('cloudBtn').onclick = () => { if (!signedIn()) connect(); else if (Date.now() - menuClosedAt > 200) toggleMenu(); };   // Klick auf den Knopf bei offenem Menü: nur schließen
+  menu().addEventListener('beforetoggle', e => { if (e.newState === 'closed') menuClosedAt = Date.now(); });   // Klick-daneben schließt schon beim Drücken, vor dem Klick-Ereignis
+  menu().addEventListener('toggle', e => { $('cloudBtn').setAttribute('aria-expanded', String(e.newState === 'open')); });
+  addEventListener('resize', closeMenu);
+  $('cloudOut').onclick = async () => { closeMenu(); await disconnect(); paint(); };
   paint();
   document.addEventListener('anprobe:saved', () => { if (applying || !meta().rt) return; parked = false; save({ dirty: true }); paint(); later(); });
   document.addEventListener('visibilitychange', () => {
