@@ -17,7 +17,7 @@ async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' 
   const p = await ctx.newPage();
   const errors = [], failed = [], block = { on: false };
   p.on('pageerror', e => errors.push(e.message + ' @ ' + String(e.stack || '').replace(/\s+/g, ' ').slice(0, 400)));
-  p.on('requestfailed', r => { if (r.url().startsWith(G)) failed.push(r.method() + ' ' + new URL(r.url()).pathname + ' ' + (r.failure()?.errorText || '')); });
+  p.on('requestfailed', r => { const u = new URL(r.url()); if (u.origin === G) failed.push(r.method() + ' ' + u.pathname + ' ' + (r.failure()?.errorText || '')); });
   if (process.env.DEBUG) { p.on('console', m => console.log('  [console]', m.text())); p.on('requestfailed', r => console.log('  [failed]', r.method(), r.url(), r.failure()?.errorText)); }
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: `export const WORKER_URL = '${W}'; export const GOOGLE_CLIENT_ID = '${clientId}';` }));
