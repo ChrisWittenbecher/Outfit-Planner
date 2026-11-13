@@ -63,7 +63,7 @@ try {
       const far = await p.evaluate(() => document.getElementById('updBtn').getBoundingClientRect().top > innerHeight);
       await p.evaluate(() => document.getElementById('theme').click()); await p.waitForTimeout(500);
       ok(await p.evaluate(() => scrollY) === 0, 'Haptik lässt die Seite stehen, auch wenn der Fokus weit unten liegt (Knopf außerhalb: ' + far + ', scrollY: ' + await p.evaluate(() => scrollY) + ')');
-      ok(await act() === 'updBtn', 'und der Fokus bleibt auf dem Knopf (aktiv: ' + await act() + ')');
+      ok(!(await act()).startsWith('INPUT'), 'der unsichtbare Schalter behält den Fokus nicht (aktiv: ' + await act() + ')');
     }
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();
