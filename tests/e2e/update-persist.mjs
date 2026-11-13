@@ -61,8 +61,17 @@ try {
   const top = await p.locator('#board img.p').last().boundingBox();
   const cx = top.x + top.width / 2, cy = top.y + top.height / 2;
   const before = await count();
-  await p.touchscreen.tap(cx, cy); await wait(300); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
-  ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 300 ms Pause nehmen das Teil vom Board');
+  // Ablaufprotokoll der Berührungen: bei einem Fehlschlag steht in der Meldung, ob der Abstand zu groß war oder eine Berührung abgebrochen wurde
+  await p.evaluate(() => {
+    window.__ev = [];
+    for (const t of ['pointerdown', 'pointerup', 'pointercancel', 'focusin', 'focusout']) {
+      addEventListener(t, e => { const n = e.target; window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc'))); }, true);
+    }
+  });
+  await p.touchscreen.tap(cx, cy); await wait(250); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
+  const trace = await p.evaluate(() => window.__ev.join(' '));
+  console.log('INFO Ablauf: ' + trace);
+  ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 250 ms Pause nehmen das Teil vom Board [' + trace + ']');
   ok(await p.locator('#toasts button', { hasText: 'Rückgängig' }).isVisible(), 'Hinweis mit „Rückgängig“');
 
   ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
