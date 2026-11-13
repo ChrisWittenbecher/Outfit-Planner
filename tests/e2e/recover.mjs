@@ -13,14 +13,14 @@ const NOSTORE = { 'cache-control': 'no-store' };
 const isReady = p => p.evaluate(() => !!document.documentElement.dataset.ready).catch(() => false);
 const flag = p => p.evaluate(() => sessionStorage.getItem('anprobe-recover')).catch(() => null);
 
-/** Neue Seite; die Navigationen zu index.html werden gezählt, js/ui.js und js/main.js lassen sich ersetzen. */
+/** Neue Seite; die Navigationen zu index.html werden gezählt, js/ui.js lässt sich durch ein fehlerhaftes Modul ersetzen, js/main.js abbrechen. */
 async function open(fake = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const p = await ctx.newPage();
   const seen = { nav: 0, ui: 0, main: 0 };
   p.on('request', r => { if (r.isNavigationRequest() && new URL(r.url()).pathname === '/index.html') seen.nav++; });
   await p.route('**/js/ui.js', r => { seen.ui++; return fake.ui?.(seen.ui) ? r.fulfill({ contentType: 'text/javascript', headers: NOSTORE, body: "throw new TypeError('altes Modul passt nicht zur Seite');" }) : r.continue(); });
-  await p.route('**/js/main.js', r => { seen.main++; return fake.main?.(seen.main) ? r.fulfill({ contentType: 'text/javascript', headers: NOSTORE, body: '/* tut nichts */' }) : r.continue(); });
+  await p.route('**/js/main.js', r => { seen.main++; return fake.main?.(seen.main) ? r.abort() : r.continue(); });   // Laden schlägt fehl: kein Skriptfehler im Fenster, die App startet einfach nicht
   return { ctx, p, seen };
 }
 
@@ -60,7 +60,7 @@ try {
     await ctx.close();
   }
 
-  console.log('--- Start dauert zu lange (main.js tut nichts, kein Fehler)');
+  console.log('--- Start bleibt aus, ohne Skriptfehler (main.js lässt sich einmal nicht laden)');
   {
     const { ctx, p, seen } = await open({ main: n => n === 1 });
     await p.goto(BASE);
