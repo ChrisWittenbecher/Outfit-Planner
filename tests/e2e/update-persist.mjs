@@ -60,6 +60,9 @@ try {
   await p.locator('#board').scrollIntoViewIfNeeded();
   const top = await p.locator('#board img.p').last().boundingBox();
   const cx = top.x + top.width / 2, cy = top.y + top.height / 2;
+  // Liegt ein Hinweis („Rückgängig“) über dem Teil, wartet der Test, bis er weg ist: sonst träfe der zweite Tipp den Hinweis
+  const covered = async () => { const t = await p.locator('#toasts .toast').first().boundingBox().catch(() => null); return !!t && cx > t.x - 20 && cx < t.x + t.width + 20 && cy > t.y - 20 && cy < t.y + t.height + 20; };
+  for (let k = 0; k < 80 && await covered(); k++) await wait(100);
   const before = await count();
   // Ablaufprotokoll der Berührungen: bei einem Fehlschlag steht in der Meldung, ob der Abstand zu groß war oder eine Berührung abgebrochen wurde
   await p.evaluate(() => {
