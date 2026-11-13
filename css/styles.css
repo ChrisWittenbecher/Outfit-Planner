@@ -311,6 +311,12 @@
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
   .cloud-text { color: var(--mute); font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
+  .cloud-who { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+  .cloud-who img, .who-init { width: 48px; height: 48px; border-radius: 50%; flex: none; object-fit: cover; background: var(--raised); }
+  .who-init { display: grid; place-items: center; font-size: 20px; font-weight: 600; background: var(--acc-soft); color: var(--acc-strong); }
+  .who-text { display: grid; min-width: 0; }
+  .who-text strong, .who-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .who-text span { color: var(--mute); font-size: 14px; }
   .cloud-state { font-size: 14px; margin: 0 0 14px; min-height: 1.4em; }
   .cloud-state[data-kind="error"] { color: var(--danger); }
   .cloud-state[data-kind="ok"] { color: var(--acc-strong); }
@@ -335,7 +341,7 @@
   @media (max-width: 560px) {
     /* iOS zoomt bei Eingabefeldern unter 16px */
     input, select { font-size: 16px; }
-    h1 { font-size: 26px; }
+    h1 { font-size: 24px; }
     .topbar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 10px; }
     .topbar .actions button:not(.pri) { padding-inline: 10px; font-size: 13px; }
     #addBtn { display: none; }
@@ -372,13 +378,31 @@
   #uiOk.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 
   @media (max-width: 560px) {
-    #exp, #imp, #cloudBtn { display: none; }
+    #exp, #imp { display: none; }
     .more-btn { display: grid; }
     #toasts { bottom: calc(88px + env(safe-area-inset-bottom)); }
     .topbar .actions { flex-wrap: nowrap; }
   }
   @media (pointer: coarse) {
     .ibtn { width: 44px; height: 44px; }
+  }
+
+  /* Anmelde-Knopf oben rechts: „Anmelden“ mit Symbol, nach der Anmeldung das Profilbild */
+  .topbar .actions button.acct { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px 0 10px; border-color: var(--line); font-size: 14px; }
+  .acct svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .acct-img, .acct-init { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--raised); }
+  .acct-init { display: grid; place-items: center; font-size: 15px; font-weight: 600; background: var(--acc-soft); color: var(--acc-strong); }
+  .topbar .actions button.acct[data-on] { width: 38px; height: 38px; padding: 0; border-color: var(--acc); }
+  .acct[data-on] .acct-label { display: none; }
+  @media (max-width: 560px) {
+    .topbar .actions button.acct { width: 44px; height: 44px; padding: 0; }
+    .acct-label { display: none; }
+    .topbar { gap: 8px; }
+    .topbar .actions { gap: 4px; }
+  }
+  @media (pointer: coarse) {
+    .topbar .actions button.acct[data-on] { width: 44px; height: 44px; }
+    .acct[data-on] .acct-img, .acct[data-on] .acct-init { width: 36px; height: 36px; }
   }
 
   @media (max-width: 560px) {

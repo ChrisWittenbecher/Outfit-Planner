@@ -11,7 +11,7 @@ import { closeDialog, showDialog } from './sheet.js';
 import { confirmBox, toast } from './ui.js';
 import { step, undo } from './history.js';
 import { flush } from './storage.js';
-import { authUrl, challengeOf, randomToken, readReturn, redirectUri } from './cloudauth.js';
+import { authUrl, challengeOf, cleanText, randomToken, readReturn, redirectUri, safePhoto } from './cloudauth.js';
 import { mergeData } from './syncmerge.js';
 
 export const cloudEnabled = !!(WORKER_URL && GOOGLE_CLIENT_ID);
@@ -21,7 +21,7 @@ const DRIVE = 'https://www.googleapis.com', FILE = 'anprobe-data.json';
 const DELAY = 12000, RECHECK = 120000, OAUTH_MAX_AGE = 15 * 60000;
 
 // ---- gespeicherter Zustand (kein Zugriffstoken, nur der Auffrisch-Schlüssel und der Abgleichstand) ----
-/** @returns {{rt?: string, base?: string, dirty?: boolean, last?: number}} */
+/** @returns {{rt?: string, base?: string, dirty?: boolean, last?: number, name?: string, mail?: string, photo?: string, pt?: number}} */
 const meta = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } };
 const save = patch => { try { localStorage.setItem(KEY, JSON.stringify({ ...meta(), ...patch })); } catch { /* Speicher gesperrt */ } };
 const forget = () => { try { localStorage.removeItem(KEY); } catch { /* egal */ } };
@@ -128,9 +128,21 @@ function askConflict() {
   });
 }
 
+/** Name, Adresse und Bild des Google-Kontos für die Anzeige (Recht drive.appdata reicht dafür); höchstens einmal am Tag. */
+async function profile() {
+  const m = meta(); if (m.name && Date.now() - (m.pt || 0) < 864e5) return;
+  save({ pt: Date.now() });   // auch bei Fehlschlag, damit nicht bei jedem Abgleich neu gefragt wird
+  try {
+    const u = (await (await drive(`${DRIVE}/drive/v3/about?fields=user(displayName,emailAddress,photoLink)`)).json()).user || {};
+    save({ name: cleanText(u.displayName, 80), mail: cleanText(u.emailAddress, 120), photo: safePhoto(u.photoLink) });
+    paint();
+  } catch { /* nur Anzeige: der Abgleich läuft trotzdem */ }
+}
+
 async function run() {
   const m = meta(); if (!m.rt) return;
   setInfo('busy', 'Gleiche mit Google ab …');
+  await profile();
   const remote = await findRemote();
   const dirty = m.dirty || (!m.base && !empty());
   const stamp = () => { save({ last: Date.now() }); lastCheck = Date.now(); setInfo('ok', ''); };
@@ -189,7 +201,7 @@ async function comeBack() {
   try {
     const d = await worker('/auth/token', { code: ret.code, verifier: saved.verifier, redirect: redirectUri(location) });
     if (!d.refresh_token) throw fail('no_refresh');
-    save({ rt: d.refresh_token, base: '', dirty: false, last: 0 }); at = d.access_token; exp = Date.now() + d.expires_in * 1000;
+    save({ rt: d.refresh_token, base: '', dirty: false, last: 0, name: '', mail: '', photo: '', pt: 0 }); at = d.access_token; exp = Date.now() + d.expires_in * 1000;
     toast('Mit Google verbunden');
     await syncNow();
   } catch (e) {
@@ -205,11 +217,37 @@ async function disconnect() {
   setInfo('idle', ''); toast('Abgemeldet');
 }
 
-// ---- Dialog ----
+// ---- Dialog und Anmelde-Knopf oben rechts ----
+/** Zeigt Profilbild (oder Anfangsbuchstaben) statt des Anmelde-Symbols. */
+function setAvatar(img, init, ico, name, photo) {
+  const letter = (name || '?').trim().charAt(0).toUpperCase();
+  ico?.toggleAttribute('hidden', true);
+  init.textContent = letter; init.hidden = false; img.hidden = true;
+  if (!photo) return;
+  img.onload = () => { img.hidden = false; init.hidden = true; };
+  img.onerror = () => { img.hidden = true; init.hidden = false; };
+  if (img.getAttribute('src') !== photo) img.src = photo; else if (img.complete && img.naturalWidth) img.onload();
+}
+
+function paintAccount(on, m) {
+  const acct = $('cloudBtn'); if (!acct) return;
+  const ico = acct.querySelector('.acct-ico'), img = $('cloudAvatar'), init = $('cloudInit');
+  const label = on ? 'Google-Konto' + (m.name ? ': ' + m.name : '') : 'Mit Google anmelden';
+  acct.toggleAttribute('data-on', on); acct.title = label; acct.setAttribute('aria-label', label);
+  if (on) setAvatar(img, init, ico, m.name, m.photo);
+  else { ico.toggleAttribute('hidden', false); img.hidden = true; init.hidden = true; img.removeAttribute('src'); }
+  const who = $('cloudWho'); who.hidden = !on;
+  if (on) {
+    $('cloudName').textContent = m.name || 'Google-Konto'; $('cloudMail').textContent = m.mail || '';
+    setAvatar($('cloudWhoImg'), $('cloudWhoInit'), null, m.name, m.photo);
+  }
+}
+
 function paint() {
   const on = signedIn();
   const m = meta(), btn = $('mCloud'); if (!btn) return;
-  btn.textContent = 'Google-Sicherung' + (on ? ' · an' : ''); $('cloudBtn').textContent = on ? 'Google ✓' : 'Google';
+  btn.textContent = 'Google-Sicherung' + (on ? ' · an' : '');
+  paintAccount(on, m);
   $('cloudIn').hidden = on; $('cloudSync').hidden = !on; $('cloudOut').hidden = !on;
   $('cloudText').textContent = on
     ? 'Dein Stand wird automatisch in einer versteckten Datei in deinem Google Drive gesichert und auf anderen Geräten, auf denen du angemeldet bist, aktuell gehalten.'

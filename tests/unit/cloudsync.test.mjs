@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { authUrl, b64url, challengeOf, randomToken, readReturn, redirectUri } from '../../js/cloudauth.js';
+import { authUrl, b64url, challengeOf, cleanText, randomToken, readReturn, redirectUri, safePhoto } from '../../js/cloudauth.js';
 import { mergeData } from '../../js/syncmerge.js';
 
 test('PKCE: Prüfwert entspricht dem Beispiel aus RFC 7636', async () => {
@@ -44,4 +44,18 @@ test('Zusammenführen: nichts geht verloren, dieses Gerät gewinnt bei gleicher 
   assert.deepEqual(m.plans, { '2026-11-02': 'o1', '2026-11-04': 'o2' });
   assert.deepEqual(m.board, [1]);
   assert.deepEqual(local.items.map(i => i.id), ['a', 'b']);   // Eingaben bleiben unverändert
+});
+
+test('Profilbild: nur https von googleusercontent.com, auf 96 px gesetzt', () => {
+  assert.equal(safePhoto('https://lh3.googleusercontent.com/a/abc=s64'), 'https://lh3.googleusercontent.com/a/abc=s96-c');
+  assert.equal(safePhoto('https://lh3.googleusercontent.com/a/abc=s220-c'), 'https://lh3.googleusercontent.com/a/abc=s96-c');
+  for (const bad of ['http://lh3.googleusercontent.com/a', 'https://evil.example/a', 'https://googleusercontent.com.evil.example/a', 'https://xgoogleusercontent.com/a',
+    'https://user@lh3.googleusercontent.com/a', 'https://lh3.googleusercontent.com:8443/a', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '', null, undefined, 5, 'https://lh3.googleusercontent.com/' + 'a'.repeat(600)])
+    assert.equal(safePhoto(bad), '', String(bad).slice(0, 40));
+});
+
+test('Anzeigetext: ohne Steuerzeichen und spitze Klammern, gekürzt', () => {
+  assert.equal(cleanText('  Erika <b>Muster</b>\n\t ', 80), 'Erika bMuster/b');
+  assert.equal(cleanText('x'.repeat(200), 80).length, 80);
+  assert.equal(cleanText(null, 80), ''); assert.equal(cleanText(42, 80), '');
 });

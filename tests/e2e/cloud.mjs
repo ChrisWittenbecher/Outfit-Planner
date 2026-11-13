@@ -41,12 +41,15 @@ async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' 
     if (path === '/auth/revoke') { fake.revoked++; return r.fulfill(jsonRes({ ok: true })); }
     r.fulfill(jsonRes({ error: 'not_found' }, 404));
   });
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  await p.route('https://lh3.googleusercontent.com/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
   await p.route(`${G}/**`, async r => {
     const req = r.request(), u = new URL(req.url());
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors });
     if (block.on) return r.fulfill(jsonRes({ error: { errors: [{ reason: 'backendError' }] } }, 503));
     if (!/^Bearer AT-\d$/.test(req.headers().authorization || '')) return r.fulfill(jsonRes({ error: { errors: [{ reason: 'authError' }] } }, 401));
     const slot = [...fake.files.values()][0];
+    if (u.pathname === '/drive/v3/about') { fake.calls.push('about ' + u.searchParams.get('fields')); return r.fulfill(jsonRes({ user: { displayName: 'Erika Muster', emailAddress: 'erika@example.org', photoLink: 'https://lh3.googleusercontent.com/a/test=s64' } })); }
     if (u.pathname === '/drive/v3/files' && req.method() === 'GET') {
       ok(u.searchParams.get('spaces') === 'appDataFolder', 'Suche nur im App-Ordner');
       return r.fulfill(jsonRes({ files: slot ? [{ id: slot.id, md5Checksum: slot.md5, modifiedTime: slot.t, size: String(slot.text.length) }] : [] }));
@@ -91,7 +94,7 @@ try {
   await a.goto(`${ORIGIN}/index.html`); await a.waitForSelector('html[data-ready]', { state: 'attached' });
   await addItem(a, { trigger: '#addBtn', name: 'Shirt', cat: 'Oberteil' });
   await addItem(a, { trigger: '#addBtn', name: 'Hose', cat: 'Hose/Rock' });
-  ok(await a.evaluate(() => !document.getElementById('cloudBtn').hidden) && await a.textContent('#cloudBtn') === 'Google', 'Knopf „Google“ ist da');
+  ok(await a.evaluate(() => !document.getElementById('cloudBtn').hidden) && (await a.textContent('#cloudBtn')).trim() === 'Anmelden' && await a.getAttribute('#cloudBtn', 'aria-label') === 'Mit Google anmelden', 'Anmelde-Knopf oben rechts zeigt „Anmelden“');
   await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
   ok(/versteckten Ordner/.test(await a.textContent('#cloudText')), 'Dialog erklärt, dass nur ein versteckter Ordner genutzt wird');
   await a.click('#cloudIn');
@@ -101,7 +104,16 @@ try {
   const stored = await a.evaluate(() => JSON.stringify({ l: { ...localStorage }, s: { ...sessionStorage } }));
   ok(/RT-secret-123456/.test(stored) && !/AT-1|AT-2/.test(stored), 'nur der Auffrisch-Schlüssel wird gespeichert, kein Zugriffstoken');
   ok(!/verifier/.test(await a.evaluate(() => JSON.stringify({ ...sessionStorage }))), 'Verifier ist nach der Rückkehr gelöscht');
-  ok(await a.textContent('#cloudBtn') === 'Google ✓', 'Knopf zeigt „Google ✓“');
+  ok(await wait(async () => await a.evaluate(() => document.getElementById('cloudBtn').hasAttribute('data-on') && !document.getElementById('cloudAvatar').hidden)), 'nach der Anmeldung zeigt der Knopf das Profilbild');
+  ok(await a.evaluate(() => getComputedStyle(document.getElementById('cloudBtn').querySelector('.acct-ico')).display === 'none'), 'das Anmelde-Symbol ist dann ausgeblendet');
+  ok(await a.getAttribute('#cloudAvatar', 'src') === 'https://lh3.googleusercontent.com/a/test=s96-c', 'Profilbild kommt von Google, auf 96 px gesetzt');
+  ok((await a.getAttribute('#cloudBtn', 'aria-label')) === 'Google-Konto: Erika Muster', 'Knopf nennt das Konto');
+  ok(fake.calls.some(c => c === 'about user(displayName,emailAddress,photoLink)'), 'Kontodaten werden mit dem App-Ordner-Recht geholt');
+  const box = await a.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cloudBtn'); return { right: c.right, others: ['theme', 'addBtn'].map(i => r(i).right), top: c.top }; });
+  ok(box.others.every(x => x < box.right) && box.top < 80, 'der Knopf sitzt ganz rechts in der Kopfzeile ' + JSON.stringify(box));
+  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
+  ok(await a.textContent('#cloudName') === 'Erika Muster' && await a.textContent('#cloudMail') === 'erika@example.org', 'Dialog nennt Name und Adresse des Google-Kontos');
+  await a.click('#cloudClose');
 
   console.log('--- Änderung wird automatisch gesichert');
   await a.keyboard.press('Escape');
@@ -160,6 +172,15 @@ try {
   ok(await wait(async () => fake.revoked === 1), 'Abmelden widerruft den Zugriff bei Google');
   ok(await a.evaluate(() => localStorage.getItem('anprobe-cloud')) === null, 'Schlüssel ist gelöscht');
   ok(await cards(a) === 4 && remoteNames().length === 4, 'Daten hier und in Google Drive bleiben erhalten');
+  ok(await a.evaluate(() => !document.getElementById('cloudBtn').hasAttribute('data-on') && document.getElementById('cloudAvatar').hidden && getComputedStyle(document.getElementById('cloudBtn').querySelector('.acct-ico')).display !== 'none'), 'nach dem Abmelden zeigt der Knopf wieder „Anmelden“');
+
+  console.log('--- Smartphone: Knopf bleibt sichtbar');
+  const ctxM = await browser.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
+  const M = await setup(ctxM); const m = M.p;
+  await m.goto(`${ORIGIN}/index.html`); await m.waitForSelector('html[data-ready]', { state: 'attached' });
+  const mb = await m.evaluate(() => { const b = document.getElementById('cloudBtn'), r = b.getBoundingClientRect(); return { shown: getComputedStyle(b).display !== 'none', w: r.width, right: r.right, vw: innerWidth, label: getComputedStyle(b.querySelector('.acct-label')).display, scroll: document.documentElement.scrollWidth > innerWidth }; });
+  ok(mb.shown && mb.w >= 44 && mb.right <= mb.vw && mb.label === 'none' && !mb.scroll, 'am Smartphone: runder Knopf (≥ 44 px) ohne Überlauf ' + JSON.stringify(mb));
+  await ctxM.close();
 
   for (const [n, pg, errs] of [['A', a, A.errors], ['B', b, B.errors]]) {
     ok(errs.length === 0, 'keine Skriptfehler auf ' + n + ' ' + errs.join(' | '));
