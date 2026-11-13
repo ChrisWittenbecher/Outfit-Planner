@@ -72,6 +72,12 @@ try {
     ok((await card.locator('.sug-save').getAttribute('aria-label')).startsWith('Als Outfit speichern: '), 'Knopf „Speichern“ hat einen sprechenden Namen');
     const sizes = await p.evaluate(() => [...document.querySelectorAll('#sugCards .sug button')].map(b => { const r = b.getBoundingClientRect(); return Math.min(r.width, r.height); }));
     ok(sizes.every(s => s >= 40), 'Knöpfe der Karte sind groß genug (' + sizes.map(Math.round) + ')');
+    // Auf anderen Rechnern ist die Schrift breiter (CI-Läufer): die Knöpfe dürfen dann nicht schrumpfen
+    await p.evaluate(() => { const s = new CSSStyleSheet(); s.replaceSync('* { font-family: monospace !important; letter-spacing: .06em !important; }'); document.adoptedStyleSheets = [s]; });
+    const wideSizes = await p.evaluate(() => [...document.querySelectorAll('#sugCards .sug button')].map(b => { const r = b.getBoundingClientRect(); return Math.min(r.width, r.height); }));
+    const spill = await p.evaluate(() => [...document.querySelectorAll('#sugCards .sug, #sugCards .sug *')].filter(e => e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0).map(e => e.tagName.toLowerCase() + '.' + e.className + ' ' + e.scrollWidth + '>' + e.clientWidth));
+    ok(wideSizes.every(s => s >= 40) && spill.length === 0, 'Knöpfe bleiben auch bei sehr breiter Schrift groß und im Rahmen (' + wideSizes.map(Math.round) + '; übergelaufen: ' + (spill.join(', ') || 'nichts') + ')');
+    await p.evaluate(() => { document.adoptedStyleSheets = []; });
 
     console.log('--- Zurück und vor');
     await p.goBack();
@@ -145,7 +151,8 @@ try {
     await p.locator('#sugCards .sug').first().locator('.sug-try').click();
     ok(await wait(async () => await view() === 'schrank'), 'wechselt zum Schrank');
     ok(await wait(async () => await p.locator('#board img.p').count() === piecesN), 'Board zeigt die Teile');
-    ok(await p.evaluate(() => document.activeElement.id) === 'outfitTitle', 'Fokus steht auf der Überschrift des Boards');
+    const focusOn = () => p.evaluate(() => { const a = document.activeElement; return a ? (a.id || a.tagName) : 'nichts'; });
+    ok(await wait(async () => await focusOn() === 'outfitTitle'), 'Fokus steht auf der Überschrift des Boards (aktiv: ' + await focusOn() + ')');
     await p.goBack();
     ok(await wait(async () => await view() === 'vorschlaege'), 'Zurück führt wieder zu den Vorschlägen');
 

@@ -32,7 +32,18 @@ export function go(view, {focus = false} = {}){
     apply(view);
     scrollTo(0, 0);
   }
-  if(focus) $(HEAD[view])?.focus({preventScroll:true});
+  if(focus) focusHead(view);
+}
+
+/** Setzt den Fokus auf die Überschrift. Manche Browser (WebKit) nehmen ihn gleich nach dem Klick wieder weg, wenn der geklickte Knopf
+ *  im verborgenen Bereich lag; dann holt ein zweiter Versuch im nächsten Bild ihn zurück, solange sonst nichts den Fokus hat. */
+function focusHead(view){
+  const h = $(HEAD[view]); if(!h) return;
+  h.focus({preventScroll:true});
+  requestAnimationFrame(() => {
+    const a = document.activeElement;
+    if(current === view && (!a || a === document.body)) h.focus({preventScroll:true});
+  });
 }
 
 for(const tab of document.querySelectorAll('#tabs [role="tab"]')) tab.addEventListener('click', () => { haptic('select'); go(tab.dataset.view); });

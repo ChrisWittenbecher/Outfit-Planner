@@ -535,14 +535,14 @@
   .sug-strip { display: flex; gap: 8px; justify-content: center; padding: 14px 8px; background: var(--canvas); border-radius: 12px; }
   .sug-tile { flex: 1 1 0; min-width: 0; max-width: 68px; height: 78px; padding: 4px; background: var(--tile); border-radius: 10px; }
   .sug-tile img { display: block; width: 100%; height: 100%; object-fit: contain; }
-  .sug-title { font-size: 20px; }
+  .sug-title { font-size: 20px; overflow-wrap: anywhere; }
   .sug-sub { margin-top: 2px; font-size: 13px; color: var(--mute); }
   .sug-why { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
   .sug-why li { display: flex; gap: 8px; align-items: baseline; }
   .sug-why li::before { content: "✓"; content: "✓" / ""; flex: none; color: var(--ok); font-weight: 700; }
   .sug-act { display: flex; gap: 8px; margin-top: auto; }
-  .sug-act .pri { flex: 1; min-height: 44px; }
-  .sug-act .sug-save { width: 44px; height: 44px; }
+  .sug-act .pri { flex: 1 1 0; min-width: 0; min-height: 44px; padding-inline: 10px; overflow-wrap: anywhere; }
+  .sug-act .sug-save { flex: none; width: 44px; height: 44px; }
 
   @media (max-width: 1000px) {
     .page { grid-template-columns: minmax(0, 1fr); }
