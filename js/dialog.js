@@ -165,7 +165,8 @@ $('url').addEventListener('paste', () => { if(state.editing || !linkFetchEnabled
 {
   let y = scrollY, ticking = false, touched = -1e9;
   // Nur Scrollen durch den Nutzer zählt, nicht Sprünge der Seite selbst (z. B. nach dem Speichern)
-  for (const ev of ['touchmove', 'wheel', 'keydown']) addEventListener(ev, () => { touched = performance.now(); }, { passive: true });
+  // (Esc scrollt nie: Schließt jemand ein Blatt mit Esc, darf ein Sprung der Seite danach den Knopf nicht verstecken)
+  for (const ev of ['touchmove', 'wheel', 'keydown']) addEventListener(ev, e => { if (e.key !== 'Escape') touched = performance.now(); }, { passive: true });
   addEventListener('scroll', () => {
     if (ticking) return; ticking = true;
     requestAnimationFrame(() => {

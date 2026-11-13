@@ -42,8 +42,18 @@ try {
     const rowOf = fname => p.locator('#queueList .q').filter({ has: p.locator(`[aria-label$=", ${fname}"], [aria-label="Entfernen: ${fname}"]`) });
     const names = () => p.locator('#queueList input').evaluateAll(l => l.map(i => i.value));
     const doneAll = async () => wait(async () => !(await states()).some(s => s === 'wait' || s === 'work'));
+    // Der Plus-Knopf weicht beim Runterscrollen aus (css .fab.away): vor dem Tippen nach oben, bei Fehlschlag Zustand ausgeben
+    const top = () => p.evaluate(() => scrollTo(0, 0));
+    const tap = async () => {
+      await top();
+      try { await p.click(trigger, { timeout: 10000 }); }
+      catch (e) {
+        console.log('INFO  Knopf nicht klickbar: ' + JSON.stringify(await p.evaluate(() => ({ y: scrollY, h: document.documentElement.scrollHeight, ih: innerHeight, cls: document.getElementById('fab').className, view: document.documentElement.dataset.view, open: [...document.querySelectorAll('dialog[open]')].map(d => d.id) }))));
+        throw e;
+      }
+    };
     const openQueue = async files => {
-      await p.click(trigger);
+      await tap();
       await p.setInputFiles('#file', files);
       await p.waitForFunction(() => document.getElementById('queueDlg').open);
     };
@@ -52,7 +62,7 @@ try {
 
     console.log('--- Auswahl-Blatt');
     ok(await p.locator(trigger).isVisible(), 'Hinzufügen-Knopf ist da (' + trigger + ')');
-    await p.click(trigger);
+    await tap();
     ok(await isOpen('addDlg') && !(await isOpen('dlg')), 'Hinzufügen öffnet das Blatt, nicht gleich den Dialog');
     ok((await p.textContent('#addTitle')).trim() === 'Teil hinzufügen', 'Blatt heißt „Teil hinzufügen“');
     ok(await p.isVisible('#wayPhotos') && /Fotos wählen/.test(await p.textContent('#wayPhotos')), 'Weg „Fotos wählen“');
@@ -64,10 +74,10 @@ try {
     ok(await p.evaluate(() => !document.getElementById('dlg').contains(document.getElementById('file'))), 'Foto-Feld liegt außerhalb des Dialogs (das Blatt kann es öffnen)');
     await p.click('#addClose'); ok(await closed(p, 'addDlg'), 'Abbrechen schließt das Blatt');
     ok(await cards() === 0, 'nichts wurde hinzugefügt');
-    await p.click(trigger); await p.keyboard.press('Escape'); ok(await closed(p, 'addDlg'), 'Esc schließt das Blatt');
+    await tap(); await p.keyboard.press('Escape'); ok(await closed(p, 'addDlg'), 'Esc schließt das Blatt');
 
     console.log('--- Wege des Blatts');
-    await p.click(trigger);
+    await tap();
     let [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('#wayPhotos')]);
     ok(chooser.isMultiple(), '„Fotos wählen“ öffnet die Auswahl mit mehreren Bildern');
     await chooser.setFiles([]);   // Auswahl abbrechen
@@ -82,7 +92,7 @@ try {
       ok(await p.isHidden('#queueDlg') && (await p.inputValue('#name')) === 'kamera', 'Name aus dem Dateinamen: ' + await p.inputValue('#name'));
       await p.click('#cancel'); await closed(p, 'dlg');
       ok(await cards() === 0, 'Abbrechen im Dialog fügt nichts hinzu');
-      await p.click(trigger);
+      await tap();
     }
     [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('#wayPhotos')]);
     await chooser.setFiles(await img('hemd_blau.png', '#1565c0'));
@@ -90,11 +100,11 @@ try {
     ok(await p.waitForSelector('#res img', { timeout: 15000 }).then(() => true), 'ein einzelnes Foto führt in den ausführlichen Dialog');
     ok(await p.inputValue('#name') === 'hemd blau' && await isOpen('dlg') && !(await isOpen('queueDlg')), 'Name „hemd blau“ aus dem Dateinamen, keine Warteschlange');
     await p.click('#cancel'); await closed(p, 'dlg');
-    await p.click(trigger);
+    await tap();
     await p.click('#wayLink'); await p.waitForFunction(() => document.getElementById('dlg').open && !document.getElementById('addDlg').open);
     ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', '„Link einfügen“ öffnet den Dialog mit Cursor im Linkfeld');
     await p.click('#cancel'); await closed(p, 'dlg');
-    await p.click(trigger);
+    await tap();
     await p.setInputFiles('#file', PDF);
     await sleep(400);
     ok(/keine Bilder/.test(await toasts()) && await isOpen('addDlg') && !(await isOpen('queueDlg')) && !(await isOpen('dlg')), 'nur eine PDF-Datei: Hinweis „keine Bilder“, das Blatt bleibt offen');
@@ -110,15 +120,15 @@ try {
     await throttle(6);
     await openQueue(files);
     const first = await states();
-    ok(first.length === 7 && first.filter(s => s === 'wait').length >= 5, 'sieben Fotos in der Liste (die PDF-Datei ist keins), die meisten wartend: ' + first.join(','));
+    ok(first.length === 7 && (!cdp || first.filter(s => s === 'wait').length >= 5), 'sieben Fotos in der Liste (die PDF-Datei ist keins)' + (cdp ? ', die meisten wartend' : '') + ': ' + first.join(','));
     ok(await p.locator('#queueList .q--work').count() <= 1, 'höchstens ein Foto wird gleichzeitig verarbeitet');
     ok(/Datei ist kein Bild und fehlt/.test(await p.textContent('#queueNote')) && await p.isVisible('#queueNote'), 'Hinweis: eine Datei ist kein Bild (' + (await p.textContent('#queueNote')).trim() + ')');
-    ok(/^[0-9] von 7 fertig/.test(await head()), 'Zeile unter dem Titel zählt mit: ' + await head());
+    ok(/^[0-9] von 7 (fertig|Fotos sind bereit)/.test(await head()), 'Zeile unter dem Titel zählt mit: ' + await head());   // ist alles fertig (schneller Rechner), heißt es „… sind bereit“
     ok(await p.evaluate(() => document.getElementById('queueAdd').disabled === (document.querySelectorAll('#queueList .q--done').length === 0)), '„Hinzufügen“ ist gesperrt, solange nichts fertig ist, und frei, sobald ein Foto fertig ist');
     const bar = await p.evaluate(() => { const b = document.getElementById('queueBar'); return [b.getAttribute('role'), b.getAttribute('aria-valuemin'), b.getAttribute('aria-valuemax'), b.getAttribute('aria-labelledby')]; });
     ok(bar.join() === 'progressbar,0,100,queueHead', 'Fortschrittsbalken hat Rolle, Bereich und Beschriftung');
     ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'queueTitle', 'Fokus steht auf der Überschrift');
-    ok(await p.locator('#queueList .q-state', { hasText: 'Wartet' }).count() >= 1, 'wartende Fotos sagen „Wartet …“');
+    ok(!cdp || await p.locator('#queueList .q-state', { hasText: 'Wartet' }).count() >= 1, 'wartende Fotos sagen „Wartet …“');
     const seen = new Set(), vals = [];
     const t0 = Date.now();
     while (Date.now() - t0 < 30000) {
@@ -230,14 +240,14 @@ try {
     ok(await closed(p, 'queueDlg'), 'sind alle Fotos entfernt, schließt sich der Dialog');
 
     console.log('--- Mehrere Fotos aus dem Dialog „Neues Teil“');
-    await p.click(trigger); await p.click('#wayLink'); await p.waitForFunction(() => document.getElementById('dlg').open && !document.getElementById('addDlg').open);
+    await tap(); await p.click('#wayLink'); await p.waitForFunction(() => document.getElementById('dlg').open && !document.getElementById('addDlg').open);
     await p.setInputFiles('#file', [await img('x1.png', '#2e7d32'), await img('x2.png', '#1565c0')]);
     await p.waitForFunction(() => document.getElementById('queueDlg').open && !document.getElementById('dlg').open);
     ok(await doneAll() && /2 von 2 Fotos sind bereit/.test(await head()), 'mehrere Fotos im Dialog führen in die Warteschlange');
     await closeQueue();
     console.log('--- Teil bearbeiten: mehrere Bilder ersetzen nur das Bild des Teils');
     const n0 = await cards();
-    await p.click(trigger); await p.setInputFiles('#file', await img('alt.png', '#2e7d32'));
+    await tap(); await p.setInputFiles('#file', await img('alt.png', '#2e7d32'));
     await p.waitForSelector('#res img', { timeout: 15000 });
     await p.fill('#name', 'Zum Bearbeiten'); await p.click('#ok'); await closed(p, 'dlg');
     ok(await wait(async () => await cards() === n0 + 1), 'Teil angelegt');
@@ -251,7 +261,7 @@ try {
 
     console.log('--- Tastatur');
     await p.keyboard.press('Escape'); await sleep(400);
-    await p.focus(trigger); await p.keyboard.press('Enter');
+    await top(); await p.focus(trigger); await p.keyboard.press('Enter');
     await p.waitForFunction(() => document.getElementById('addDlg').open);
     ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'wayPhotos', 'Enter öffnet das Blatt, Fokus auf „Fotos wählen“');
     await p.keyboard.press('Tab');
@@ -279,7 +289,7 @@ try {
     }
     await closeQueue();
     await p.setViewportSize(opts.viewport || devices['iPhone 13'].viewport);
-    await p.click(trigger);
+    await tap();
     for (const w of [320, 360, 390, 768, 1280]) {
       await p.setViewportSize({ width: w, height: 800 }); await sleep(200);
       ok(await p.evaluate(() => { const d = document.getElementById('addDlg'), r = d.getBoundingClientRect(); return r.left >= -0.5 && r.right <= document.documentElement.clientWidth + 0.5 && [...d.querySelectorAll('.way')].filter(e => e.offsetParent).every(e => e.getBoundingClientRect().height >= 56); }), `${w}px: Blatt passt, große Wege`);

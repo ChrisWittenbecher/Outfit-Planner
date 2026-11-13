@@ -57,6 +57,10 @@ try {
     await p.waitForTimeout(1700); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);
     await p.evaluate(() => scrollTo(0, 1200)); await p.waitForTimeout(400);
     ok(await p.locator('#fab.away').count() === 0, 'Seitensprung ohne Nutzereingabe versteckt den Button nicht');
+    // Esc scrollt nie: Ein Sprung der Seite kurz nach Esc (Blatt geschlossen) versteckt den Button nicht
+    await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);
+    await p.keyboard.press('Escape'); await p.evaluate(() => scrollTo(0, 1200)); await p.waitForTimeout(400);
+    ok(await p.locator('#fab.away').count() === 0, 'Sprung der Seite nach Esc versteckt den Button nicht');
     await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);
     ok(await p.locator('#fab.away').count() === 0, 'Plus-Button ist oben immer sichtbar');
     await p.evaluate(() => scrollTo(0, 0));
