@@ -68,10 +68,19 @@ try {
   await p.evaluate(() => {
     window.__ev = [];
     for (const t of ['pointerdown', 'pointerup', 'pointercancel', 'focusin', 'focusout']) {
-      addEventListener(t, e => { const n = e.target; window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc'))); }, true);
+      addEventListener(t, e => {
+        const n = e.target, r = n && n.getBoundingClientRect ? n.getBoundingClientRect() : null;
+        window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc')) + (n && n.className && typeof n.className === 'string' ? '.' + n.className : '') + (r ? '[' + [r.x, r.y, r.width, r.height].map(Math.round) + ']' : '') + (e.clientX != null && t.startsWith('pointer') ? '(' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')' : ''));
+      }, true);
     }
   });
-  await p.touchscreen.tap(cx, cy); await wait(250); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
+  const stack = (x, y) => p.evaluate(([x, y]) => document.elementsFromPoint(x, y).slice(0, 4).map(n => n.tagName + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className ? '.' + n.className : '')).join(' > '), [x, y]);
+  console.log('INFO Teil: ' + JSON.stringify(top) + ' Fenster: ' + await p.evaluate(() => innerWidth + 'x' + innerHeight + ' scrollY=' + scrollY));
+  console.log('INFO 1. Tipp trifft: ' + await stack(cx, cy));
+  console.log('INFO 2. Tipp träfe: ' + await stack(cx + 12, cy + 6));
+  await p.touchscreen.tap(cx, cy);
+  console.log('INFO nach 1. Tipp, 2. Tipp träfe: ' + await stack(cx + 12, cy + 6) + ' | Hinweis: ' + await p.evaluate(() => document.getElementById('toasts').textContent));
+  await wait(250); await p.touchscreen.tap(cx + 12, cy + 6); await wait(400);
   const trace = await p.evaluate(() => window.__ev.join(' '));
   console.log('INFO Ablauf: ' + trace);
   ok(await count() === before - 1, 'zwei Tipps mit 12 px Versatz und 250 ms Pause nehmen das Teil vom Board [' + trace + ']');
