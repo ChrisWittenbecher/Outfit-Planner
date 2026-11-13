@@ -279,11 +279,12 @@ try {
     await doneAll();
     for (const w of [320, 360, 390, 768, 1280]) {
       await p.setViewportSize({ width: w, height: 800 }); await sleep(250);
-      const lay = await p.evaluate(min => {
+      const lay = await p.evaluate(() => {
+        const coarse = matchMedia('(pointer: coarse)').matches, min = coarse ? 40 : 28;   // Berührungsgeräte bekommen größere Ziele (css: pointer: coarse)
         const vw = document.documentElement.clientWidth, d = document.getElementById('queueDlg'), r = d.getBoundingClientRect(), bad = [];
         for (const e of d.querySelectorAll('button, input, select, .q')) { const b = e.getBoundingClientRect(); if (b.width && (b.left < r.left - 0.5 || b.right > r.right + 0.5)) bad.push((e.id || e.className || e.tagName) + ' ' + Math.round(b.left) + '..' + Math.round(b.right)); }
-        return { over: document.documentElement.scrollWidth - vw, bad, small: [...d.querySelectorAll('button, input, select')].filter(e => e.offsetParent && e.getBoundingClientRect().height < min).map(e => e.id || e.getAttribute('aria-label') || e.textContent) };
-      }, mobile ? 40 : 28);
+        return { over: document.documentElement.scrollWidth - vw, bad, small: [...d.querySelectorAll('button, input, select')].filter(e => e.offsetParent && e.getBoundingClientRect().height < min - 0.5).map(e => (e.id || e.getAttribute('aria-label') || e.textContent) + ' (' + Math.round(e.getBoundingClientRect().height * 10) / 10 + ' < ' + min + ')') };
+      });
       ok(lay.over <= 0 && lay.bad.length === 0, `${w}px: nichts ragt heraus (${lay.over} / ${lay.bad.join(', ')})`);
       ok(lay.small.length === 0, `${w}px: Bedienelemente groß genug ${lay.small.join(',')}`);
     }
