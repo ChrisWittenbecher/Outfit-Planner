@@ -16,7 +16,7 @@ const jsonRes = (o, status = 200) => ({ status, contentType: 'application/json',
 async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' } = {}) {
   const p = await ctx.newPage();
   const errors = [], block = { on: false };
-  p.on('pageerror', e => errors.push(e.message));
+  p.on('pageerror', e => errors.push(e.message + ' @ ' + String(e.stack || '').replace(/\s+/g, ' ').slice(0, 400)));
   if (process.env.DEBUG) { p.on('console', m => console.log('  [console]', m.text())); p.on('requestfailed', r => console.log('  [failed]', r.method(), r.url(), r.failure()?.errorText)); }
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: `export const WORKER_URL = '${W}'; export const GOOGLE_CLIENT_ID = '${clientId}';` }));
