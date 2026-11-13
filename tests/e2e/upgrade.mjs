@@ -23,20 +23,23 @@ const GOOGLE = engine === 'chromium' && !process.env.NO_GOOGLE;   // NO_GOOGLE=1
 const seen = new WeakMap();   // Seite → Fehlermeldungen, für die Diagnose, wenn die App nicht startet
 const trail = new WeakMap();   // Seite → Ablauf (Navigationen, Anfragen der Seite), ebenfalls nur für die Diagnose
 const note = (p, m) => { const t = trail.get(p); if (t) { t.push(((Date.now() - t.t0) / 1000).toFixed(2) + ' ' + m); if (t.length > 400) t.shift(); } };
-const ready = async p => {
-  try { await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: 20000 }); }
-  catch (e) {
-    const info = await p.evaluate(async () => {
-      const metaOf = t => (t.match(/<meta name="app-version" content="([^"]*)"/) || [])[1] || '(keins)';
-      const out = { url: location.href, ver: document.getElementById('ver')?.textContent, body: document.body.innerText.slice(0, 160), state: document.readyState, meta: document.querySelector('meta[name="app-version"]')?.content || '(keins)', heal: sessionStorage.getItem('anprobe-heal'), caches: {} };
-      try { for (const k of await caches.keys()) { const c = await caches.open(k), h = await c.match('/index.html'); out.caches[k] = { n: (await c.keys()).length, meta: h ? metaOf(await h.text()) : '(kein index.html)' }; } } catch (x) { out.caches = String(x); }
-      try { const r = await navigator.serviceWorker.getRegistration(); out.sw = r ? ['installing', 'waiting', 'active'].map(k => k + ':' + (r[k] ? r[k].state : '-')).join(' ') + ' controller:' + !!navigator.serviceWorker.controller : 'keine'; } catch (x) { out.sw = String(x); }
-      return out;
-    }).catch(x => String(x));
-    console.log('INFO  App wurde nicht bereit: ' + JSON.stringify(info) + ' Fehler: ' + (seen.get(p) || []).join(' | '));
-    console.log('INFO  Ablauf der Seite:\n' + (trail.get(p) || []).slice(-60).join('\n'));
-    throw e;
-  }
+/** Zustand einer Seite, die nicht startet: Seite, Service Worker, Caches, und welche Datei woher kam (nur für die Diagnose). */
+async function diagnose(p, label) {
+  const info = await p.evaluate(async () => {
+    const metaOf = t => (t.match(/<meta name="app-version" content="([^"]*)"/) || [])[1] || '(keins)';
+    const out = { url: location.href, ver: document.getElementById('ver')?.textContent, body: document.body.innerText.slice(0, 100), state: document.readyState, meta: document.querySelector('meta[name="app-version"]')?.content || '(keins)', heal: sessionStorage.getItem('anprobe-heal'), caches: {}, files: {} };
+    try { for (const k of await caches.keys()) { const c = await caches.open(k), h = await c.match('/index.html'), u = await c.match('/js/ui.js'), v = await c.match('/js/version.js'); out.caches[k] = { n: (await c.keys()).length, html: h ? metaOf(await h.text()) : '-', uiAlt: u ? (await u.text()).includes('mIdea') : '-', version: v ? ((await v.text()).match(/VERSION = '([^']+)'/) || [])[1] : '-' }; } } catch (x) { out.caches = String(x); }
+    try { const r = await navigator.serviceWorker.getRegistration(); out.sw = r ? ['installing', 'waiting', 'active'].map(k => k + ':' + (r[k] ? r[k].state : '-')).join(' ') + ' controller:' + !!navigator.serviceWorker.controller : 'keine'; } catch (x) { out.sw = String(x); }
+    try { for (const e of performance.getEntriesByType('resource')) if (/\/js\/(main|ui|version|guard)\.js$/.test(e.name)) out.files[e.name.split('/').pop()] = { worker: e.workerStart > 0, size: e.transferSize, status: e.responseStatus, via: e.deliveryType }; } catch (x) { out.files = String(x); }
+    try { const f = async init => (await (await fetch('js/ui.js', init)).text()).includes('mIdea'); out.uiViaSwHasMIdea = await f(); out.uiNetworkHasMIdea = await f({ cache: 'no-store' }); } catch (x) { out.uiViaSwHasMIdea = String(x); }
+    return out;
+  }).catch(x => String(x));
+  console.log(`INFO  ${label}: ` + JSON.stringify(info) + ' Fehler: ' + (seen.get(p) || []).join(' | '));
+  console.log('INFO  Ablauf der Seite:\n' + (trail.get(p) || []).filter(l => !/preloaded using link preload/.test(l)).slice(-40).join('\n'));
+}
+const ready = async (p, ms = 20000) => {
+  try { await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: ms }); }
+  catch (e) { await diagnose(p, 'App wurde nicht bereit'); throw e; }
 };
 const wait = async (cond, ms = 15000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await cond()) return true; await new Promise(r => setTimeout(r, 60)); } return false; };
 const txt = async (p, sel) => (await p.textContent(sel)).replace(/\s+/g, ' ').trim();
@@ -172,7 +175,8 @@ async function update(p, how) {
     for (; tries < 6; ) {
       tries++;
       try { await p.reload(); } catch { await p.waitForTimeout(500); }   // die Selbstheilung kann das Neuladen unterbrechen
-      await ready(p);
+      const up = await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: 8000 }).then(() => true, () => false);
+      if (!up) { await diagnose(p, `Versuch ${tries}: App nicht bereit`); await p.waitForTimeout(500); continue; }
       if (await txt(p, '#ver') === NEW && !await p.evaluate(() => sessionStorage.getItem('anprobe-heal'))) break;
       if (await txt(p, '#ver') === NEW) { await p.waitForTimeout(1500); if (await txt(p, '#ver') === NEW) break; }
       await p.waitForTimeout(1200);
