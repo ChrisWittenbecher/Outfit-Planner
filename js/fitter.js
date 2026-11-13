@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as Fit from './fit.js';
 import { $, announce, item, loadImg, state } from './core.js';
-import { aspects, pieceEls, stylePiece } from './board.js';
+import { aspects, pieceEls, piecesFor, stylePiece } from './board.js';
 import { drawKnob, syncBench } from './rotation.js';
 import { renderSum } from './outfits.js';
 import { persist } from './storage.js';
@@ -46,6 +46,16 @@ export async function fitBoard(){
     apply(parts);
     return true;
   }catch(e){ console.error('Anordnen fehlgeschlagen', e); return false; }
+}
+
+/** Ordnet die Teile passend an, ohne das Board anzufassen (z. B. zum direkten Speichern eines Vorschlags). Bei Fehlern bleiben die Standardplätze. */
+export async function layoutItems(list){
+  const pieces = piecesFor(list);
+  try{
+    const parts = await Promise.all(pieces.map(async p => ({id:p.id, cat:item(p.id).cat, ...await measure(item(p.id))})));
+    for(const s of Fit.layout(parts)){ const p = pieces.find(k => k.id === s.id); if(p){ p.x = s.x; p.y = s.y; p.w = s.w; p.r = 0; } }
+  }catch(e){ /* Standardplätze genügen */ }
+  return pieces;
 }
 
 function apply(parts){

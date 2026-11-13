@@ -44,30 +44,31 @@ try {
     await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
     await p.goto(BASE); await ready(p);
 
-    const openIdeas = async () => { if (mobile) { await p.click('#more'); await p.click('#mIdea'); } else await p.click('#ideaBtn'); await p.waitForFunction(() => document.getElementById('ideaDlg').open); };
-    const names = () => p.locator('#ideaList li .t b').allTextContents();
-    const w = label => p.click(`#ideaWeather button:has-text("${label}")`);
+    const openIdeas = async () => { await p.click('#tab-vorschlaege'); await p.waitForFunction(() => !document.getElementById('view-vorschlaege').hidden); await p.click('#sugModeOut'); };
+    const names = () => p.locator('#sugCards .sug-try').evaluateAll(bs => bs.map(b => (b.getAttribute('aria-label').match(/\((.*)\)$/) || [, ''])[1].replace(/, /g, ' · ')));
+    const w = label => p.locator(`.sug-w button:visible:has-text("${label}")`).first().click();
+    const wNow = () => p.locator('.sug-w button[aria-pressed="true"]:visible').first().textContent();
 
     console.log('--- Leerer Schrank');
     await openIdeas();
-    ok(/Lege zuerst ein paar Teile an/.test(await p.textContent('#ideaNote')) && await p.locator('#ideaList li').count() === 0, 'ohne Teile gibt es einen Hinweis statt Vorschlägen');
-    ok(await p.isDisabled('#ideaMore'), '„Andere Vorschläge“ ist gesperrt');
-    await p.click('#ideaTabPack');
+    ok(/Lege zuerst ein paar Teile an/.test(await p.textContent('#sugNote')) && await p.locator('#sugCards .sug').count() === 0, 'ohne Teile gibt es einen Hinweis statt Vorschlägen');
+    ok(await p.isDisabled('#sugMore'), '„Neue Vorschläge“ ist gesperrt');
+    await p.click('#sugModePack');
     ok(/Lege zuerst ein paar Teile an/.test(await p.textContent('#packNote')) && await p.isDisabled('#packCopy'), 'Packliste: Hinweis, Kopieren gesperrt');
-    await p.click('#ideaClose'); await closed(p, 'ideaDlg');
+    await p.click('#tab-schrank'); await p.waitForFunction(() => !document.getElementById('view-schrank').hidden);
 
     await p.setInputFiles('#impf', { name: 'bak.json', mimeType: 'application/json', buffer: Buffer.from(BACKUP) });
-    await p.click('#uiOk');
+    await p.click('#uiOk'); await closed(p, 'uiDlg');
     await p.waitForFunction(() => document.querySelectorAll('#grid .card').length === 12);
     ok(await persisted(p, 12), 'Beispielschrank gespeichert');
 
     console.log('--- Vorschläge');
     await openIdeas();
-    ok(await p.locator('#ideaWeather button[aria-pressed="true"]').textContent() === 'Mild', 'Standard ist „Mild“');
-    ok(await p.locator('#ideaList li').count() === 3, 'drei Vorschläge');
-    ok(await p.locator('#ideaList li').first().locator('small').textContent() !== '', 'jeder Vorschlag sagt, warum');
+    ok(await wNow() === 'Mild', 'Standard ist „Mild“');
+    ok(await p.locator('#sugCards .sug').count() === 3, 'drei Vorschläge');
+    ok((await p.locator('#sugCards .sug').first().locator('.sug-why li').count()) > 0 && (await p.locator('#sugCards .sug .sug-title').allTextContents()).every(t => t.length > 2), 'jeder Vorschlag hat Titel und sagt, warum');
     await w('Kalt');
-    ok(await p.locator('#ideaWeather button[aria-pressed="true"]').textContent() === 'Kalt', 'Wetter wechselt');
+    ok(await wNow() === 'Kalt', 'Wetter wechselt');
     let all = await names();
     ok(all.length === 3 && all.every(n => /Wintermantel|Regenjacke/.test(n)), 'bei Kälte immer mit Jacke: ' + all.join(' | '));
     ok(all.every(n => !/Wunsch-Kleid/.test(n)), 'Wunschliste kommt nicht vor');
@@ -79,14 +80,14 @@ try {
     await w('Kalt');
     const before = (await names()).join('|');
     let changed = false;
-    for (let k = 0; k < 6 && !changed; k++) { await p.click('#ideaMore'); changed = (await names()).join('|') !== before; }
-    ok(changed, '„Andere Vorschläge“ liefert eine andere Auswahl');
-    ok(/Neue Vorschläge|Wetter/.test(await p.textContent('#ideaLive')) || true, 'Ansage für Bildschirmleser ist gesetzt');
+    for (let k = 0; k < 6 && !changed; k++) { await p.click('#sugMore'); changed = (await names()).join('|') !== before; }
+    ok(changed, '„Neue Vorschläge“ liefert eine andere Auswahl');
+    ok(/Neue Vorschläge|Wetter/.test(await p.textContent('#sugLive')) || true, 'Ansage für Bildschirmleser ist gesetzt');
 
     console.log('--- Aufs Board');
     const first = (await names())[0].split(' · ');
-    await p.locator('#ideaList li').first().locator('button').click();
-    ok(await closed(p, 'ideaDlg'), 'Dialog schließt sich');
+    await p.locator('#sugCards .sug').first().locator('.sug-try').click();
+    ok(await wait(async () => await p.evaluate(() => document.documentElement.dataset.view) === 'schrank'), 'die Seite wechselt zum Schrank');
     ok(await wait(async () => await p.locator('#board img.p').count() === first.length), `Board zeigt die ${first.length} Teile des Vorschlags`);
     const onBoard = await p.locator('#grid .card.used .n span').allTextContents();
     ok(first.every(n => onBoard.includes(n)), 'die Karten sind als „aufgelegt“ markiert');
@@ -96,8 +97,8 @@ try {
 
     console.log('--- Packliste');
     await openIdeas(); await w('Kalt');
-    await p.click('#ideaTabPack');
-    ok(await p.isVisible('#packList') && await p.isHidden('#ideaList'), 'Packliste ist sichtbar');
+    await p.click('#sugModePack');
+    ok(await p.isVisible('#packList') && await p.isHidden('#sugCards'), 'Packliste ist sichtbar');
     await p.fill('#packDays', '7');
     ok(await wait(async () => /\d+ Teile für 7 Tage/.test(await p.textContent('#packNote'))), 'Zusammenfassung: ' + (await p.textContent('#packNote')).trim());
     const heads = await p.locator('#packList h3').allTextContents();
@@ -114,12 +115,12 @@ try {
     ok(await p.inputValue('#packDays') === '1', 'null Tage werden zu einem');
     await p.fill('#packDays', '5'); await p.dispatchEvent('#packDays', 'change');
     await p.click('#packCopy');
-    ok(await wait(async () => /kopiert|nicht geklappt/.test(await p.textContent('#ideaLive'))), 'Kopieren meldet sich: ' + (await p.textContent('#ideaLive')).trim());
-    if (/Liste kopiert/.test(await p.textContent('#ideaLive')) && !mobile && engine === 'chromium') {
+    ok(await wait(async () => /kopiert|nicht geklappt/.test(await p.textContent('#sugLive'))), 'Kopieren meldet sich: ' + (await p.textContent('#sugLive')).trim());
+    if (/Liste kopiert/.test(await p.textContent('#sugLive')) && !mobile && engine === 'chromium') {
       const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
       ok(/^Packliste für 5 Tage \(Kalt\)/.test(clip) && clip.includes('☐ '), 'Zwischenablage enthält die Liste');
     }
-    await p.click('#ideaClose'); await closed(p, 'ideaDlg');
+    await p.click('#tab-schrank');
 
     console.log('--- Verkaufstext');
     if (mobile) { await p.click('#more'); await p.click('#mCal'); } else await p.click('#calBtn');
