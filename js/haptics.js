@@ -55,6 +55,8 @@ function tap(l) {
   else now.blur();
 }
 
+let busyUntil = 0;   // bis dahin stehen noch Tippen des iPhone-Schalters aus
+
 /** @param {'tick'|'select'|'success'|'warn'|'error'} kind */
 export function haptic(kind = 'tick') {
   if (!hapticsOn()) return;
@@ -62,7 +64,18 @@ export function haptic(kind = 'tick') {
     if (canVibrate) { navigator.vibrate(PATTERNS[kind] || PATTERNS.tick); return; }
     const l = iosSwitch(), n = TAPS[kind] || 1;
     for (let k = 0; k < n; k++) setTimeout(() => tap(l), k * 70);
+    busyUntil = Math.max(busyUntil, performance.now() + (n - 1) * 70 + 40);
   } catch { /* Haptik ist nur ein Zusatz */ }
+}
+
+/**
+ * Führt fn aus, sobald die ausstehenden Schalter-Tippen durch sind. Wer gleich nach einer Aktion mit Haptik den Fokus setzt,
+ * sollte das hier tun: Das Tippen nimmt dem Schalter den Fokus wieder ab und würde einen eben gesetzten Fokus mitnehmen.
+ * @param {() => void} fn
+ */
+export function afterHaptics(fn) {
+  const wait = busyUntil - performance.now();
+  if (wait > 0) setTimeout(fn, wait); else fn();
 }
 
 // Kleines Tippen bei Bedienelementen, deutlicheres Muster bei Löschen. Alles andere bleibt still.

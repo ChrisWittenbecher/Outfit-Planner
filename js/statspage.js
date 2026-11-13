@@ -7,7 +7,7 @@ import { closeDialog, showDialog } from './sheet.js';
 import { openSale } from './sell.js';
 import { deleteItem } from './wardrobe.js';
 import { currentView } from './nav.js';
-import { haptic } from './haptics.js';
+import { afterHaptics, haptic } from './haptics.js';
 import { dayKey, daysBetween, idleText } from './wear.js';
 import { IDLE_DAYS, PERIODS, SWATCH, idleList, periodKey, summarize, wearsIn } from './stats.js';
 
@@ -93,7 +93,7 @@ function keepItem(it) {
   step(); it.keep = today(); flush(); haptic('select');
   toast('„' + it.name + '“ bleibt. In ' + IDLE_DAYS + ' Tagen frage ich wieder.', { action: { label: 'Rückgängig', fn: undo } });
   say('„' + it.name + '“ bleibt im Schrank');
-  render(); $('idleTitle').focus();
+  render(); afterHaptics(() => $('idleTitle').focus());
 }
 
 // Der Dialog macht die Seite beim Schließen noch ~260 ms lang unbedienbar. Folgeschritte (Verkaufstext, Löschen, Fokus) laufen deshalb erst nach „close“.
@@ -106,7 +106,7 @@ function askSort(it, note, btn) {
 $('sortSell').onclick = () => { const it = pending; if (!it) return; next = () => openSale(it); closeDialog($('sortDlg')); };
 $('sortDelete').onclick = () => {
   const it = pending; if (!it) return;
-  next = () => { deleteItem(it); render(); $('idleTitle').focus(); };   // deleteItem meldet das Löschen selbst (Hinweis mit „Rückgängig“)
+  next = () => { deleteItem(it); render(); afterHaptics(() => $('idleTitle').focus()); };   // deleteItem meldet das Löschen selbst (Hinweis mit „Rückgängig“)
   closeDialog($('sortDlg'));
 };
 $('sortClose').onclick = () => closeDialog($('sortDlg'));

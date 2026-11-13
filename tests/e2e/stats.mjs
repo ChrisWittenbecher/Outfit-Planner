@@ -57,6 +57,7 @@ try {
     const idle = () => p.locator('#idleList .idle b').allTextContents();
     const top = () => p.locator('#statTop .stat-name b').allTextContents();
     const active = () => p.evaluate(() => { const a = document.activeElement; return a ? (a.id || a.getAttribute('aria-label') || a.tagName) : ''; });
+    const where = () => p.evaluate(() => { const r = document.getElementById('idleTitle').getBoundingClientRect(); return 'Überschrift y=' + Math.round(r.top) + '..' + Math.round(r.bottom) + ', Fenster ' + innerHeight + ', scrollY ' + Math.round(scrollY); });
     const period = async label => { await p.locator('#statPeriod button', { hasText: label }).click(); await wait(async () => await p.locator('#statPeriod button[aria-pressed="true"]').textContent() === label); };
     const importData = async data => {
       await p.setInputFiles('#impf', { name: 'bak.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) });
@@ -117,7 +118,7 @@ try {
     await p.locator('#idleList').getByRole('button', { name: 'Behalten: Alter Schal' }).click();
     ok(!(await idle()).includes('Alter Schal') && (await idle()).length === 2, 'Teil verschwindet aus der Liste');
     ok(/„Alter Schal“ bleibt/.test(await txt('#toasts')) && await p.isVisible('#toasts button'), 'Hinweis mit „Rückgängig“: ' + await txt('#toasts'));
-    ok(await wait(async () => await active() === 'idleTitle'), 'Fokus bleibt in der Liste (Überschrift): ' + await active());
+    ok(await wait(async () => await active() === 'idleTitle'), 'Fokus bleibt in der Liste (Überschrift): ' + await active() + ' | ' + await where());
     ok(await wait(async () => (await storedItems(p)).find(i => i.id === 'a5')?.keep === offset(0)), 'Behalten ist gespeichert');
     await p.click('#toasts button');
     ok(await wait(async () => (await idle()).includes('Alter Schal')), 'Rückgängig bringt das Teil zurück');
@@ -165,7 +166,7 @@ try {
     ok(await p.locator('#grid .card').count() === 7, 'und aus dem Schrank (7 von 8 Karten)');
     ok(await txt('#statSub') === 'Das letzte Jahr · 8 eingetragene Outfits', 'sein einziger Eintrag ist weg: ' + await txt('#statSub'));
     ok(/gelöscht/.test(await txt('#toasts')) && await p.isVisible('#toasts button'), 'Hinweis mit „Rückgängig“: ' + await txt('#toasts'));
-    ok(await wait(async () => await active() === 'idleTitle'), 'Fokus liegt in der Liste (Überschrift): ' + await active());
+    ok(await wait(async () => await active() === 'idleTitle'), 'Fokus liegt in der Liste (Überschrift): ' + await active() + ' | ' + await where());
     await p.click('#toasts button');
     ok(await wait(async () => (await idle()).includes('Alte Hose')) && await p.locator('#grid .card').count() === 8, 'Rückgängig bringt Teil und Karte zurück');
     ok(await wait(async () => await txt('#statSub') === 'Das letzte Jahr · 9 eingetragene Outfits'), 'samt Eintrag: ' + await txt('#statSub'));
