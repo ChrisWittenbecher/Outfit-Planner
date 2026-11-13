@@ -1,6 +1,6 @@
 import { checker, launch, startServer } from './helpers.mjs';
 
-// Notbremse beim Start (js/recover.js): Startet die App nicht, lädt die Seite einmal von selbst neu, höchstens einmal pro Minute.
+// Notbremse beim Start (js/recover.js): Startet die App nicht, lädt die Seite einmal von selbst neu, höchstens zweimal pro Minute.
 // Hintergrund siehe js/recover.js (Safari-Engine liefert nach einem Update beim Neuladen manchmal noch alte Module zur neuen Seite).
 const PORT = 8767, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -39,8 +39,8 @@ try {
   {
     const { ctx, p, seen } = await open({ ui: n => n === 1 });
     await p.goto(BASE);
-    ok(await wait(() => isReady(p), 20000), 'App startet nach dem selbsttätigen Neuladen');
-    ok(seen.nav === 2, `genau ein Neuladen (Navigationen: ${seen.nav})`);
+    ok(await wait(() => isReady(p), 25000), 'App startet nach dem selbsttätigen Neuladen');
+    ok(seen.nav >= 2 && seen.nav <= 3, `ein oder zwei Neuladen (Navigationen: ${seen.nav})`);
     ok(await flag(p) !== null, 'Merker für die Minute ist gesetzt');
     await ctx.close();
   }
@@ -49,9 +49,9 @@ try {
   {
     const { ctx, p, seen } = await open({ ui: () => true });
     await p.goto(BASE);
-    ok(await wait(() => seen.nav >= 2, 15000), 'ein Neuladen findet statt');
+    ok(await wait(() => seen.nav >= 3, 20000), 'zwei Neuladen finden statt');
     await p.waitForTimeout(6000);
-    ok(seen.nav === 2, `und nicht mehr (Navigationen: ${seen.nav})`);
+    ok(seen.nav === 3, `und nicht mehr (Navigationen: ${seen.nav})`);
     ok(!await isReady(p), 'die App bleibt dann stehen');
     ok(/konnte nicht starten/.test(await p.textContent('#saveState')), 'mit dem Hinweis aus fallback.js');
     await ctx.close();
@@ -63,8 +63,8 @@ try {
     await p.goto(BASE);
     await p.waitForTimeout(3000);
     ok(!await isReady(p) && seen.nav === 1, 'zunächst steht die App und lädt nicht neu');
-    ok(await wait(() => isReady(p), 20000), 'nach dem Warten startet sie nach einem Neuladen');
-    ok(seen.nav === 2, `genau ein Neuladen (Navigationen: ${seen.nav})`);
+    ok(await wait(() => isReady(p), 40000), 'nach dem Warten startet sie nach einem Neuladen');
+    ok(seen.nav >= 2 && seen.nav <= 3, `ein oder zwei Neuladen (Navigationen: ${seen.nav})`);
     await ctx.close();
   }
 } finally {
