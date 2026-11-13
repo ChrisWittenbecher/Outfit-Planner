@@ -79,14 +79,15 @@ async function setup(ctx, { clientId = 'test-client.apps.googleusercontent.com' 
 const names = text => JSON.parse(text).items.map(i => i.name).sort();
 const remoteNames = () => { const f = [...fake.files.values()][0]; return f ? names(f.text) : null; };
 const cards = p => p.locator('#grid .card').count();
-const signIn = async p => { await p.click('#cloudBtn'); await p.waitForFunction(() => document.getElementById('cloudDlg').open); await p.click('#cloudIn'); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
+const menuOpen = p => p.waitForFunction(() => document.getElementById('acctMenu').matches(':popover-open'));
+const signIn = async p => { await p.click('#cloudBtn'); await p.waitForSelector('html[data-ready]', { state: 'attached' }); };
 
 try {
   console.log('--- ohne Google-Einrichtung');
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   let { p } = await setup(ctx, { clientId: '' });
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
-  ok(await p.evaluate(() => document.getElementById('cloudBtn').hidden && document.getElementById('mCloud').hidden), 'ohne Client-ID bleibt die Google-Sicherung ausgeblendet');
+  ok(await p.evaluate(() => document.getElementById('cloudBtn').hidden && document.getElementById('acctMenu').matches(':popover-open') === false), 'ohne Client-ID bleibt die Google-Sicherung ausgeblendet');
   await ctx.close();
 
   console.log('--- Gerät A: anmelden und sichern');
@@ -96,9 +97,8 @@ try {
   await addItem(a, { trigger: '#addBtn', name: 'Shirt', cat: 'Oberteil' });
   await addItem(a, { trigger: '#addBtn', name: 'Hose', cat: 'Hose/Rock' });
   ok(await a.evaluate(() => !document.getElementById('cloudBtn').hidden) && (await a.textContent('#cloudBtn')).trim() === 'Anmelden' && await a.getAttribute('#cloudBtn', 'aria-label') === 'Mit Google anmelden', 'Anmelde-Knopf oben rechts zeigt „Anmelden“');
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
-  ok(/versteckten Ordner/.test(await a.textContent('#cloudText')), 'Dialog erklärt, dass nur ein versteckter Ordner genutzt wird');
-  await a.click('#cloudIn');
+  ok(/Google Drive/.test(await a.getAttribute('#cloudBtn', 'title')), 'Hinweis am Knopf erklärt die Sicherung in Google Drive');
+  await a.click('#cloudBtn');   // ohne Konto geht der Klick direkt zu Google
   ok(await wait(async () => remoteNames()?.join() === 'Hose,Shirt'), 'nach der Anmeldung liegen beide Teile in Google Drive: ' + remoteNames());
   ok(!/code=|state=/.test(a.url()), 'Code und state sind aus der Adresszeile verschwunden');
   ok(fake.calls.some(c => c === 'auth https://www.googleapis.com/auth/drive.appdata S256'), 'Anmeldung fragt nur das App-Ordner-Recht an, mit PKCE (S256)');
@@ -112,9 +112,18 @@ try {
   ok(fake.calls.some(c => c === 'about user(displayName,emailAddress,photoLink)'), 'Kontodaten werden mit dem App-Ordner-Recht geholt');
   const box = await a.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(); const c = r('cloudBtn'); return { right: c.right, others: ['theme', 'addBtn'].map(i => r(i).right), top: c.top }; });
   ok(box.others.every(x => x < box.right) && box.top < 80, 'der Knopf sitzt ganz rechts in der Kopfzeile ' + JSON.stringify(box));
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
-  ok(await a.textContent('#cloudName') === 'Erika Muster' && await a.textContent('#cloudMail') === 'erika@example.org', 'Dialog nennt Name und Adresse des Google-Kontos');
-  await a.click('#cloudClose');
+  await a.click('#cloudBtn'); await menuOpen(a);
+  ok(await a.textContent('#cloudName') === 'Erika Muster' && await a.textContent('#cloudMail') === 'erika@example.org', 'Menü nennt Name und Adresse des Google-Kontos');
+  await a.waitForTimeout(400);
+  const mpos = await a.evaluate(() => { const m = document.getElementById('acctMenu').getBoundingClientRect(), b = document.getElementById('cloudBtn').getBoundingClientRect(); return { dx: Math.abs(m.right - b.right), dy: m.top - b.bottom }; });
+  ok(mpos.dx < 4 && mpos.dy > 0 && mpos.dy < 20, 'das Menü klappt direkt unter dem Knopf auf ' + JSON.stringify(mpos));
+  ok(/Gesichert|Zuletzt|Änderungen|Noch nicht|Gleiche/.test(await a.textContent('#cloudState')), 'Menü zeigt den Sicherungsstand');
+  await a.click('#cloudBtn');
+  ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'ein zweiter Klick auf den Knopf schließt das Menü');
+  await a.waitForTimeout(300); await a.click('#cloudBtn'); await menuOpen(a); await a.keyboard.press('Escape');
+  ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'Esc schließt das Menü');
+  await a.waitForTimeout(300); await a.click('#cloudBtn'); await menuOpen(a); await a.mouse.click(300, 600);
+  ok(await a.waitForFunction(() => !document.getElementById('acctMenu').matches(':popover-open')).then(() => true), 'Klick daneben schließt das Menü');
 
   console.log('--- Änderung wird automatisch gesichert');
   await a.keyboard.press('Escape');
@@ -126,7 +135,7 @@ try {
   const B = await setup(ctxB); const b = B.p;
   await b.goto(`${ORIGIN}/index.html`); await b.waitForSelector('html[data-ready]', { state: 'attached' });
   ok(await cards(b) === 0, 'Gerät B startet leer');
-  await b.click('#cloudBtn'); await b.waitForFunction(() => document.getElementById('cloudDlg').open); await b.click('#cloudIn');
+  await b.click('#cloudBtn');
   ok(await wait(async () => await cards(b) === 3), 'Gerät B holt drei Teile von Google (ohne Rückfrage)');
   ok(await b.locator('#grid .card img').first().evaluate(i => i.complete && i.naturalWidth > 0), 'Bilder sind angekommen');
 
@@ -164,16 +173,15 @@ try {
 
   console.log('--- Fehlermeldung bei falschem Client-Geheimnis');
   fake.tokenFails = true;
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open); await a.click('#cloudIn');
+  await a.click('#cloudBtn');
   await a.waitForSelector('html[data-ready]', { state: 'attached' });
   ok(await wait(() => a.locator('.toast', { hasText: 'invalid_client' }).count().then(n => n > 0), 8000), 'Fehler des Hilfsdienstes nennt den Google-Grund (invalid_client)');
   fake.tokenFails = false;
 
   console.log('--- Abmelden');
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
   await signInAgain(a);
-  async function signInAgain(page) { await page.click('#cloudIn'); await page.waitForSelector('html[data-ready]', { state: 'attached' }); await wait(() => page.evaluate(() => (localStorage.getItem('anprobe-cloud') || '').includes('RT-secret'))); }
-  await a.click('#cloudBtn'); await a.waitForFunction(() => document.getElementById('cloudDlg').open);
+  async function signInAgain(page) { await page.click('#cloudBtn'); await page.waitForSelector('html[data-ready]', { state: 'attached' }); await wait(() => page.evaluate(() => (localStorage.getItem('anprobe-cloud') || '').includes('RT-secret'))); }
+  await a.click('#cloudBtn'); await menuOpen(a);
   await a.click('#cloudOut'); await a.waitForFunction(() => document.getElementById('uiDlg').open); await a.click('#uiOk');
   ok(await wait(async () => fake.revoked === 1), 'Abmelden widerruft den Zugriff bei Google');
   ok(await a.evaluate(() => localStorage.getItem('anprobe-cloud')) === null, 'Schlüssel ist gelöscht');

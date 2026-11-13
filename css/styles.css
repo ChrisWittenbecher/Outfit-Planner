@@ -311,15 +311,23 @@
   .menu-list { display: grid; gap: 8px; }
   .menu-list button { min-height: 48px; text-align: left; padding-inline: 18px; border-radius: 14px; }
   .cloud-text { color: var(--mute); font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
-  .cloud-who { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
-  .cloud-who img, .who-init { width: 48px; height: 48px; border-radius: 50%; flex: none; object-fit: cover; background: var(--raised); }
-  .who-init { display: grid; place-items: center; font-size: 20px; font-weight: 600; background: var(--acc-soft); color: var(--acc-strong); }
+  /* Konto-Menü (Dropdown) */
+  .acct-menu { position: fixed; inset: auto; margin: 0; width: min(300px, calc(100vw - 16px)); padding: 14px; background: var(--overlay); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px var(--shade-lg); }
+  .acct-menu .who { display: flex; align-items: center; gap: 12px; }
+  .acct-menu .who img, .who-init { width: 44px; height: 44px; border-radius: 50%; flex: none; object-fit: cover; background: var(--raised); }
+  .who-init { display: grid; place-items: center; font-size: 19px; font-weight: 600; background: var(--acc-soft); color: var(--acc-strong); }
   .who-text { display: grid; min-width: 0; }
   .who-text strong, .who-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .who-text span { color: var(--mute); font-size: 14px; }
-  .cloud-state { font-size: 14px; margin: 0 0 14px; min-height: 1.4em; }
+  .who-text span { color: var(--mute); font-size: 13px; }
+  .cloud-state { display: flex; align-items: center; gap: 8px; margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--mute); font-size: 13px; line-height: 1.35; }
+  .cloud-state::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .cloud-state[data-kind="ok"]::before { background: var(--ok); }
+  .cloud-state[data-kind="busy"]::before { background: var(--acc); }
+  .cloud-state[data-kind="warn"]::before, .cloud-state[data-kind="error"]::before { background: var(--danger); }
   .cloud-state[data-kind="error"] { color: var(--danger); }
-  .cloud-state[data-kind="ok"] { color: var(--acc-strong); }
+  button.acct-out { width: 100%; border-color: var(--line); color: var(--danger); }
+  button.acct-out:active:not(:disabled) { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+  @media (hover: hover) and (pointer: fine) { button.acct-out:hover:not(:disabled) { background: var(--danger-soft); } }
   .menu-list .danger { color: var(--danger); border-color: var(--danger); }
   .menu-list .danger:active:not(:disabled) { background: var(--danger); color: var(--on-danger); }
   @media (hover: hover) and (pointer: fine) { .menu-list .danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); } }
@@ -426,6 +434,7 @@
     dialog[open][data-closing] { animation: dlg-out var(--t-exit) var(--ease-out) forwards; }
     dialog[open][data-closing]::backdrop { animation: fade-out var(--t-exit) ease-out forwards; }
     .toast { animation: toast-in var(--t-fade) var(--ease-out); }
+    .acct-menu:popover-open { transform-origin: top right; animation: menu-in var(--t-fade) var(--ease-out); }
     .toast--out { animation: toast-out var(--t-exit) var(--ease-out) forwards; }
     ::view-transition-group(root) { animation-duration: .2s; }
     @media (max-width: 560px) {
@@ -444,6 +453,7 @@
   @keyframes sheet-out { to { transform: translateY(100%); } }
   @keyframes fade-in { from { opacity: 0; } }
   @keyframes fade-out { to { opacity: 0; } }
+  @keyframes menu-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
   @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
 }

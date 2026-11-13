@@ -87,7 +87,7 @@
       <input type="file" id="impf" accept="application/json" hidden>
       <button type="button" class="pri" id="addBtn" aria-haspopup="dialog">+ Kleidungsstück hinzufügen</button>
       <button type="button" class="ibtn more-btn" id="more" aria-haspopup="dialog" aria-label="Mehr" title="Mehr">⋯</button>
-      <button type="button" id="cloudBtn" class="acct" title="Mit Google anmelden" aria-label="Mit Google anmelden" aria-haspopup="dialog" hidden>
+      <button type="button" id="cloudBtn" class="acct" title="Mit Google anmelden" aria-label="Mit Google anmelden" hidden>
         <svg class="acct-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
         <img class="acct-img" id="cloudAvatar" alt="" width="30" height="30" referrerpolicy="no-referrer" decoding="async" hidden>
         <span class="acct-init" id="cloudInit" aria-hidden="true" hidden></span>
@@ -191,30 +191,22 @@
       <button type="button" id="mIdea">Ideen: Vorschläge &amp; Packliste</button>
       <button type="button" id="mCal">Kalender &amp; Auswertung</button>
       <button type="button" id="mHaptic" hidden>Haptik: An</button>
-      <button type="button" id="mCloud" hidden>Google-Sicherung</button>
       <button type="button" id="mExp">Backup speichern</button>
       <button type="button" id="mImp">Backup einlesen</button>
       <button type="button" id="mClose">Schließen</button>
     </div>
   </dialog>
 
-  <!-- Google-Sicherung -->
-  <dialog id="cloudDlg" data-dismiss="backdrop" aria-labelledby="cloudTitle">
-    <div class="grab" aria-hidden="true"></div>
-    <h2 id="cloudTitle" class="menu-title">Google-Sicherung</h2>
-    <div id="cloudWho" class="cloud-who" hidden>
-      <img id="cloudWhoImg" alt="" width="48" height="48" referrerpolicy="no-referrer" hidden>
+  <!-- Konto-Menü (Dropdown am Anmelde-Knopf) -->
+  <div id="acctMenu" class="acct-menu" popover aria-label="Google-Konto">
+    <div class="who">
+      <img id="cloudWhoImg" alt="" width="44" height="44" referrerpolicy="no-referrer" hidden>
       <span id="cloudWhoInit" class="who-init" aria-hidden="true" hidden></span>
       <div class="who-text"><strong id="cloudName"></strong><span id="cloudMail"></span></div>
     </div>
-    <p id="cloudText" class="cloud-text"></p>
     <p id="cloudState" class="cloud-state" role="status"></p>
-    <div class="menu-list">
-      <button type="button" id="cloudIn" class="pri">Mit Google anmelden</button>
-      <button type="button" id="cloudOut" class="danger" hidden>Abmelden</button>
-      <button type="button" id="cloudClose">Schließen</button>
-    </div>
-  </dialog>
+    <button type="button" id="cloudOut" class="acct-out">Abmelden</button>
+  </div>
   <dialog id="cloudConflict" aria-labelledby="ccTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="ccTitle" class="menu-title">Zwei verschiedene Stände</h2>
