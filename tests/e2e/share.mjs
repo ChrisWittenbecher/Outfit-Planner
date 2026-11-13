@@ -95,6 +95,7 @@ try {
     ok(await p.isEnabled('#shareBtn') && await p.isEnabled('#png'), 'mit Teilen sind die Knöpfe frei');
     ok(await p.locator('#outs .out').count() === 3 && await saved('Büro Look').count() === 1, 'jedes gespeicherte Outfit hat „Teilen“ (mit Namen im Bedienhilfe-Text)');
     ok(await p.getByRole('button', { name: 'Teilen', exact: true }).count() === 1, 'am Board gibt es genau einen Knopf „Teilen“');
+    await p.waitForFunction(() => !document.getElementById('undo').disabled);   // der Verlauf nimmt das Einspielen erst beim Speichern auf; ohne Warten wäre der Ausgangswert Zufall
     const undoBefore = await p.isDisabled('#undo');
 
     console.log('--- Bild vom Board teilen');
@@ -117,7 +118,7 @@ try {
     ok(near(im.px[7].slice(0, 3), bg, 1) && near(im.px[9].slice(0, 3), bg, 1), 'dort, wo es ungedreht läge, ist Bühne');
     ok(await p.locator('#shareBtn').getAttribute('aria-busy') === null, 'Knopf ist nach dem Teilen nicht mehr „beschäftigt“');
     ok(await toasts() === '' && downloads.length === 0, 'Erfolg bleibt still: kein Hinweis, keine Datei');
-    ok(await p.locator('#board img.p').count() === 4 && await p.isDisabled('#undo') === undoBefore, 'Board und Rückgängig-Verlauf bleiben unverändert');
+    { const now = await p.isDisabled('#undo'); ok(await p.locator('#board img.p').count() === 4 && now === undoBefore, 'Board und Rückgängig-Verlauf bleiben unverändert (undo gesperrt: vorher ' + undoBefore + ', jetzt ' + now + ')'); }
 
     console.log('--- Tastatur');
     await reset();
