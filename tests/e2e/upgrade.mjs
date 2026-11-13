@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { PNG, checker, closed, launch, persisted, root, startServer } from './helpers.mjs';
+import { PNG, checker, closed, engine, launch, persisted, reload, root, startServer } from './helpers.mjs';
 import { fakeGoogle } from './fakegoogle.mjs';
 import { DATA, IMG, offset } from './fixtures.mjs';
 
@@ -16,6 +16,10 @@ const WORKER = 'https://anprobe.chris-wittenbecher.workers.dev';   // wie in js/
 // Ausgangsversionen: die letzte vor 2.0 und die Etappen 4 und 5 (Merge von Pull Request 45, 50 und 51)
 const OLDS = { '1.15.15': 'd7dc596', '1.19.0': 'f0dcd8e', '1.20.0': '92aa111' };
 const { ok, state: result } = checker();
+// Google-Anmeldung und -Sicherung brauchen das nachgestellte Google (page.route). In der Safari-Engine greift page.route bei Seiten, die ein Service Worker
+// steuert, nicht für fremde Adressen (die Anfrage geht am Test vorbei ins echte Netz). Dort läuft der Update-Weg ohne Google; Anmeldung und Sicherung
+// prüfen cloud.mjs (ohne Service Worker, beide Engines) und dieser Test in Chromium.
+const GOOGLE = engine === 'chromium' && !process.env.NO_GOOGLE;   // NO_GOOGLE=1 probiert den Weg der Safari-Engine auch in Chromium
 const seen = new WeakMap();   // Seite → Fehlermeldungen, für die Diagnose, wenn die App nicht startet
 const ready = async p => {
   try { await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: 20000 }); }
@@ -109,6 +113,12 @@ const cachesNow = p => p.evaluate(async () => {
   return out;
 });
 
+/**
+ * Nur der Cache der neuen Version enthält Dateien. Ein leerer Cache der alten Version darf übrig sein: Die alte App hat beim Aktualisieren noch
+ * Dateien nachgeladen und dabei ihren Cache kurz nach dem Löschen durch den neuen Service Worker leer neu angelegt (harmlos, wird beim nächsten Update gelöscht).
+ */
+const onlyNewCache = c => (c['anprobe-' + NEW] || 0) > 0 && Object.entries(c).every(([k, n]) => k === 'sw' || k === 'anprobe-' + NEW || n === 0);
+
 /** Älteren Stand starten: Seite laden, Service Worker abwarten, Bestand per Backup einlesen. */
 async function startOld(ctx, { google, from }) {
   current = dirs[from];
@@ -158,7 +168,7 @@ async function update(p, how) {
   ok(!early.length || !!healed, 'Fehlermeldungen beim Wechsel nur mit Selbstheilung (' + (healed ? 'Selbstheilung lief' : 'kein Mischstand') + (early.length ? ', ' + early.length + ' Meldung(en)' : '') + ')');
   if (early.length) console.log('INFO  ' + early.join(' | ').slice(0, 300));
   // Der neue Service Worker übernimmt, sobald der alte nichts mehr zu tun hat oder die App geschlossen wird (siehe settle).
-  const swDone = await wait(async () => { const c = await cachesNow(p); return Object.keys(c).filter(k => k !== 'sw').join() === 'anprobe-' + NEW && /waiting:-/.test(c.sw); }, 12000);
+  const swDone = await wait(async () => { const c = await cachesNow(p); return onlyNewCache(c) && /waiting:-/.test(c.sw); }, 12000);
   console.log('INFO  Service Worker nach dem Update: ' + (swDone ? 'neu aktiv, alter Cache gelöscht' : 'wartet noch, bis die App geschlossen wird ' + JSON.stringify(await cachesNow(p))));
 
 }
@@ -168,7 +178,7 @@ async function settle(ctx, p, label) {
   await p.close();
   const g = track(await setup(ctx, { patchPage: false })), q = g.p;
   await q.goto(BASE); await ready(q);
-  const done = await wait(async () => { const c = await cachesNow(q); return Object.keys(c).filter(k => k !== 'sw').join() === 'anprobe-' + NEW && /waiting:-/.test(c.sw) && /active:activated/.test(c.sw); }, 20000);
+  const done = await wait(async () => { const c = await cachesNow(q); return onlyNewCache(c) && /waiting:-/.test(c.sw) && /active:activated/.test(c.sw); }, 20000);
   ok(done, `${label}: nach Schließen und Öffnen ist der neue Service Worker aktiv, nur der neue Cache liegt da ` + JSON.stringify(await cachesNow(q)));
   ok(await wait(() => q.evaluate(() => !!navigator.serviceWorker.controller)) && await txt(q, '#ver') === NEW, `${label}: er steuert die Seite (Version ${await txt(q, '#ver')})`);
   return { p: q, g };
@@ -234,49 +244,56 @@ try {
   if (only('A')) {
     console.log('--- A: Desktop, „Nach Update suchen“, mit Google-Sicherung');
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'allow', acceptDownloads: true });
-    let { p, g, before } = await startOld(ctx, { google: true, from: '1.15.15' });
+    let { p, g, before } = await startOld(ctx, { google: GOOGLE, from: '1.15.15' });
     const uploadsBefore = fake.uploads;
     await update(p, 'button');
     await verifyOldData(p, before, 'A');
-    ok(await wait(() => p.evaluate(() => document.getElementById('cloudBtn').hasAttribute('data-on') && !document.getElementById('cloudAvatar').hidden)), 'A: noch bei Google angemeldet, ohne neue Anmeldung');
-    ok(!await p.evaluate(() => document.getElementById('cloudConflict').open), 'A: keine Rückfrage zu einem Konflikt');
-    await p.waitForTimeout(1500);
-    ok(remote().items.length === N_ITEMS && remote().items.map(i => i.id).sort().join() === before.items.map(i => i.id).sort().join(), 'A: Google Drive hat weiter alle alten Teile (' + remote().items.length + ')');
+    if (GOOGLE) {
+      ok(await wait(() => p.evaluate(() => document.getElementById('cloudBtn').hasAttribute('data-on') && !document.getElementById('cloudAvatar').hidden)), 'A: noch bei Google angemeldet, ohne neue Anmeldung');
+      ok(!await p.evaluate(() => document.getElementById('cloudConflict').open), 'A: keine Rückfrage zu einem Konflikt');
+      await p.waitForTimeout(1500);
+      ok(remote().items.length === N_ITEMS && remote().items.map(i => i.id).sort().join() === before.items.map(i => i.id).sort().join(), 'A: Google Drive hat weiter alle alten Teile (' + remote().items.length + ')');
+    } else console.log('INFO  Safari-Engine: Google-Teile dieses Tests übersprungen (siehe Kommentar oben)');
     ok(g.errors.length === 0, 'A: keine Skriptfehler beim Update ' + g.errors.join(' | '));
     ok((await p.evaluate(() => window.__csp)).length === 0, 'A: keine CSP-Verstöße');
     ({ p, g } = await settle(ctx, p, 'A'));
-    ok(await wait(() => p.evaluate(() => document.getElementById('cloudBtn').hasAttribute('data-on'))), 'A: nach dem Neuöffnen weiter bei Google angemeldet');
+    if (GOOGLE) ok(await wait(() => p.evaluate(() => document.getElementById('cloudBtn').hasAttribute('data-on'))), 'A: nach dem Neuöffnen weiter bei Google angemeldet');
 
     const final = await useNew(p, before, 'A');
-    ok(await wait(async () => remote()?.items.length === N_ITEMS + 3, 45000), 'A: neue Teile landen von selbst in Google Drive (' + remote()?.items.length + ')');
-    ok(fake.uploads > uploadsBefore, 'A: es wurde wirklich hochgeladen');
+    if (GOOGLE) {
+      ok(await wait(async () => remote()?.items.length === N_ITEMS + 3, 45000), 'A: neue Teile landen von selbst in Google Drive (' + remote()?.items.length + ')');
+      ok(fake.uploads > uploadsBefore, 'A: es wurde wirklich hochgeladen');
+    }
 
-    console.log('--- A: neues Gerät holt alles aus Google Drive');
-    const ctxB = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'allow', acceptDownloads: true });
-    const B = await setup(ctxB, { patchPage: false });
-    await B.p.goto(BASE); await ready(B.p);
-    ok(await cards(B.p) === 0 && await txt(B.p, '#ver') === NEW, 'B: neue Installation startet leer');
-    await login(B.p);
-    ok(await wait(async () => await cards(B.p) === N_ITEMS + 3, 30000), 'B: holt alle ' + (N_ITEMS + 3) + ' Teile (alte und neue) von Google');
-    const fromB = await exportJson(B.p);
-    ok(!sameData({ ...final, board: [] }, { ...fromB, board: [] }), 'B: Teile, Outfits, Einträge und Pläne sind gleich ' + sameData({ ...final, board: [] }, { ...fromB, board: [] }));
-    ok(await wait(async () => { await goTab(B.p, 'auswertung'); return await txt(B.p, '#kWorn') === '3 von 10'; }, 8000), 'B: Auswertung zeigt dieselben Zahlen (' + await txt(B.p, '#kWorn') + ')');
-    ok(B.errors.length === 0, 'B: keine Skriptfehler ' + B.errors.join(' | '));
-    await ctxB.close();
+    if (GOOGLE) {
+      console.log('--- A: neues Gerät holt alles aus Google Drive');
+      const ctxB = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'allow', acceptDownloads: true });
+      const B = await setup(ctxB, { patchPage: false });
+      await B.p.goto(BASE); await ready(B.p);
+      ok(await cards(B.p) === 0 && await txt(B.p, '#ver') === NEW, 'B: neue Installation startet leer');
+      await login(B.p);
+      ok(await wait(async () => await cards(B.p) === N_ITEMS + 3, 30000), 'B: holt alle ' + (N_ITEMS + 3) + ' Teile (alte und neue) von Google');
+      const fromB = await exportJson(B.p);
+      ok(!sameData({ ...final, board: [] }, { ...fromB, board: [] }), 'B: Teile, Outfits, Einträge und Pläne sind gleich ' + sameData({ ...final, board: [] }, { ...fromB, board: [] }));
+      ok(await wait(async () => { await goTab(B.p, 'auswertung'); return await txt(B.p, '#kWorn') === '3 von 10'; }, 8000), 'B: Auswertung zeigt dieselben Zahlen (' + await txt(B.p, '#kWorn') + ')');
+      ok(B.errors.length === 0, 'B: keine Skriptfehler ' + B.errors.join(' | '));
+      await ctxB.close();
+
+    }
 
     console.log('--- A: Offline-Start jeder Seite');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     await p.waitForFunction(() => navigator.serviceWorker.controller);
     await ctx.setOffline(true);
     const pages = [['', '#view-schrank', 'Schrank'], ['#vorschlaege', '#view-vorschlaege', 'Vorschläge'], ['#auswertung', '#view-auswertung', 'Auswertung']];
     for (const [hash, view, name] of pages) {
       await p.evaluate(h => { history.replaceState(null, '', location.pathname + h); }, hash);
-      await p.reload(); await ready(p);
+      await reload(p); await ready(p);
       ok(await p.isVisible(view) && await txt(p, '#ver') === NEW, `offline gestartet: ${name} ist da (Version ${await txt(p, '#ver')})`);
       ok(await cards(p) === N_ITEMS + 3, `offline gestartet: ${name}: Daten sind da`);
     }
     await p.evaluate(() => history.replaceState(null, '', location.pathname));
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     const offlineName = 'Offline-Hemd';
     await p.click('#addBtn'); await p.setInputFiles('#file', { name: 'tee.png', mimeType: 'image/png', buffer: PNG });
     await p.waitForSelector('#res img', { timeout: 15000 });
@@ -284,7 +301,7 @@ try {
     await p.waitForFunction(n => document.querySelectorAll('#grid .card').length === n, N_ITEMS + 4);
     ok(await persisted(p, N_ITEMS + 4, N_WEARS), 'offline: Hinzufügen funktioniert und wird gespeichert');
     await ctx.setOffline(false);
-    ok(await wait(async () => remote()?.items.some(i => i.name === offlineName), 60000), 'wieder online: die Änderung von offline wird nachgeholt und gesichert');
+    if (GOOGLE) ok(await wait(async () => remote()?.items.some(i => i.name === offlineName), 60000), 'wieder online: die Änderung von offline wird nachgeholt und gesichert');
     ok(g.errors.length === 0, 'A: keine Skriptfehler im ganzen Lauf ' + g.errors.join(' | '));
     ok((await p.evaluate(() => window.__csp)).length === 0, 'A: keine CSP-Verstöße im ganzen Lauf');
     await ctx.close();
@@ -336,7 +353,7 @@ try {
     const got = await exportJson(p);
     ok(!sameData(oldFile, got), 'C: altes Backup lässt sich laden, danach ist der Export inhaltlich gleich ' + sameData(oldFile, got));
     ok(await persisted(p, N_ITEMS, N_WEARS), 'C: gespeichert');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await cards(p) === N_ITEMS && !sameData(oldFile, await exportJson(p)), 'C: nach dem Neuladen noch alles da');
     ok(await p.isDisabled('#undo'), 'C: nach dem Neuladen gibt es nichts rückgängig zu machen');
     ok(g.errors.length === 0 && (await p.evaluate(() => window.__csp)).length === 0, 'C: keine Skriptfehler, keine CSP-Verstöße');

@@ -75,6 +75,9 @@ try {
     const release = async v => {
       const old = (await readFile(path.join(dir, 'js/version.js'), 'utf8')).match(/VERSION = '([^']+)'/)[1];
       for (const f of ['js/version.js', 'sw.js', 'version.json']) await writeFile(path.join(dir, f), (await readFile(path.join(dir, f), 'utf8')).replaceAll(old, v));
+      // wie bei einer echten Veröffentlichung auch die Versionsnummer der Seite (sonst hält js/guard.js Seite und Module für einen Mischstand)
+      const html = path.join(dir, 'index.html');
+      await writeFile(html, (await readFile(html, 'utf8')).replace(/(<meta name="app-version" content=")[^"]*(")/, `$1${v}$2`));
     };
     const shown = p => p.textContent('#ver');
     const open = async () => {
