@@ -67,10 +67,11 @@ try {
   // Ablaufprotokoll der Berührungen: bei einem Fehlschlag steht in der Meldung, ob der Abstand zu groß war oder eine Berührung abgebrochen wurde
   await p.evaluate(() => {
     window.__ev = [];
+    addEventListener('scroll', () => window.__ev.push('scroll@' + Math.round(performance.now()) + ':y=' + Math.round(scrollY)), true);
     for (const t of ['pointerdown', 'pointerup', 'pointercancel', 'focusin', 'focusout']) {
       addEventListener(t, e => {
         const n = e.target, r = n && n.getBoundingClientRect ? n.getBoundingClientRect() : null;
-        window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc')) + (n && n.className && typeof n.className === 'string' ? '.' + n.className : '') + (r ? '[' + [r.x, r.y, r.width, r.height].map(Math.round) + ']' : '') + (e.clientX != null && t.startsWith('pointer') ? '(' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')' : ''));
+        window.__ev.push(t + '@' + Math.round(performance.now()) + ':' + (n && (n.id || n.tagName || 'doc')) + (n && n.className && typeof n.className === 'string' ? '.' + n.className : '') + (r ? '[' + [r.x, r.y, r.width, r.height].map(Math.round) + ']' : '') + (e.clientX != null && t.startsWith('pointer') ? '(' + Math.round(e.clientX) + ',' + Math.round(e.clientY) + ')' : '') + ' y=' + Math.round(scrollY));
       }, true);
     }
   });
