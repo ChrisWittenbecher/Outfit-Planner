@@ -163,7 +163,7 @@ try {
     await p.click('#more');
     ok(await p.locator('#moreDlg').evaluate(d => d.open), '„Mehr“ öffnet das Menü');
     const exp = p.waitForEvent('download'); await p.click('#mExp');
-    ok(/^anprobe-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
+    ok(/^outfit-planner-backup-.*\.json$/.test((await exp).suggestedFilename()) && await closed(p, 'moreDlg'), '„Backup speichern“ im Menü lädt die Datei und schließt das Menü');
     await toggle(p, 'light');
     ok(await attr(p) === 'light', 'Hell → Umschalter (Automatisch → Hell)');
     await toggle(p, 'dark');

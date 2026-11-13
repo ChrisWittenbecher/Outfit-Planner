@@ -32,6 +32,6 @@ export async function startCare(){
   const env = {ua:navigator.userAgent, platform:navigator.platform, touchPoints:navigator.maxTouchPoints || 0, standalone:navigator.standalone === true || matchMedia('(display-mode: standalone)').matches};
   if (wantsInstallHint(env, meta, count())){
     setMeta({hintDone:true});
-    toast('Tipp: Tippe auf Teilen und „Zum Home-Bildschirm“. Dann öffnet sich Anprobe wie eine App, und Safari räumt deine Daten nicht mehr nach Tagen ab.', {ms:20000});
+    toast('Tipp: Tippe auf Teilen und „Zum Home-Bildschirm“. Dann öffnet sich der Outfit-Planner wie eine App, und Safari räumt deine Daten nicht mehr nach Tagen ab.', {ms:20000});
   }
 }

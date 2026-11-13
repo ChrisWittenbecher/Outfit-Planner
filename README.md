@@ -1,8 +1,8 @@
 <div align="center">
 
-# Anprobe
+# Outfit-Planner
 
-**Der Outfit-Planer für das Web.** Sammle Kleidungsstücke aus Screenshots und Bildern, kombiniere sie zu Outfits und behalte Preise und Angebote im Blick.
+**Der Outfit-Planner für das Web.** Sammle Kleidungsstücke aus Screenshots und Bildern, kombiniere sie zu Outfits und behalte Preise und Angebote im Blick.
 
 [**Live-Demo**](https://chriswittenbecher.github.io/Outfit-Planner/) · [Funktionen](#funktionen) · [Schnellstart](#schnellstart) · [Datenschutz](#datenschutz-und-sicherheit) · [Entwicklung](#entwicklung)
 
@@ -12,7 +12,7 @@
 
 ## Überblick
 
-Anprobe ist eine statische Web-App ohne Build-Schritt, ohne Konto und ohne Tracking. Sie läuft auf dem Smartphone genauso wie am Desktop und speichert alle Daten ausschließlich im Browser des Geräts.
+Der Outfit-Planner ist eine statische Web-App ohne Build-Schritt, ohne Konto und ohne Tracking. Sie läuft auf dem Smartphone genauso wie am Desktop und speichert alle Daten ausschließlich im Browser des Geräts.
 
 Der typische Ablauf:
 
@@ -44,9 +44,9 @@ Der typische Ablauf:
 | **Backup** | Gesamten Bestand als JSON sichern und wiederherstellen. Am Smartphone im Menü „⋯“. Das Format bleibt über alle Versionen lesbar; Vorschaubilder gehören nicht hinein, sie entstehen beim Einlesen neu. |
 | **Schnelle Karten** | Der Kleiderschrank zeigt kleine Vorschaubilder (längste Seite 480 Pixel) statt der vollen Bilder. Sie entstehen nach und nach im Hintergrund, bleiben gespeichert und werden ersetzt, wenn sich das Bild ändert. Board und PNG-Export nutzen weiter das volle Bild. Gespeichert wird jedes Teil einzeln: Wer ein Teil umbenennt, schreibt nicht mehr den ganzen Schrank neu. |
 | **Mobil optimiert** | Bedienung mit dem Daumen: Schwebender „+“-Button, Dialoge als Bottom-Sheet, große Touch-Ziele, Unterstützung für Notch und Home-Indikator. Bewegung wird bei „Bewegung reduzieren“ des Systems abgeschaltet. Die Zurück-Taste und -Geste schließt zuerst den offenen Dialog. |
-| **Google-Sicherung** | Optional: Anmeldung mit Google über den Knopf oben rechts (danach Profilbild mit Dropdown für Stand und Abmelden). Dein Stand liegt dann in einer versteckten Datei im App-Ordner deines Google Drive (nur Anprobe sieht sie) und ist auf jedem angemeldeten Gerät aktuell. Jede Änderung geht nach etwa einer Sekunde nach Google, Änderungen von anderen Geräten holt die App von selbst; einen Knopf zum Abgleichen gibt es nicht. Bei Unterschieden fragt die App: zusammenführen, Google übernehmen oder diesen Stand behalten. Das Backup bleibt zusätzlich möglich. Einrichtung: [worker/GOOGLE.md](worker/GOOGLE.md). |
+| **Google-Sicherung** | Optional: Anmeldung mit Google über den Knopf oben rechts (danach Profilbild mit Dropdown für Stand und Abmelden). Dein Stand liegt dann in einer versteckten Datei im App-Ordner deines Google Drive (nur der Outfit-Planner sieht sie) und ist auf jedem angemeldeten Gerät aktuell. Jede Änderung geht nach etwa einer Sekunde nach Google, Änderungen von anderen Geräten holt die App von selbst; einen Knopf zum Abgleichen gibt es nicht. Bei Unterschieden fragt die App: zusammenführen, Google übernehmen oder diesen Stand behalten. Das Backup bleibt zusätzlich möglich. Einrichtung: [worker/GOOGLE.md](worker/GOOGLE.md). |
 | **Haptisches Feedback** | Auf Handy und Tablet: leichtes Tippen bei Bedienelementen und Auswahl, Muster bei Speichern (Erfolg), Löschen (Warnung) und Fehlern. Android über die Vibration API, iPhone (Safari ab 17.4) über einen unsichtbaren Schalter. Ein- und ausschaltbar unter „Mehr“, am Desktop nicht vorhanden. |
-| **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Anprobe senden“) gibt es auf dem iPhone nicht. |
+| **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Outfit-Planner senden“) gibt es auf dem iPhone nicht. |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
 
 ## Schnellstart
