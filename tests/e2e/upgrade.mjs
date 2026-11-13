@@ -136,7 +136,7 @@ async function update(p, how) {
   if (how === 'button') {
     await p.evaluate(() => document.getElementById('updBtn').click());
     await p.waitForSelector('#toasts button:has-text("Aktualisieren")', { timeout: 10000 });
-    ok(new RegExp('Neue Version ' + NEW.replace(/\./g, '\\.')).test(await txt(p, '#toasts')), 'alte Version bietet ' + NEW + ' an');
+    ok((await txt(p, '#toasts')).includes('Neue Version ' + NEW), 'alte Version bietet ' + NEW + ' an');
     const nav = p.waitForNavigation({ timeout: 20000 });
     await p.click('#toasts button:has-text("Aktualisieren")'); await nav; await ready(p); tries = 1;
   } else {
