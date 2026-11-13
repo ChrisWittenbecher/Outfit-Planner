@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { addItem, checker, startServer, launch, closed } from './helpers.mjs';
+import { addItem, checker, startServer, launch, closed, openNew } from './helpers.mjs';
 
 const PORT = 8737, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -30,7 +30,7 @@ try {
     ok(m && Math.abs(+m[1] - 0.97) < 0.011, 'Druck-Feedback: Button schrumpft beim Drücken auf 0,97 (' + (m && m[1]) + ')');
     await p.mouse.up();
 
-    await p.click('#addBtn');
+    await openNew(p, '#addBtn');
     ok(await isOpen(p, 'dlg') && await css(p, 'html', 'overflow') === 'hidden', 'Offener Dialog sperrt das Scrollen der Seite');
     await p.click('#cancel');
     await p.waitForFunction(() => document.getElementById('dlg').hasAttribute('data-closing'), null, { timeout: 1000 }).then(() => ok(true, 'Schließen blendet erst aus'), () => ok(false, 'Schließen blendet erst aus'));
@@ -38,11 +38,11 @@ try {
     ok(await css(p, 'html', 'overflow') !== 'hidden', 'Seite lässt sich danach wieder scrollen');
     ok(!(await p.evaluate(() => document.getElementById('dlg').hasAttribute('data-closing'))), 'Kein Rest-Zustand nach dem Schließen');
 
-    await p.click('#addBtn'); await p.click('#cancel'); await p.evaluate(() => document.getElementById('addBtn').click());
+    await p.click('#addBtn'); await p.click('#addClose'); await p.evaluate(() => document.getElementById('addBtn').click());
     await wait(p, 500);
-    ok(await isOpen(p, 'dlg'), 'Erneutes Öffnen während des Schließens bricht das Schließen ab');
+    ok(await isOpen(p, 'addDlg'), 'Erneutes Öffnen während des Schließens bricht das Schließen ab');
     await p.keyboard.press('Escape');
-    ok(await closed(p, 'dlg'), 'Esc schließt den Dialog');
+    ok(await closed(p, 'addDlg'), 'Esc schließt das Blatt');
 
     await addItem(p, { trigger: '#addBtn', name: 'Übergangsjacke-Benachrichtigungseinstellungen-Extralang', price: '1284,5' });
     ok(await p.evaluate(() => { const n = document.querySelector('#grid .card .n'); return n.scrollWidth <= n.clientWidth + 1; }), 'Langer Name sprengt die Karte nicht');
@@ -55,7 +55,7 @@ try {
     await p.waitForSelector('#menuDlg[open]');
     await p.mouse.click(5, 5);
     ok(await closed(p, 'menuDlg'), 'Tippen neben das Kartenmenü schließt es');
-    await p.click('#addBtn');
+    await openNew(p, '#addBtn');
     await p.mouse.click(5, 5); await wait(p, 400);
     ok(await isOpen(p, 'dlg'), 'Das Formular „Neues Teil“ schließt nicht durch Tippen daneben');
     ok(errors.length === 0, 'keine Seitenfehler: ' + errors.join(' | '));
@@ -70,7 +70,7 @@ try {
     await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await wait(p, 260);
     ok(await css(p, '#shuffle', 'transform') === 'none', 'Reduzierte Bewegung: kein Schrumpfen beim Drücken');
     await p.mouse.up();
-    await p.click('#addBtn'); await p.click('#cancel');
+    await openNew(p, '#addBtn'); await p.click('#cancel');
     ok(!(await isOpen(p, 'dlg')), 'Reduzierte Bewegung: Dialog schließt sofort');
     await ctx.close();
   }
@@ -87,7 +87,7 @@ try {
     }
 
     const sheet = async () => {
-      await p.click('#fab');
+      await openNew(p, '#fab');
       await p.waitForFunction(() => document.getElementById('dlg').getAnimations().every(a => a.playState === 'finished'));
       return p.locator('#dlg .grab').boundingBox();
     };

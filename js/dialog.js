@@ -5,13 +5,12 @@ import { baseHistory, LEGACY_T, recordPrice } from './prices.js';
 import { detectColor, makeImage, norm } from './image.js';
 import { COLOR_NAMES } from './color.js';
 import { parseTags } from './search.js';
-import { addMany } from './batch.js';
-import { MAX_BATCH } from './intake.js';
 import { fetchImage, fetchProduct, linkFetchEnabled } from './linkfetch.js';
 import { renderAll } from './render.js';
 import { flush } from './storage.js';
 import { haptic } from './haptics.js';
 import { closeDialog, showDialog } from './sheet.js';
+import { nameFromFile } from './intake.js';
 
 const blank = () => ({orig:null, alpha:false, crop:null, rm:true, tol:28, img:null, cut:false, mirror:false, mirrorTouched:false, colorTouched:false});
 function syncMirror(){ $('mirrorRow').hidden = $('cat').value !== 'Schuhe'; if(state.draft) $('mirror').checked = !!state.draft.mirror; }
@@ -90,7 +89,8 @@ async function adopt(n){
 }
 const setSource = async src => adopt(await norm(src));
 
-async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
+export async function takeFile(f){ if(f && f.type.startsWith('image/')){ if(!$('dlg').open) openDlg(); if(!state.editing && !$('name').value.trim()){ const n = nameFromFile(f.name, Scraper.sanitizeText); if(n !== 'Neues Teil') $('name').value = n; }   // Dateiname als Vorschlag, falls er etwas sagt (kein „IMG_1234“)
+  if(f.size > Scraper.IMAGE_LIMITS.bytes){ status('Das Bild ist zu groß (höchstens ' + Math.round(Scraper.IMAGE_LIMITS.bytes / 1e6) + ' MB). Bitte ein kleineres Bild oder einen Screenshot verwenden.', true); return; } try{ await setSource(await readFile(f)); }catch(e){ status('Bild konnte nicht gelesen werden.', true); } } }
 let pickTok = 0, pickUrls = [];
 function clearPicker(){
   pickTok++; for(const u of pickUrls) URL.revokeObjectURL(u);
@@ -161,13 +161,12 @@ $('shopLinkGo').onclick = loadShopLink;
 $('url').onkeydown = e => { if(e.key === 'Enter' && !state.editing && linkFetchEnabled()){ e.preventDefault(); loadShopLink(); } };
 // Ein eingefügter Link lädt sofort; getippte Links laden erst auf „Laden“ oder Enter.
 $('url').addEventListener('paste', () => { if(state.editing || !linkFetchEnabled()) return; setTimeout(() => { if(/^https?:\/\/\S+$/i.test($('url').value.trim())) loadShopLink(); }, 0); });
-$('addBtn').onclick = () => openDlg();
-$('fab').onclick = () => openDlg();
 // Der Plus-Button weicht beim Runterscrollen aus und kommt beim Hochscrollen zurück, damit er keine Bedienelemente verdeckt
 {
   let y = scrollY, ticking = false, touched = -1e9;
   // Nur Scrollen durch den Nutzer zählt, nicht Sprünge der Seite selbst (z. B. nach dem Speichern)
-  for (const ev of ['touchmove', 'wheel', 'keydown']) addEventListener(ev, () => { touched = performance.now(); }, { passive: true });
+  // (Esc scrollt nie: Schließt jemand ein Blatt mit Esc, darf ein Sprung der Seite danach den Knopf nicht verstecken)
+  for (const ev of ['touchmove', 'wheel', 'keydown']) addEventListener(ev, e => { if (e.key !== 'Escape') touched = performance.now(); }, { passive: true });
   addEventListener('scroll', () => {
     if (ticking) return; ticking = true;
     requestAnimationFrame(() => {
@@ -182,14 +181,8 @@ $('cancel').onclick = () => closeDialog($('dlg'));
 $('drop').onclick = () => { if(!state.draft || !state.draft.orig) $('file').click(); };
 $('drop').onkeydown = e => { if(e.key === 'Enter' && (!state.draft || !state.draft.orig)) $('file').click(); };
 $('pick').onclick = () => $('file').click();
-const intake = files => {
-  if(files.length > 1 && !state.editing){ closeDialog($('dlg')); addMany(files); }   // mehrere Bilder: ohne Dialog, jedes freigestellt und hinzugefügt
-  else takeFile(files[0]);
-};
-$('file').onchange = e => { const files = [...e.target.files]; e.target.value = ''; if(files.length) intake(files); };
 ['dragover','dragenter'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('over'); }));
 ['dragleave','drop'].forEach(t => $('drop').addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('over'); }));
-$('drop').addEventListener('drop', e => { const files = [...e.dataTransfer.files]; if(files.length) intake(files); });
 document.addEventListener('paste', e => { if(e.target === $('url')) return; const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if(f){ e.preventDefault(); takeFile(f.getAsFile()); } });
 $('cat').onchange = () => { syncMirror(); if(state.draft && state.draft.orig) process(); };
 $('mirror').onchange = () => { state.draft.mirror = $('mirror').checked; state.draft.mirrorTouched = true; process(); };

@@ -4,6 +4,7 @@ import { load, setReady } from './storage.js';
 import { loadThumbs } from './thumbs.js';
 import { renderAll } from './render.js';
 import './dialog.js';
+import './addsheet.js';
 import './wardrobe.js';
 import './board.js';
 import './rotation.js';

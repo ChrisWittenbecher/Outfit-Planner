@@ -1,4 +1,4 @@
-import { PNG, checker, closed, launch, persisted, startServer, storedItems } from './helpers.mjs';
+import { PNG, checker, closed, launch, openNew, persisted, startServer, storedItems } from './helpers.mjs';
 
 const PORT = 8744, ORIGIN = `http://localhost:${PORT}`, W = 'https://anprobe.test.workers.dev';
 const { ok, state: result } = checker();
@@ -13,7 +13,9 @@ try {
   let p = await ctx.newPage();
   await p.route(`${ORIGIN}/js/config.js`, r => r.fulfill({ contentType: 'text/javascript', body: "export const WORKER_URL = ''; export const GOOGLE_CLIENT_ID = '';" }));
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
-  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('addDlg').open);
+  ok(await p.isHidden('#wayLink'), 'ohne Dienst gibt es im Auswahl-Blatt keinen Weg „Link einfügen“');
+  await p.setInputFiles('#file', { name: 'x.png', mimeType: 'image/png', buffer: PNG }); await p.waitForFunction(() => document.getElementById('dlg').open);
   ok(await p.isVisible('#url') && !(await p.isVisible('#shopLinkGo')) && !(await p.isVisible('#linkHint')), 'ohne Dienst: nur das gewöhnliche Linkfeld, kein „Laden“-Knopf');
   await ctx.close();
 
@@ -36,9 +38,9 @@ try {
   });
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   await p.goto(`${ORIGIN}/index.html`); await p.waitForSelector('html[data-ready]', { state: 'attached' });
-  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await openNew(p, '#addBtn');
   ok(await p.isVisible('#shopLinkGo') && await p.isVisible('#linkHint'), 'Knopf „Laden“ und Hinweis sind da');
-  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'beim Öffnen ist kein Feld ausgewählt');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', '„Link einfügen“ setzt den Cursor ins Linkfeld');
   ok(!(await p.locator('#imgUrl, #shopPaste, #shopHelpBtn').count()), 'Kurzbefehl-Knöpfe und „Bild per Link“ sind weg');
 
   await p.fill('#url', 'shop.example/p/mantel'); await p.click('#shopLinkGo');
@@ -62,9 +64,9 @@ try {
   await p.click('#ok'); await closed(p, 'dlg');
   ok(await persisted(p, 1) && (await storedItems(p))[0].name === 'Wollmantel Oslo', 'gespeichert');
 
-  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await openNew(p, '#addBtn');
   ok(await p.inputValue('#url') === '' && !(await p.isVisible('#imgPick')), 'neues Teil beginnt leer, ohne Bildauswahl');
-  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) !== 'url', 'auch beim zweiten Mal ist kein Feld ausgewählt');
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id) === 'url', 'auch beim zweiten Mal steht der Cursor im Linkfeld');
   await p.fill('#url', 'https://shop.example/weg'); await p.click('#shopLinkGo');
   ok(await wait(async () => /gibt es nicht/.test(await p.textContent('#status'))), 'Fehler wird verständlich gemeldet: ' + (await p.textContent('#status')).trim());
   ok(/Screenshot hinzufügen und Name und Preis selbst eintragen/.test(await p.textContent('#status')), 'bei einem Fehler kommt der Hinweis auf Screenshot und Handeingabe');
@@ -80,12 +82,12 @@ try {
 
   console.log('--- Einfügen lädt sofort');
   const n0 = seen.length;
-  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await openNew(p, '#addBtn');
   await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'https://shop.example/p/hemd'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });
   ok(await wait(async () => /Übernommen: .*Bild/.test(await p.textContent('#status'))), 'ein eingefügter Link lädt ohne weiteren Tipp');
   ok(seen.length === n0 + 2 && !(await p.isVisible('#imgPick')), 'Daten und Bild geholt; bei nur einem Bild keine Auswahl');
   await p.click('#cancel'); await closed(p, 'dlg');
-  await p.click('#addBtn'); await p.waitForFunction(() => document.getElementById('dlg').open);
+  await openNew(p, '#addBtn');
   await p.evaluate(() => { const u = document.getElementById('url'); u.value = 'kein link'; u.dispatchEvent(new ClipboardEvent('paste', { bubbles: true })); });
   await p.waitForTimeout(300);
   ok(seen.length === n0 + 2, 'Text, der kein Link ist, löst nichts aus');

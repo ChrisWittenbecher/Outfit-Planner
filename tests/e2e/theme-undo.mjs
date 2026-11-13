@@ -1,6 +1,6 @@
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { addItem, checker, startServer, launch, closed } from './helpers.mjs';
+import { addItem, checker, startServer, launch, closed, openNew } from './helpers.mjs';
 
 const PORT = 8732, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -33,7 +33,7 @@ try {
 
     ok(await attr(p) === null && await bg(p, 'body') === 'rgb(15, 15, 18)', 'Automatisch folgt dem dunklen System (Seite #0f0f12)');
     ok(/Automatisch/.test(await p.getAttribute('#theme', 'aria-label')), 'Umschalter nennt den Modus: Automatisch');
-    await p.click('#addBtn');
+    await openNew(p, '#addBtn');
     ok(await bg(p, '#dlg') === 'rgb(42, 42, 50)', 'Dialog im Dunkeln auf Ebene „Overlay“ (#2a2a32)');
     ok(await p.evaluate(() => getComputedStyle(document.querySelector('#name')).backgroundColor) === 'rgb(33, 33, 39)', 'Eingabefelder dunkel (#212127)');
     await p.click('#cancel');
