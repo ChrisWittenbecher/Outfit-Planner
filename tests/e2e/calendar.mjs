@@ -1,6 +1,6 @@
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { PNG, addItem, checker, closed, launch, persisted, startServer } from './helpers.mjs';
+import { PNG, addItem, checker, closed, launch, persisted, startServer, reload } from './helpers.mjs';
 
 const PORT = 8739, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -140,7 +140,7 @@ try {
 
     console.log('--- Speichern, Backup, Neustart');
     ok(await persisted(p, 3, 1), 'Bestand und Protokoll sind gespeichert');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(/1× getragen/.test(await info('Testhemd')), 'Protokoll übersteht einen Neustart');
     const dl = p.waitForEvent('download');
     await p.evaluate(() => document.getElementById('exp').click());

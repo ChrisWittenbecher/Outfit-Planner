@@ -1,6 +1,6 @@
 import { devices } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { PNG, checker, closed, launch, persisted, startServer, storedItems } from './helpers.mjs';
+import { PNG, checker, closed, launch, persisted, startServer, storedItems, reload } from './helpers.mjs';
 
 const PORT = 8740, BASE = `http://localhost:${PORT}/index.html`;
 const { ok, state: result } = checker();
@@ -112,7 +112,7 @@ try {
 
     console.log('--- Neustart und Backup');
     ok(await persisted(p, 3), 'gespeichert');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(/#Sommer #Büro/.test(await card('Rotes Hemd').textContent()) && /Grün/.test(await card('Blaue Hose').textContent()), 'Tags und Farben überstehen den Neustart');
     const dl = p.waitForEvent('download');
     await p.evaluate(() => document.getElementById('exp').click());

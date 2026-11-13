@@ -87,6 +87,17 @@ export async function persisted(p, items, wears) {
 /** Wartet, bis ein Dialog fertig ausgeblendet und geschlossen ist. */
 export const closed = (p, id) => p.waitForFunction(i => !document.getElementById(i).open, id, { timeout: 3000 }).then(() => true, () => false);
 
+/**
+ * Neu laden, auch wenn gerade noch ein Schritt im Seitenverlauf läuft: Schließt ein Dialog, geht die App einen Schritt im Verlauf zurück (sheet.js).
+ * Beginnt das Neuladen währenddessen, bricht der Browser es mit ERR_ABORTED ab. Die Person lädt dann einfach noch einmal, der Test auch.
+ */
+export async function reload(p) {
+  for (let n = 1; ; n++) {
+    try { return await p.reload(); }
+    catch (e) { if (n >= 4 || !/ERR_ABORTED|detached/.test(String(e.message))) throw e; await p.waitForTimeout(250); }
+  }
+}
+
 export const engine = process.env.BROWSER || 'chromium';
 /** Service Worker sind standardmäßig gesperrt, damit page.route() in den Tests zuverlässig greift; der PWA-Test erlaubt sie ausdrücklich. */
 export const launch = async () => {

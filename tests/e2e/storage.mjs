@@ -1,4 +1,4 @@
-import { PNG, addItem, checker, closed, launch, persisted, startServer, stored, storedItems } from './helpers.mjs';
+import { PNG, addItem, checker, closed, launch, persisted, startServer, stored, storedItems, reload } from './helpers.mjs';
 import { readFile } from 'node:fs/promises';
 
 const PORT = 8741, ORIGIN = `http://localhost:${PORT}`, BASE = `${ORIGIN}/index.html`;
@@ -123,7 +123,7 @@ try {
     ok(new Set(ids).size === 4 && ids.includes('a') && ids.includes('b') && ids.includes('c'), 'Kennungen sind eindeutig, die alten bleiben bestehen');
 
     console.log('--- Zweiter Start: keine erneute Umstellung');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     const db2 = await raw(p);
     ok(db2.meta.migratedAt === db.meta.migratedAt && db2.items === 4 && await p.locator('#grid .card').count() === 4, 'zweiter Start ändert nichts an Umstellung und Bestand');
     ok(db2.s1 !== undefined, 'Kopie bleibt innerhalb der 14 Tage erhalten');
@@ -160,7 +160,7 @@ try {
     ok(db.version === 2 && db.s && db.s.v === undefined && db.s.items.length === 5 && db.items === 0, 'altes Format ist unangetastet, kein halb Umgestelltes (' + JSON.stringify({ v: db.s?.v, items: db.items }) + ')');
     ok(await p.locator('#grid .card').count() === 0, 'es wird nichts angezeigt, das später überschrieben werden könnte');
     await p.evaluate(() => localStorage.removeItem('__fail'));
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await p.locator('#grid .card').count() === 4 && (await raw(p)).s.v === 2, 'beim nächsten Start klappt die Umstellung mit denselben Daten');
     await s.ctx.close();
   }
@@ -188,7 +188,7 @@ try {
     await p.goto(BASE); await ready(p);
     ok((await raw(p)).s1 !== undefined, 'Kopie ist zunächst da');
     await p.evaluate(() => new Promise(res => { const q = indexedDB.open('anprobe', 2); q.onsuccess = () => { const db = q.result, tx = db.transaction('kv', 'readwrite'), o = tx.objectStore('kv'), g = o.get('meta'); g.onsuccess = () => o.put({ ...g.result, migratedAt: Date.now() - 20 * 86400000 }, 'meta'); tx.oncomplete = () => { db.close(); res(); }; }; }));
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await wait(async () => { const d = await raw(p); return d.s1 === undefined && d.meta.migratedAt === 0; }), 'nach 20 Tagen ist die Kopie weg');
     ok(await p.locator('#grid .card').count() === 4, 'Bestand unverändert');
     await s.ctx.close();
@@ -290,20 +290,20 @@ try {
     ok(await p.evaluate(() => { const b = document.getElementById('exp'); return !!b; }), 'Export bleibt erreichbar');
 
     console.log('--- Neustart: Vorschau ist sofort da');
-    await p.reload(); await ready(p); await p.waitForSelector('#grid .card img');
+    await reload(p); await ready(p); await p.waitForSelector('#grid .card img');
     ok(await p.locator('#grid .card img').first().evaluate((i, d) => i.src === d, th.d), 'beim ersten Zeichnen ist die gespeicherte Vorschau schon im Bild');
 
     console.log('--- Bild ersetzt: alte Vorschau wird nicht mehr gezeigt');
     const other = await bigJpeg(p);
     await p.evaluate(async other => new Promise(res => { const q = indexedDB.open('anprobe', 2); q.onsuccess = () => { const db = q.result, tx = db.transaction('items', 'readwrite'), o = tx.objectStore('items'), g = o.getAll(); g.onsuccess = () => { for (const i of g.result) o.put({ ...i, img: other }); }; tx.oncomplete = () => { db.close(); res(); }; }; }), other);
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await wait(async () => { const t = (await raw(p)).thumbs; return t.length === 1 && t[0].k === keyOf(other) && t[0].d !== th.d; }), 'für das neue Bild entsteht eine neue Vorschau');
     ok(await wait(async () => await p.locator('#grid .card img').first().evaluate((i, d) => i.src !== d && i.src.startsWith('data:image/'), th.d)), 'und die alte erscheint nicht mehr');
 
     console.log('--- Reste gelöschter Teile werden aufgeräumt');
     await p.evaluate(() => new Promise(res => { const q = indexedDB.open('anprobe', 2); q.onsuccess = () => { const db = q.result, tx = db.transaction('thumbs', 'readwrite'); tx.objectStore('thumbs').put({ k: 'x', d: 'data:image/png;base64,AAAA' }, 'weg'); tx.oncomplete = () => { db.close(); res(); }; }; }));
     ok((await raw(p)).thumbs.length === 2, 'Waise liegt im Store');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await wait(async () => { const t = (await raw(p)).thumbs; return t.length === 1 && t[0].id !== 'weg'; }), 'Waise ist nach dem Start weg');
 
     console.log('--- Löschen räumt auch die Vorschau ab');

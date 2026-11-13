@@ -1,5 +1,5 @@
 import { devices } from 'playwright';
-import { PNG, checker, closed, launch, persisted, startServer, storedItems } from './helpers.mjs';
+import { PNG, checker, closed, launch, persisted, startServer, storedItems, reload } from './helpers.mjs';
 import { DATA, FRESH, IMG, it, keyOf, offset, pad, wear } from './fixtures.mjs';
 
 // Seite „Auswertung“: Zeiträume, Kennzahlen, Rangliste, „Aussortieren?“ (Behalten, Verkaufstext, Löschen), Kalender, Backup.
@@ -96,7 +96,7 @@ try {
     ok(await wait(async () => (await storedItems(p)).find(i => i.id === 'a5')?.keep === undefined), 'und nimmt das Behalten zurück');
     await p.locator('#idleList').getByRole('button', { name: 'Behalten: Alter Schal' }).click();
     ok(await wait(async () => (await storedItems(p)).find(i => i.id === 'a5')?.keep === offset(0)), 'erneut behalten, gespeichert');
-    await p.reload(); await ready(p);
+    await reload(p); await ready(p);
     ok(await p.isVisible('#view-auswertung') && !(await idle()).includes('Alter Schal'), 'nach dem Neuladen bleibt das Teil verborgen (Seite bleibt über die Adresse erhalten)');
     ok(await p.evaluate(() => location.hash) === '#auswertung', 'Adresse: #auswertung');
 
