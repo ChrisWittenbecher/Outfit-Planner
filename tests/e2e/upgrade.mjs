@@ -23,6 +23,8 @@ const GOOGLE = engine === 'chromium' && !process.env.NO_GOOGLE;   // NO_GOOGLE=1
 const seen = new WeakMap();   // Seite → Fehlermeldungen, für die Diagnose, wenn die App nicht startet
 const trail = new WeakMap();   // Seite → Ablauf (Navigationen, Anfragen der Seite), ebenfalls nur für die Diagnose
 const note = (p, m) => { const t = trail.get(p); if (t) { t.push(((Date.now() - t.t0) / 1000).toFixed(2) + ' ' + m); if (t.length > 400) t.shift(); } };
+/** Hat sich die App selbst geheilt (js/guard.js bei Mischstand, js/recover.js bei Startfehler)? */
+const healedBy = p => p.evaluate(() => [sessionStorage.getItem('anprobe-heal') && 'guard', sessionStorage.getItem('anprobe-recover') && 'recover'].filter(Boolean).join('+'));
 /** Zustand einer Seite, die nicht startet: Seite, Service Worker, Caches, und welche Datei woher kam (nur für die Diagnose). */
 async function diagnose(p, label) {
   const info = await p.evaluate(async () => {
@@ -177,7 +179,7 @@ async function update(p, how) {
       try { await p.reload(); } catch { await p.waitForTimeout(500); }   // die Selbstheilung kann das Neuladen unterbrechen
       const up = await p.waitForSelector('html[data-ready]', { state: 'attached', timeout: 8000 }).then(() => true, () => false);
       if (!up) { await diagnose(p, `Versuch ${tries}: App nicht bereit`); await p.waitForTimeout(500); continue; }
-      if (await txt(p, '#ver') === NEW && !await p.evaluate(() => sessionStorage.getItem('anprobe-heal'))) break;
+      if (await txt(p, '#ver') === NEW && !await healedBy(p)) break;
       if (await txt(p, '#ver') === NEW) { await p.waitForTimeout(1500); if (await txt(p, '#ver') === NEW) break; }
       await p.waitForTimeout(1200);
     }
@@ -186,9 +188,9 @@ async function update(p, how) {
   ok(await txt(p, '#ver') === NEW, 'neue Version läuft: ' + await txt(p, '#ver'));
   // Zwischen „Aktualisieren“ und dem Wechsel des Service Workers kann kurz ein Mischstand entstehen (alte Seite, neue Module, besonders wenn die App
   // über „/“ geöffnet war). js/guard.js repariert ihn mit einem Neuladen. Fehlermeldungen aus dieser Zeit sind nur dann in Ordnung, wenn das geschah.
-  const healed = await p.evaluate(() => sessionStorage.getItem('anprobe-heal'));
+  const healed = await healedBy(p);
   const early = (seen.get(p) || []).splice(0);
-  ok(!early.length || !!healed, 'Fehlermeldungen beim Wechsel nur mit Selbstheilung (' + (healed ? 'Selbstheilung lief' : 'kein Mischstand') + (early.length ? ', ' + early.length + ' Meldung(en)' : '') + ')');
+  ok(!early.length || !!healed, 'Fehlermeldungen beim Wechsel nur mit Selbstheilung (' + (healed ? 'Selbstheilung lief: ' + healed : 'kein Mischstand') + (early.length ? ', ' + early.length + ' Meldung(en)' : '') + ')');
   if (early.length) console.log('INFO  ' + early.join(' | ').slice(0, 300));
   // Der neue Service Worker übernimmt, sobald der alte nichts mehr zu tun hat oder die App geschlossen wird (siehe settle).
   const swDone = await wait(async () => { const c = await cachesNow(p); return onlyNewCache(c) && /waiting:-/.test(c.sw); }, 12000);

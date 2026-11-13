@@ -89,7 +89,7 @@ test('color-scheme ist als Meta und im CSS auf hell und dunkel gesetzt', () => {
   assert.match(css, /:root\[data-theme="light"\]\s*\{\s*color-scheme:\s*light/);
   assert.match(css, /:root\[data-theme="dark"\]\s*\{\s*color-scheme:\s*dark/);
 });
-const CLASSIC = ['theme-init.js', 'fallback.js'];
+const CLASSIC = ['theme-init.js', 'fallback.js', 'recover.js'];
 test('Jedes Modul in js/ wird vorab geladen (modulepreload), klassische Skripte ausgenommen', async () => {
   const { readdirSync } = await import('node:fs');
   const files = readdirSync(new URL('../../js/', import.meta.url)).filter(f => f.endsWith('.js') && !CLASSIC.includes(f));
