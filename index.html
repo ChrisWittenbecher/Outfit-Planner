@@ -66,6 +66,8 @@
   <link rel="modulepreload" href="js/suggestcard.js">
   <link rel="modulepreload" href="js/weather.js">
   <link rel="modulepreload" href="js/wx.js">
+  <link rel="modulepreload" href="js/stats.js">
+  <link rel="modulepreload" href="js/statspage.js">
   <link rel="modulepreload" href="js/views.js">
   <link rel="modulepreload" href="js/nav.js">
   <link rel="modulepreload" href="js/sell.js">
@@ -82,6 +84,7 @@
     <nav class="tabs" id="tabs" role="tablist" aria-label="Bereiche">
       <button type="button" role="tab" id="tab-schrank" class="tab" data-view="schrank" aria-controls="view-schrank" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 7.5a2.5 2.5 0 1 0-2.5-2.5"/><path d="M12 7.5V10l8.2 5.4a1 1 0 0 1-.55 1.84H4.35a1 1 0 0 1-.55-1.84L12 10"/></svg><span>Schrank</span></button>
       <button type="button" role="tab" id="tab-vorschlaege" class="tab" data-view="vorschlaege" aria-controls="view-vorschlaege" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16v4M17 18h4"/></svg><span>Vorschläge</span></button>
+      <button type="button" role="tab" id="tab-auswertung" class="tab" data-view="auswertung" aria-controls="view-auswertung" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20v-7M12 20V5M19 20v-10"/></svg><span>Auswertung</span></button>
     </nav>
     <div class="actions" role="toolbar" aria-label="Hauptaktionen">
       <button type="button" class="ibtn" id="undo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
@@ -246,6 +249,36 @@
     </aside>
     <div id="sugLive" class="sr-only" role="status" aria-live="polite"></div>
   </div>
+
+  <div class="page" id="view-auswertung" role="tabpanel" aria-labelledby="tab-auswertung" hidden>
+    <section class="panel page-main" aria-labelledby="statTitle">
+      <div class="page-head page-head--row">
+        <div><h2 id="statTitle" class="page-title" tabindex="-1">Was trägst du wirklich?</h2><p class="meta" id="statSub"></p></div>
+        <div class="chips" id="statPeriod" role="group" aria-label="Zeitraum">
+          <button type="button" data-p="90" aria-pressed="true">90 Tage</button>
+          <button type="button" data-p="year" aria-pressed="false">Jahr</button>
+          <button type="button" data-p="all" aria-pressed="false">Gesamt</button>
+        </div>
+      </div>
+      <div class="stat-tiles" id="statTiles">
+        <div class="stat-tile"><span class="stat-k">Getragene Teile</span><b class="stat-v" id="kWorn">–</b></div>
+        <div class="stat-tile"><span class="stat-k">Kosten pro Tragen</span><b class="stat-v" id="kCost">–</b><small id="kCostNote"></small></div>
+        <div class="stat-tile"><span class="stat-k">Meistgetragene Farbe</span><b class="stat-v"><i class="stat-dot" id="kDot" hidden></i><span id="kColor">–</span></b></div>
+      </div>
+      <p class="hint" id="statEmpty" hidden></p>
+      <h3 id="topTitle" class="stat-h">Am häufigsten getragen</h3>
+      <ol class="stat-bars" id="statTop" aria-labelledby="topTitle"></ol>
+    </section>
+    <aside class="panel page-side" aria-labelledby="idleTitle">
+      <h2 id="idleTitle">Aussortieren?</h2>
+      <p class="hint" id="idleSub"></p>
+      <ul class="idle-list" id="idleList"></ul>
+      <p class="hint" id="idleMore" hidden></p>
+      <div class="cal-act"><button type="button" id="statCal">Kalender öffnen</button></div>
+      <p class="note">Gezählt wird, wenn du ein Outfit als „getragen“ einträgst (Kalender oder „Heute getragen“). Die Daten bleiben auf deinem Gerät, mit der Google-Sicherung auch in deinem Google Drive.</p>
+    </aside>
+    <div id="statLive" class="sr-only" role="status" aria-live="polite"></div>
+  </div>
   </main>
 
   <template id="sugTpl">
@@ -274,12 +307,24 @@
     </div>
   </dialog>
 
+  <!-- Aussortieren: was soll mit einem lange nicht getragenen Teil passieren -->
+  <dialog id="sortDlg" data-dismiss="backdrop" aria-labelledby="sortTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="sortTitle" class="menu-title"></h2>
+    <p class="hint" id="sortInfo"></p>
+    <div class="menu-list">
+      <button type="button" id="sortSell">Verkaufstext erstellen</button>
+      <button type="button" id="sortDelete" class="danger">Löschen</button>
+      <button type="button" id="sortClose">Abbrechen</button>
+    </div>
+  </dialog>
+
   <!-- Mehr (Smartphone): Kalender, Haptik -->
   <dialog id="moreDlg" data-dismiss="backdrop" aria-labelledby="moreTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="moreTitle" class="menu-title">Mehr</h2>
     <div class="menu-list">
-      <button type="button" id="mCal">Kalender &amp; Auswertung</button>
+      <button type="button" id="mCal">Kalender</button>
       <button type="button" id="mHaptic" hidden>Haptik: An</button>
       <button type="button" id="mClose">Schließen</button>
     </div>
@@ -321,7 +366,7 @@
     <div class="foot"><button type="button" id="uiCancel">Abbrechen</button><button type="button" class="pri" id="uiOk">OK</button></div>
   </dialog>
 
-  <!-- Kalender: getragene und geplante Outfits, Auswertung -->
+  <!-- Kalender: getragene und geplante Outfits -->
   <dialog id="saleDlg" aria-labelledby="saleTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="saleTitle" class="menu-title">Verkaufstext</h2>
@@ -341,10 +386,6 @@
   <dialog id="calDlg" aria-labelledby="calTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="calTitle" class="menu-title">Kalender</h2>
-    <div class="chips" id="calTabs" role="group" aria-label="Ansicht">
-      <button type="button" id="calTabCal" aria-pressed="true">Kalender</button>
-      <button type="button" id="calTabStats" aria-pressed="false">Auswertung</button>
-    </div>
     <div id="calCal">
       <div class="cal-nav">
         <button type="button" class="ibtn" id="calPrev" aria-label="Vorheriger Monat">‹</button>
@@ -366,7 +407,6 @@
       </div>
       <p class="hint" id="calHint"></p>
     </div>
-    <div id="calStats" hidden></div>
     <div id="calLive" class="sr-only" role="status" aria-live="polite"></div>
     <div class="foot"><button type="button" id="calClose">Schließen</button></div>
   </dialog>

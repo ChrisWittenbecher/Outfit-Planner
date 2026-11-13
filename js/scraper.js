@@ -1,7 +1,7 @@
 // @ts-check
 import { sanitizeHistory } from './prices.js';
 import { sanitizePieces } from './geometry.js';
-import { sanitizePlans, sanitizeWears } from './wear.js';
+import { isDay, sanitizePlans, sanitizeWears } from './wear.js';
 import { COLOR_NAMES } from './color.js';
 import { sanitizeTags } from './search.js';
 
@@ -176,6 +176,7 @@ export function sanitizeItem(raw, cats) {
     tags: sanitizeTags(o.tags, sanitizeText),
   };
   if (typeof o.color === 'string' && COLOR_NAMES.includes(/** @type {any} */ (o.color))) item.color = o.color;
+  if (isDay(o.keep)) item.keep = o.keep;   // „Behalten“ in der Auswertung: bis dahin nicht erneut als „Aussortieren?“ vorschlagen
   const orig = sanitizeImageSrc(o.orig);
   if (orig) item.orig = orig;
   if (typeof o.ean === 'string' && /^\d{8,14}$/.test(o.ean)) item.ean = o.ean;

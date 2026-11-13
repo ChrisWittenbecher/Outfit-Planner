@@ -148,3 +148,10 @@ test('Große Bestände bleiben schnell', () => {
   summarize(items, wears, TODAY, 'all'); summarize(items, wears, TODAY, '90'); idleList(items, wears, TODAY);
   assert.ok(performance.now() - t < 1500, 'zu langsam: ' + Math.round(performance.now() - t) + ' ms');
 });
+
+test('Farbpunkte: jede Farbe der App hat einen gültigen Farbwert, sonst nichts', async () => {
+  const { SWATCH } = await import('../../js/stats.js');
+  const { COLOR_NAMES } = await import('../../js/color.js');
+  assert.deepEqual(Object.keys(SWATCH).sort(), [...COLOR_NAMES].sort());
+  for (const v of Object.values(SWATCH)) assert.match(v, /^#[0-9a-f]{6}$/);
+});

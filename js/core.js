@@ -18,6 +18,7 @@ import { thumbKey } from './model.js';
  * @property {'own'|'wish'} [status]  „own“ = besitze ich, „wish“ = Wunschliste (fehlt bei älteren Daten = own)
  * @property {{t:number, v:number}[]} [priceHistory]  Preisverlauf, jede Änderung wird festgehalten
  * @property {string} [ean]     Barcode aus älteren Backups (wird nur noch mitgeführt)
+ * @property {string} [keep]    Tag (JJJJ-MM-TT), an dem in der Auswertung „Behalten“ gewählt wurde; 90 Tage lang kein „Aussortieren?“
  */
 /**
  * @typedef {Object} Piece     Ein Teil auf dem Board. Die Reihenfolge im Array = Ebenen (hinten → vorn)

@@ -49,6 +49,12 @@ export function addedDay(id, now = Date.now()) {
   return isDay(key) ? key : null;
 }
 
+/** Farbpunkte für die Farbnamen der App (nur zur Anzeige, die Farbe steht immer auch als Text da). */
+export const SWATCH = Object.freeze({
+  Schwarz: '#26262d', Weiß: '#f4f1ea', Grau: '#8d919b', Beige: '#c9b79c', Braun: '#8a5a44', Rot: '#b24a4a',
+  Orange: '#d9833b', Gelb: '#e3c34a', Grün: '#5f8a5b', Blau: '#3d5a80', Lila: '#7a5c99', Rosa: '#d99ab0',
+});
+
 /** @param {StatItem} i */
 const owned = i => i.status !== 'wish';
 /** @param {unknown} p @returns {p is number} */
