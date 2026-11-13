@@ -70,7 +70,7 @@ function renderOut() {
     const card = $('sugTpl').content.firstElementChild.cloneNode(true);
     card.classList.toggle('sug--first', k === 0);
     const strip = card.querySelector('.sug-strip');
-    for (const it of its) { const im = new Image(); showThumb(im, it); im.alt = ''; im.className = it.cut ? '' : 'mb'; strip.append(im); }
+    for (const it of its) { const tile = el('div', 'sug-tile'), im = new Image(); showThumb(im, it); im.alt = ''; im.className = it.cut ? '' : 'mb'; tile.append(im); strip.append(tile); }
     card.querySelector('.sug-title').textContent = title;
     card.querySelector('.sug-sub').textContent = cardSub(its.length, view.weather);
     card.querySelector('.sug-why').replaceChildren(...s.reasons.map(r => el('li', '', r)));
