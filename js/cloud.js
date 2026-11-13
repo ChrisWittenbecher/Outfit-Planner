@@ -34,7 +34,7 @@ const fail = (code, status) => Object.assign(new Error(code), { code, status });
 async function worker(path, body) {
   const r = await fetch(WORKER_URL + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw fail(typeof d.error === 'string' ? d.error : 'failed', r.status);
+  if (!r.ok) throw Object.assign(fail(typeof d.error === 'string' ? d.error : 'failed', r.status), { detail: typeof d.detail === 'string' && /^[a-z_]{1,40}$/.test(d.detail) ? d.detail : '' });
   return d;
 }
 
@@ -170,6 +170,8 @@ function explain(e) {
   if (c.includes('storageQuotaExceeded')) return ['error', 'Dein Google Drive ist voll.'];
   if (c === 'too_large') return ['error', 'Der Stand ist zu groß für den Abgleich.'];
   if (c === 'bad_remote') return ['error', 'Der Stand in Google Drive ist nicht lesbar. Dein Stand hier bleibt unverändert.'];
+  if (c === 'upstream' && e.detail === 'invalid_client') return ['error', 'Google lehnt den Hilfsdienst ab (invalid_client): Client-ID oder Client-Geheimnis im Hilfsdienst stimmen nicht mit dem Google-Client überein.'];
+  if (c === 'upstream' && e.detail) return ['error', 'Google hat die Anmeldung abgelehnt (' + e.detail + ').'];
   if (c === 'not_configured') return ['error', 'Der Hilfsdienst ist noch nicht für Google eingerichtet.'];
   return ['error', 'Der Abgleich ist fehlgeschlagen (' + (c || 'unbekannt') + '). Dein Stand hier ist sicher.'];
 }
