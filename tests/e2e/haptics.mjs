@@ -58,6 +58,12 @@ try {
       await p.evaluate(() => document.activeElement.blur());
       await p.evaluate(() => document.getElementById('theme').click()); await p.waitForTimeout(400);
       ok(!(await act()).startsWith('INPUT'), 'Haptik setzt ohne Fokus keinen Fokus auf den Schalter (aktiv: ' + await act() + ')');
+      // Liegt der Knopf mit dem Fokus weit außerhalb des Bildschirms, darf die Seite beim Zurücksetzen des Fokus nicht springen
+      await p.evaluate(() => { document.getElementById('updBtn').focus({ preventScroll: true }); scrollTo(0, 0); });
+      const far = await p.evaluate(() => document.getElementById('updBtn').getBoundingClientRect().top > innerHeight);
+      await p.evaluate(() => document.getElementById('theme').click()); await p.waitForTimeout(500);
+      ok(await p.evaluate(() => scrollY) === 0, 'Haptik lässt die Seite stehen, auch wenn der Fokus weit unten liegt (Knopf außerhalb: ' + far + ', scrollY: ' + await p.evaluate(() => scrollY) + ')');
+      ok(await act() === 'updBtn', 'und der Fokus bleibt auf dem Knopf (aktiv: ' + await act() + ')');
     }
     ok(errors.length === 0, 'keine Skriptfehler ' + errors.join(' | '));
     await ctx.close();

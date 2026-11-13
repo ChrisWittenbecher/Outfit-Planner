@@ -40,8 +40,12 @@ function tap(l) {
   l.click();
   const now = document.activeElement;
   if (now === before || !(now instanceof HTMLElement) || !l.contains(now)) return;
-  if (before instanceof HTMLElement && before !== document.body && before.isConnected) before.focus({ preventScroll: true });
-  else now.blur();
+  if (before instanceof HTMLElement && before !== document.body && before.isConnected) {
+    // WebKit scrollt den Knopf trotz preventScroll in die Mitte, auch wenn er weit außerhalb des Bildschirms liegt: die Seite sprang beim Tippen auf ein Teil
+    const x = scrollX, y = scrollY;
+    before.focus({ preventScroll: true });
+    if (scrollX !== x || scrollY !== y) scrollTo({ left: x, top: y, behavior: 'instant' });
+  } else now.blur();
 }
 
 /** @param {'tick'|'select'|'success'|'warn'|'error'} kind */
