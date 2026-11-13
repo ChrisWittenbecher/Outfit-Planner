@@ -9,6 +9,7 @@
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
+  <meta name="app-version" content="2.0.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://anprobe.chris-wittenbecher.workers.dev https://www.googleapis.com https://api.open-meteo.com; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
@@ -19,6 +20,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/theme-init.js"></script>
+  <!-- Reihenfolge der Vorladungen: Ältere Versionen aktualisieren per „Aktualisieren“ nur die ersten 60 verlinkten Dateien (siehe js/version.js).
+       Neue Module gehören deshalb ans Ende der Liste, bereits ausgelieferte Dateien davor. Der Update-Test (tests/e2e/upgrade.mjs) prüft das mit echten alten Versionen. -->
   <link rel="modulepreload" href="js/main.js">
   <link rel="modulepreload" href="js/core.js">
   <link rel="modulepreload" href="js/haptics.js">
@@ -54,8 +57,6 @@
   <link rel="modulepreload" href="js/search.js">
   <link rel="modulepreload" href="js/intake.js">
   <link rel="modulepreload" href="js/batch.js">
-  <link rel="modulepreload" href="js/queue.js">
-  <link rel="modulepreload" href="js/addsheet.js">
   <link rel="modulepreload" href="js/model.js">
   <link rel="modulepreload" href="js/thumbs.js">
   <link rel="modulepreload" href="js/wearlog.js">
@@ -77,6 +78,9 @@
   <link rel="modulepreload" href="js/sell.js">
   <link rel="modulepreload" href="js/calendar.js">
   <link rel="modulepreload" href="js/pwa.js">
+  <link rel="modulepreload" href="js/queue.js">
+  <link rel="modulepreload" href="js/addsheet.js">
+  <link rel="modulepreload" href="js/guard.js">
   <script type="module" src="js/main.js"></script>
   <script src="js/fallback.js" defer></script>
 </head>

@@ -1,5 +1,7 @@
 // @ts-check
-export const VERSION = '1.20.0';
+export const VERSION = '2.0.0';
+/** Höchstzahl der Dateien, die „Aktualisieren“ neu lädt (bis 1.20.0 waren es 60: das reichte nicht mehr, als index.html mehr Dateien verlinkte). */
+export const REFRESH_MAX = 120;
 /**
  * @param {readonly (string | null)[]} hrefs rohe href- und src-Werte
  * @param {string} base Adresse der Seite
@@ -16,6 +18,6 @@ export function refreshTargets(hrefs, base) {
     try { u = new URL(h, page); } catch { continue; }
     if (u.origin === page.origin && u.pathname.startsWith(dir) && /\.(js|css|png|json)$/.test(u.pathname)) out.add(u.origin + u.pathname);
   }
-  return [...out].slice(0, 60);
+  return [...out].slice(0, REFRESH_MAX);
 }
 export const isVersion = (/** @type {unknown} */ v) => typeof v === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(v);

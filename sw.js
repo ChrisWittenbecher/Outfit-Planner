@@ -1,4 +1,4 @@
-const VERSION = '1.20.0';
+const VERSION = '2.0.0';
 const CACHE = 'anprobe-' + VERSION;
 const HOME = new URL('index.html', self.registration.scope).href;
 
@@ -13,7 +13,7 @@ async function appFiles() {
     try { u = new URL(h, HOME); } catch { continue; }
     if (u.origin === location.origin && u.href.startsWith(self.registration.scope) && !u.search) urls.add(u.href);
   }
-  return [...urls].slice(0, 80);
+  return [...urls].slice(0, 120);
 }
 
 self.addEventListener('install', e => {

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import './guard.js';   // zuerst: prüft, ob Seite und Module zusammenpassen
 import { $ } from './core.js';
 import { load, setReady } from './storage.js';
 import { loadThumbs } from './thumbs.js';

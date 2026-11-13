@@ -15,12 +15,14 @@ export function checker() {
 }
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+/** @param {number} port @param {string | (() => string)} dir Ordner der Dateien; als Funktion kann er zwischen zwei Anfragen wechseln (Update-Test) */
 export async function startServer(port, dir = root) {
   const server = http.createServer(async (req, res) => {
     try {
+      const base = typeof dir === 'function' ? dir() : dir;
       const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '') || 'index.html';
-      const file = path.join(dir, rel);
-      if (!file.startsWith(dir)) throw new Error('außerhalb');
+      const file = path.join(base, rel);
+      if (!file.startsWith(base)) throw new Error('außerhalb');
       const body = await readFile(file);
       res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
       res.end(body);
