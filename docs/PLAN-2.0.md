@@ -62,9 +62,15 @@ Stand der Planung: 13.11.2026. Ausgangspunkt ist 1.15.14. Die Vorschau mit den s
 
 ### Etappe 6 · 2.0.0 · Abschluss
 
-- Gesamtdurchgang: alle Wege von Hand und per Test, Daten aus einem alten Backup, Offline-Start, Update von 1.15.x auf 2.0.0 mit vorhandenen Daten und Google-Sicherung.
-- README, SECURITY.md, Anleitungen und diese Datei auf den Endstand bringen.
+- Gesamtdurchgang: alle Seiten, Hell und Dunkel, 360 bis 1280 px per Bildschirmfoto angesehen; alle Wege per Test; Daten aus einem alten Backup; Offline-Start jeder Seite; Update von 1.15.15, 1.19.0 und 1.20.0 auf 2.0.0 mit vorhandenen Daten und Google-Sicherung (`tests/e2e/upgrade.mjs`, die alten Versionen kommen aus dem Git-Verlauf, die CI checkt dafür den ganzen Verlauf aus).
+- README, SECURITY.md und diese Datei auf den Endstand gebracht.
 - Version 2.0.0.
+
+**Funde des Gesamtdurchgangs (alle behoben, mit Regressionstest):**
+
+1. **Update aus der alten App:** Die „Aktualisieren“-Funktion der ausgelieferten Versionen bis 1.20.0 lädt nur die ersten 60 verlinkten Dateien neu und holte bei der Adresse `/` die Datei `/` statt `/index.html`. Dadurch konnten eine alte Startseite und neue Module zusammenkommen, die App startete nicht. Gegenmaßnahmen: neue Module stehen in `index.html` hinter den bisherigen (die alten Versionen erwischen so alles Wichtige), Obergrenze in Service Worker und Update auf 120 (`REFRESH_MAX`), `js/guard.js` als Selbstheilung bei Mischstand, und `refresh()` holt jetzt `index.html` ausdrücklich.
+2. **Esc und der Hinzufügen-Knopf:** Esc zählte als Scrollen und blendete den Knopf aus (in der Safari-Engine sichtbar).
+3. **Board:** Wurde die Seite in einem anderen Reiter gestartet oder die Fenstergröße im verborgenen Schrank geändert, rechnete das Board mit Breite 0 und zeigte nichts oder zu klein. Der Maßstab wird jetzt nicht mit Breite 0 berechnet und beim Wechsel in den Schrank neu bestimmt.
 
 ## Teststrategie
 
@@ -72,7 +78,7 @@ Stand der Planung: 13.11.2026. Ausgangspunkt ist 1.15.14. Die Vorschau mit den s
 |---|---|
 | Unit | neue reine Module (Titel, Anlass, Wetter-Abbildung, Statistik, Teilen, Warteschlange), `sanitizeItem` mit `keep`, Import-Graph gegen `modulepreload`, CSP-Liste |
 | E2E (je Etappe neu) | Reiterwechsel per Maus, Tastatur, Zurück-Taste und Adresse; Karten, Aktionen, Wetter mit nachgestellter Antwort (Erfolg, Fehler, Ablehnung, Offline); Auswertung mit Beispieldaten; Teilen mit und ohne Share-API; Hinzufügen mit 1, 5 und 31 Fotos, Abbruch, kaputter Datei |
-| Bestand | Backup aus 1.15.14 laden, Etappe nutzen, Backup erneut exportieren: gleicher Inhalt |
+| Bestand | Backup aus 1.15.14 laden, Etappe nutzen, Backup erneut exportieren: gleicher Inhalt. Update von echten alten Versionen (1.15.15, 1.19.0, 1.20.0) mit Daten und Google-Sicherung: `upgrade.mjs` |
 | Optik | Bildschirmfotos aller Seiten, Hell und Dunkel, 360 bis 1280 px, von mir geprüft; Kontrasttest erweitert |
 | Zugänglichkeit | Rollen, Fokusreihenfolge, Tastaturbedienung, Live-Meldungen, 44-px-Ziele |
 | Sicherheit | CSP ohne Verstöße im ganzen Lauf, keine zusätzliche Adresse außer Open-Meteo, Eingaben bereinigt |
