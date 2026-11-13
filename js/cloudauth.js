@@ -34,3 +34,15 @@ export function readReturn(search) {
   if (!state || (!q.has('code') && !q.has('error'))) return null;
   return { code: q.get('code') || '', state, error: q.get('error') || '' };
 }
+
+/** Profilbild nur von Google selbst (https, googleusercontent.com); sonst leer. Größe wird auf 96 px beschnitten gesetzt. @param {unknown} u */
+export function safePhoto(u) {
+  if (typeof u !== 'string' || u.length > 500) return '';
+  let url; try { url = new URL(u); } catch { return ''; }
+  if (url.protocol !== 'https:' || url.username || url.password || url.port || !/(^|\.)googleusercontent\.com$/.test(url.hostname)) return '';
+  url.hash = '';
+  return url.href.replace(/=s\d+(-c)?$/, '=s96-c');
+}
+
+/** Anzeigetext aus Google-Daten: ohne Steuerzeichen, gekürzt. @param {unknown} v @param {number} max */
+export const cleanText = (v, max) => typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max) : '';

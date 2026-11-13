@@ -82,12 +82,17 @@
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="light" hidden><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-mode="dark" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <button type="button" id="cloudBtn" title="Dein Stand automatisch in Google Drive sichern" hidden>Google</button>
-      <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
+            <button type="button" id="exp" title="Alle Daten als Datei sichern">Backup</button>
       <button type="button" id="imp" title="Backup-Datei einlesen">Wiederherstellen</button>
       <input type="file" id="impf" accept="application/json" hidden>
       <button type="button" class="pri" id="addBtn" aria-haspopup="dialog">+ Kleidungsstück hinzufügen</button>
       <button type="button" class="ibtn more-btn" id="more" aria-haspopup="dialog" aria-label="Mehr" title="Mehr">⋯</button>
+      <button type="button" id="cloudBtn" class="acct" title="Mit Google anmelden" aria-label="Mit Google anmelden" aria-haspopup="dialog" hidden>
+        <svg class="acct-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+        <img class="acct-img" id="cloudAvatar" alt="" width="30" height="30" referrerpolicy="no-referrer" decoding="async" hidden>
+        <span class="acct-init" id="cloudInit" aria-hidden="true" hidden></span>
+        <span class="acct-label">Anmelden</span>
+      </button>
     </div>
   </header>
 
@@ -197,6 +202,11 @@
   <dialog id="cloudDlg" data-dismiss="backdrop" aria-labelledby="cloudTitle">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="cloudTitle" class="menu-title">Google-Sicherung</h2>
+    <div id="cloudWho" class="cloud-who" hidden>
+      <img id="cloudWhoImg" alt="" width="48" height="48" referrerpolicy="no-referrer" hidden>
+      <span id="cloudWhoInit" class="who-init" aria-hidden="true" hidden></span>
+      <div class="who-text"><strong id="cloudName"></strong><span id="cloudMail"></span></div>
+    </div>
     <p id="cloudText" class="cloud-text"></p>
     <p id="cloudState" class="cloud-state" role="status"></p>
     <div class="menu-list">
