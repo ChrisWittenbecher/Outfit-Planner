@@ -21,5 +21,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps webkit
-      - name: resize diag
-        run: node tests/e2e/dbg-resize.mjs || true
+      - name: feedback x2
+        run: for i in 1 2; do echo "##### feedback $i"; node tests/e2e/feedback.mjs || true; done
