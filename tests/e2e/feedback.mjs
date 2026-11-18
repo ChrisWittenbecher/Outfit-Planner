@@ -41,7 +41,11 @@ try {
       const before = github.length;
       await p.click('#fbSend');
       if (!await wait(() => github.length > before, 8000)) return null;
-      return new URL(github[github.length - 1]);
+      const url = new URL(github[github.length - 1]);
+      await sleep(150);
+      for (const other of ctx.pages()) if (other !== p) await other.close().catch(() => {});   // wie die Rückkehr aus dem neuen Tab: WebKit hält die Seite im Hintergrund an (keine Größenänderungen)
+      await p.bringToFront();
+      return url;
     };
 
     console.log('--- Hinweis in der Fußzeile');
