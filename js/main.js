@@ -18,6 +18,7 @@ import './ui.js';
 import './haptics.js';
 import './theme.js';
 import './update.js';
+import './feedbackdlg.js';
 import './calendar.js';
 import './nav.js';
 import './sugpage.js';
