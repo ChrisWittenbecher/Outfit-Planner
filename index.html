@@ -9,7 +9,7 @@
   <meta name="description" content="Plane Outfits aus Screenshots und Fotos: Kleiderschrank, Anprobe-Board, Preise und Links an einem Ort.">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
-  <meta name="app-version" content="2.0.0">
+  <meta name="app-version" content="2.1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; connect-src 'self' https://anprobe.chris-wittenbecher.workers.dev https://www.googleapis.com https://api.open-meteo.com; worker-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon48.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
@@ -80,6 +80,8 @@
   <link rel="modulepreload" href="js/pwa.js">
   <link rel="modulepreload" href="js/queue.js">
   <link rel="modulepreload" href="js/addsheet.js">
+  <link rel="modulepreload" href="js/feedback.js">
+  <link rel="modulepreload" href="js/feedbackdlg.js">
   <link rel="modulepreload" href="js/guard.js">
   <script src="js/recover.js" defer></script>
   <script type="module" src="js/main.js"></script>
@@ -303,6 +305,7 @@
     </li>
   </template>
 
+  <p class="ver ver--fb">Fehler gefunden oder eine Idee? <button type="button" id="fbBtn">Rückmeldung geben</button></p>
   <p class="ver">Outfit-Planner <span id="ver"></span> · <span id="bk"></span><span id="bkSep" hidden> · </span><button type="button" id="updBtn">Nach Update suchen</button></p>
 
   <dialog id="menuDlg" data-dismiss="backdrop" aria-labelledby="menuTitle">
@@ -391,6 +394,26 @@
     <p class="hint" id="salePrice"></p>
     <div id="saleLive" class="sr-only" role="status" aria-live="polite"></div>
     <div class="foot"><button type="button" id="saleCopy" class="pri">Text kopieren</button><button type="button" id="saleClose">Schließen</button></div>
+  </dialog>
+
+  <!-- Rückmeldung: Fehler oder Wunsch als vorausgefülltes GitHub-Issue (js/feedback.js). Von der App geht nichts ab, bevor die Person auf „Auf GitHub öffnen“ tippt. -->
+  <dialog id="fbDlg" aria-labelledby="fbTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="fbTitle" class="menu-title" tabindex="-1" autofocus>Fehler oder Anregung</h2>
+    <p class="hint">Danke fürs Mitmachen! Deine Rückmeldung wird im öffentlichen GitHub-Projekt des Outfit-Planners gesammelt und dort gelesen.</p>
+    <div class="chips fb-kind" role="group" aria-label="Art der Rückmeldung">
+      <button type="button" id="fbBug" aria-pressed="true">Fehler melden</button>
+      <button type="button" id="fbIdea" aria-pressed="false">Wunsch oder Idee</button>
+    </div>
+    <label for="fbTitleIn">Titel</label>
+    <input id="fbTitleIn" maxlength="100" autocomplete="off" enterkeyhint="next">
+    <label for="fbText" id="fbTextLabel">Was ist passiert? Was hast du erwartet?</label>
+    <textarea id="fbText" rows="6" maxlength="1500" autocomplete="off"></textarea>
+    <label class="ck ck--spaced"><input type="checkbox" id="fbInfo" checked> Version und Gerät anhängen (hilft beim Nachstellen)</label>
+    <p class="hint fb-note"><b>Öffentlich sichtbar:</b> Bitte keine persönlichen Daten und keine Fotos deiner Kleidung eintragen. Du brauchst ein GitHub-Konto. Auf GitHub siehst du den Text noch einmal und sendest ihn dort selbst ab.</p>
+    <p class="hint err" id="fbErr" role="alert" hidden></p>
+    <p class="hint" id="fbStatus" role="status" aria-live="polite" hidden></p>
+    <div class="foot"><button type="button" id="fbSend" class="pri">Auf GitHub öffnen ↗</button><button type="button" id="fbCopy">Text kopieren</button><button type="button" id="fbClose">Abbrechen</button></div>
   </dialog>
 
   <dialog id="calDlg" aria-labelledby="calTitle">
