@@ -167,9 +167,10 @@ try {
           if (b.left < r.left - 1 || b.right > r.right + 1) out.push(id + ' ragt seitlich heraus');
           if (b.width < 60) out.push(id + ' zu schmal (' + Math.round(b.width) + ')');
         }
-        return { over: document.documentElement.scrollWidth > innerWidth, out, h: r.height <= innerHeight + 1 };
+        const wide = [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).slice(0, 6).map(e => (e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + e.className) + ' ' + Math.round(e.getBoundingClientRect().right));
+        return { over: document.documentElement.scrollWidth > innerWidth, out, h: r.height <= innerHeight + 1, info: `scrollWidth ${document.documentElement.scrollWidth}, innerWidth ${innerWidth}, Dialog ${Math.round(r.width)}×${Math.round(r.height)}, innerHeight ${innerHeight}, max-height ${getComputedStyle(d).maxHeight}, zu breit: ${wide.join('; ')}` };
       });
-      ok(!lay.over && lay.out.length === 0 && lay.h, `${w} px: nichts ragt heraus, Dialog passt in die Höhe ${lay.out.join(', ')}`);
+      ok(!lay.over && lay.out.length === 0 && lay.h, `${w} px: nichts ragt heraus, Dialog passt in die Höhe ${lay.out.join(', ')} [${lay.info}]`);
     }
     await p.setViewportSize(opts.viewport || { width: 390, height: 844 }); await sleep(250); await calm();
     if (mobile) {
