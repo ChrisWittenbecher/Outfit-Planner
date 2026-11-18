@@ -1,5 +1,5 @@
 // @ts-check
-export const VERSION = '2.0.0';
+export const VERSION = '2.1.0';
 /** Höchstzahl der Dateien, die „Aktualisieren“ neu lädt (bis 1.20.0 waren es 60: das reichte nicht mehr, als index.html mehr Dateien verlinkte). */
 export const REFRESH_MAX = 120;
 /**

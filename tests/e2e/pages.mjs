@@ -127,6 +127,10 @@ try {
       await p.setViewportSize(vp); await p.waitForTimeout(300);
       await p.click('#tab-schrank'); await p.waitForFunction(() => !document.getElementById('view-schrank').hidden);
       await same(w0, 'Fenster geändert, während der Schrank verborgen war: Board hat danach wieder seine Größe');
+      await p.setViewportSize({ width: 320, height: vp.height });   // Fenster verkleinern, während der Schrank sichtbar ist (WebKit meldet resize teils vor dem neuen Layout)
+      ok(await wait(() => p.evaluate(() => document.getElementById('board').getBoundingClientRect().right <= innerWidth && document.documentElement.scrollWidth <= innerWidth)), 'auf 320 px verkleinert: das Board passt hinein, die Seite ragt nicht heraus');
+      await p.setViewportSize(vp);
+      await same(w0, 'danach wieder in der alten Größe: Board hat seine Größe');
       await p.goto(BASE + '#auswertung'); await ready(p);
       await p.click('#tab-schrank'); await p.waitForFunction(() => !document.getElementById('view-schrank').hidden);
       await same(w0, 'Start in der Auswertung, dann Schrank: Board hat seine Größe');

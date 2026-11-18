@@ -197,6 +197,7 @@
   @media (hover: none) and (pointer: coarse) { .sub .fine { display: none; } .sub .touch { display: inline; } }
   .ver { color: var(--mute); font-size: 12px; text-align: center; padding: 4px 16px calc(84px + env(safe-area-inset-bottom)); }
   .ver button { background: none; border: 0; padding: 10px 6px; font: inherit; color: var(--acc-strong); text-decoration: underline; cursor: pointer; min-height: var(--tap); }
+  .ver--fb { padding-bottom: 0; }   /* der Hinweis zur Rückmeldung steht über der Versionszeile, die den Platz für die Schaltfläche unten lässt */
 
   /* Ebenen- und Preisliste unter dem Board */
   #sum { width: 100%; margin-top: 16px; }
@@ -494,6 +495,20 @@
   #packList h3 small { font-weight: 400; color: var(--mute); }
   #packList ul { list-style: none; margin: 0; padding: 0; }
   #packList li { padding: 4px 0; }
+  /* Rückmeldung */
+  @media (min-width: 561px) { #fbDlg { width: min(520px, 94vw); } }
+  #fbText { display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--field-line); border-radius: var(--radius-sm); background: var(--field); color: inherit; font: inherit; line-height: 1.45; resize: vertical; min-height: 7em; }
+  #fbDlg .fb-kind { margin: 12px 0 0; }
+  #fbDlg .fb-note { margin-top: 12px; }
+  #fbDlg .hint.err { color: var(--danger); margin-top: 8px; }
+  #fbDlg #fbStatus { margin-top: 12px; }
+  #fbDlg [aria-invalid="true"] { border-color: var(--danger); }
+  #fbDlg .foot { flex-wrap: wrap; }
+  @media (max-width: 560px) {
+    #fbDlg .foot { display: grid; grid-template-columns: 1fr 1fr; }   /* „Auf GitHub öffnen“ über die ganze Breite, darunter Kopieren und Abbrechen */
+    #fbDlg #fbSend { grid-column: 1 / -1; }
+    html[data-view="schrank"] .ver:not(.ver--fb) { padding-bottom: calc(var(--bar) + 84px); }   /* die letzte Zeile bleibt über der Schaltfläche „+“ */
+  }
   #saleText { display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--field-line); border-radius: var(--radius-sm); background: var(--field); color: inherit; font: inherit; line-height: 1.45; resize: vertical; }
 
   /* Kalender und Auswertung */

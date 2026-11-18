@@ -47,6 +47,7 @@ Der typische Ablauf:
 | **Google-Sicherung** | Optional: Anmeldung mit Google über den Knopf oben rechts (danach Profilbild mit Dropdown für Stand, Backup und Abmelden; abgemeldet bietet das Dropdown „Mit Google anmelden“, Backup und Wiederherstellen). Dein Stand liegt dann in einer versteckten Datei im App-Ordner deines Google Drive (nur der Outfit-Planner sieht sie) und ist auf jedem angemeldeten Gerät aktuell. Jede Änderung geht nach etwa einer Sekunde nach Google, Änderungen von anderen Geräten holt die App von selbst; einen Knopf zum Abgleichen gibt es nicht. Bei Unterschieden fragt die App: zusammenführen, Google übernehmen oder diesen Stand behalten. Das Backup bleibt zusätzlich möglich. Einrichtung: [worker/GOOGLE.md](worker/GOOGLE.md). |
 | **Haptisches Feedback** | Auf Handy und Tablet: leichtes Tippen bei Bedienelementen und Auswahl, Muster bei Speichern (Erfolg), Löschen (Warnung) und Fehlern. Android über die Vibration API, iPhone (Safari ab 17.4) über einen unsichtbaren Schalter. Ein- und ausschaltbar unter „Mehr“, am Desktop nicht vorhanden. |
 | **Offline und installierbar (PWA)** | Läuft nach dem ersten Laden auch ohne Netz. Auf dem iPhone über Teilen → „Zum Home-Bildschirm“ als eigene App, dann räumt Safari die Daten nicht mehr nach Tagen ab. Die Fußzeile zeigt, wann das letzte Backup war, und nach 30 Tagen erinnert ein Hinweis. Das Teilen-Ziel („An Outfit-Planner senden“) gibt es auf dem iPhone nicht. |
+| **Rückmeldung** | Am Ende der Seite steht „Fehler gefunden oder eine Idee?“ mit dem Knopf „Rückmeldung geben“. Der Dialog fragt nach Art (Fehler oder Wunsch), Titel und Beschreibung. „Auf GitHub öffnen“ öffnet in einem neuen Tab die Seite „Neues Issue“ dieses Projekts, mit Titel, Text und passendem Label schon ausgefüllt; abgeschickt wird dort mit dem eigenen GitHub-Konto. Auf Wunsch hängt die App Version, Anzeigeart, Fenstergröße und Gerät an (Häkchen abwählbar). „Text kopieren“ legt den Text in die Zwischenablage, falls er für GitHub zu lang ist oder du ihn anderswo schicken willst. Bis zum Klick verlässt nichts die App. Issues sind öffentlich: keine privaten Daten oder Fotos eintragen (der Dialog weist darauf hin). |
 | **Barrierefrei** | Tastaturbedienung, sinnvolle ARIA-Rollen und Live-Meldungen, sichtbarer Fokus. |
 
 ## Schnellstart
@@ -149,12 +150,14 @@ Die App besteht nur aus statischen Dateien und braucht keinen eigenen Server. F�
 │   ├── pwa.js              Service Worker anmelden, Backup-Zeile und Hinweise
 │   ├── version.js          Versionsnummer, Prüfung von Versionen, Auswahl der Dateien beim Aktualisieren (getestet)
 │   ├── recover.js          Notbremse: startet die App nach einem Update nicht, lädt die Seite von selbst neu
+│   ├── feedback.js         Rückmeldung: baut die Adresse für das vorausgefüllte GitHub-Issue (reine Logik, getestet)
+│   ├── feedbackdlg.js      Dialog „Fehler oder Anregung“ (Eingaben prüfen, GitHub öffnen, Text kopieren)
 │   └── fallback.js         Hinweis, falls die App nicht startet (z. B. per file://)
 ├── assets/
 │   └── icons/              App-Icons (auch maskierbar und für den iPhone-Home-Bildschirm)
 ├── tests/
 │   ├── unit/               Unit-Tests (node:test), darunter Kontrast- und Token-Prüfung
-│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Suche und Mehrfach-Upload, Update von alten Versionen mit Daten (`upgrade.mjs`), Notbremse beim Start (`recover.mjs`), Sicherheit
+│   └── e2e/                End-to-End-Tests (Playwright): Hinzufügen/Wunschliste, Dunkelmodus/Rückgängig, Bild- und Shop-Link, Outfit-Fitter, Doppeltipp, Update-Hinweis, Bewegung und Touch-Verhalten, Offline und Installation, Kalender, Suche und Mehrfach-Upload, Update von alten Versionen mit Daten (`upgrade.mjs`), Notbremse beim Start (`recover.mjs`), Rückmeldung (`feedback.mjs`), Sicherheit
 ├── .github/workflows/      Continuous Integration
 ├── package.json
 └── tsconfig.json           strikte Typprüfung per JSDoc
@@ -175,6 +178,8 @@ Alle Maßnahmen, die Einstellungen auf GitHub (Branch-Schutz, Secret Scanning, �
 ### Externe Dienste
 
 Das Freistellen läuft komplett auf deinem Gerät. Wenn du **„Bild per Link laden“** benutzt, holt dein Browser das Bild direkt vom Server des Shops, der dabei deine IP-Adresse sieht. Gespeichert wird danach nur eine lokale Kopie, nie der Bildlink. Alles andere läuft ohne Netzwerkzugriff.
+
+Bei **„Rückmeldung geben“** sendet die App selbst nichts. Erst wenn du „Auf GitHub öffnen“ tippst, öffnet dein Browser github.com in einem neuen Tab (feste Adresse dieses Projekts, Text nur als Adressbestandteil). Abgeschickt wird erst dort, mit deinem GitHub-Konto; dann sind Titel und Text für alle sichtbar.
 
 ## Entwicklung
 
