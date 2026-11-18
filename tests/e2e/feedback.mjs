@@ -160,6 +160,7 @@ try {
     console.log('--- Layout');
     for (const w of [320, 360, 390, 768, 1280]) {
       await p.setViewportSize({ width: w, height: 800 }); await sleep(250); await calm();
+      await wait(() => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 3000);   // WebKit (Handy-Nachbildung) meldet die neue Fenstergröße verzögert: das Board passt seinen Maßstab erst dann an
       const lay = await p.evaluate(() => {
         const d = document.getElementById('fbDlg'), r = d.getBoundingClientRect(), out = [];
         for (const id of ['fbSend', 'fbCopy', 'fbClose', 'fbBug', 'fbIdea', 'fbTitleIn', 'fbText']) {
