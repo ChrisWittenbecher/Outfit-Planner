@@ -41,7 +41,11 @@ try {
       const before = github.length;
       await p.click('#fbSend');
       if (!await wait(() => github.length > before, 8000)) return null;
-      return new URL(github[github.length - 1]);
+      const url = new URL(github[github.length - 1]);
+      await sleep(150);
+      for (const other of ctx.pages()) if (other !== p) await other.close().catch(() => {});   // wie die Rückkehr aus dem neuen Tab: WebKit hält die Seite im Hintergrund an (keine Größenänderungen)
+      await p.bringToFront();
+      return url;
     };
 
     console.log('--- Hinweis in der Fußzeile');
@@ -160,6 +164,7 @@ try {
     console.log('--- Layout');
     for (const w of [320, 360, 390, 768, 1280]) {
       await p.setViewportSize({ width: w, height: 800 }); await sleep(250); await calm();
+      await wait(() => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 3000);   // WebKit (Handy-Nachbildung) meldet die neue Fenstergröße verzögert: das Board passt seinen Maßstab erst dann an
       const lay = await p.evaluate(() => {
         const d = document.getElementById('fbDlg'), r = d.getBoundingClientRect(), out = [];
         for (const id of ['fbSend', 'fbCopy', 'fbClose', 'fbBug', 'fbIdea', 'fbTitleIn', 'fbText']) {
