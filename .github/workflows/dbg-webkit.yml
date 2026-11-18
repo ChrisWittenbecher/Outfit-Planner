@@ -23,7 +23,5 @@ jobs:
       - run: npx playwright install --with-deps webkit
       - name: feedback x2
         run: for i in 1 2; do echo "##### feedback $i"; node tests/e2e/feedback.mjs || true; done
-      - name: resize steps
-        run: node tests/e2e/dbg-resize.mjs || true
-      - name: pages
-        run: node tests/e2e/pages.mjs || true
+      - name: pages, add-flow, mobile-back
+        run: for t in pages add-flow mobile-back selection; do echo "##### $t"; node tests/e2e/$t.mjs || true; done
