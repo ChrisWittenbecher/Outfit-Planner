@@ -150,7 +150,10 @@ export function fit(){
 addEventListener('resize', fit);
 // WebKit meldet „resize“ mitunter, bevor das neue Layout steht (Maßstab bliebe dann zu groß, die Seite ragt seitlich heraus): der Beobachter rechnet mit der fertigen Breite.
 if(typeof ResizeObserver === 'function'){
-  let last = 0;
-  new ResizeObserver(() => { const w = $('stage').clientWidth; if(w !== last){ last = w; fit(); } }).observe($('stage'));
+  let last = 0, queued = false;   // im nächsten Bild rechnen: fit() ändert die Höhe der Bühne, direkt im Beobachter gäbe das die Warnung „ResizeObserver loop“
+  new ResizeObserver(() => {
+    if(queued) return; queued = true;
+    requestAnimationFrame(() => { queued = false; const w = $('stage').clientWidth; if(w !== last){ last = w; fit(); } });
+  }).observe($('stage'));
 }
 document.addEventListener('anprobe:view', e => { if(e.detail.view === 'schrank') fit(); });   // Fenster wurde evtl. geändert, während der Schrank verborgen war
